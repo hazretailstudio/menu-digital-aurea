@@ -653,7 +653,1225 @@
   </main>
 
   <script>
-    // Configuración general
+    const REST_ID = 'b47a9880-9fd3-4c9b-b05b-86ea8f0d014d';
+    const SUPABASE_URL = 'https://jmqqkgshwwycercknzgy.supabase.co';
+    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImptcXFrZ3Nod3d5Y2VyY2tuemd5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMzNzYyODUsImV4cCI6MjEwODk1MjI4NX0.tCiRMvl05IXv_IGXIeJ2h9p6AEABRgPofgIRQZMt9UE';
+    
+    let client = null;
+    try {
+      if (window.supabase) client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    } catch (e) {
+      console.warn("Error inicializando Supabase:", e);
+    }
+
+    const WAITERS_LIST = ['Carlos M.', 'Sofía R.', 'Miguel A.', 'Barra / Mostrador'];
+    let adminOrders = [];
+    let adminProducts = [];
+    let adminCategories = [];
+    let adminTypes = [];
+    let adminPromos = [];
+    let adminCalls = [];
+
+    let kanbanViewMode = 'all'; // 'all' o 'single'
+    let selectedSingleStatus = 'pending';
+
+    const STATUS_FLOW = ['pending', 'preparing', 'delivered', 'paid'];
+    const STATUS_LABELS = {
+      pending: 'Recibida',
+      preparing: 'En Preparación',
+      delivered: 'Servida en Mesa',
+      paid: 'Cobrada'
+    };
+
+    let currentEditingOrder = null;
+    let modalOrderItems = [];
+    let currentInspector = null;
+    let currentEditingMedia = [];
+    let newProductSelectedFile = null;
+
+    const DAYS_NAMES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    let selectedDays = [0, 1, 2, 3, 4, 5, 6];
+    let selectedScopeIds = [];
+    let selectedTriggerProduct = null;
+    let selectedRewardProduct = null;
+
+    const sectionStates = { categories: true, types: true };
+
+    // =============================================================
+    // BANCO DE 10 SONIDOS CON WEB AUDIO API
+    // =============================================================
+    let audioCtx = null;
+    let currentSoundPreset = localStorage.getItem('kds_sound_preset') || 'bell';
+
+    function getAudioContext() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      return audioCtx;
+    }
+
+    function playTone(freq, startTime, duration, type = 'sine', gainLevel = 0.25) {
+      try {
+        const ctx = getAudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, startTime);
+        gain.gain.setValueAtTime(gainLevel, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(startTime);
+        osc.stop(startTime + duration);
+      } catch (e) {}
+    }
+
+    const SOUND_ENGINES = {
+      bell: (ctx, t) => { playTone(1046.50, t, 0.35, 'triangle', 0.3); playTone(1567.98, t + 0.14, 0.55, 'sine', 0.35); },
+      chime: (ctx, t) => { playTone(523.25, t, 0.2, 'sine', 0.25); playTone(659.25, t + 0.08, 0.2, 'sine', 0.28); playTone(783.99, t + 0.16, 0.4, 'triangle', 0.32); },
+      dingdong: (ctx, t) => { playTone(1318.51, t, 0.35, 'triangle', 0.35); playTone(987.77, t + 0.18, 0.65, 'sine', 0.3); },
+      arcade: (ctx, t) => {
+        try {
+          const osc = ctx.createOscillator(); const gain = ctx.createGain();
+          osc.type = 'triangle'; osc.frequency.setValueAtTime(440, t); osc.frequency.exponentialRampToValueAtTime(1200, t + 0.18);
+          gain.gain.setValueAtTime(0.3, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+          osc.connect(gain); gain.connect(ctx.destination); osc.start(t); osc.stop(t + 0.22);
+        } catch(e) {}
+      },
+      fanfare: (ctx, t) => { playTone(783.99, t, 0.12, 'square', 0.18); playTone(783.99, t + 0.10, 0.12, 'square', 0.2); playTone(1046.50, t + 0.20, 0.38, 'square', 0.25); },
+      zen: (ctx, t) => { playTone(432.00, t, 0.9, 'sine', 0.4); playTone(864.00, t, 0.6, 'sine', 0.15); },
+      jazz: (ctx, t) => { playTone(523.25, t, 0.5, 'triangle', 0.22); playTone(659.25, t + 0.04, 0.5, 'triangle', 0.22); playTone(783.99, t + 0.08, 0.5, 'triangle', 0.22); playTone(987.77, t + 0.12, 0.6, 'sine', 0.28); },
+      drop: (ctx, t) => {
+        try {
+          const osc = ctx.createOscillator(); const gain = ctx.createGain();
+          osc.type = 'sine'; osc.frequency.setValueAtTime(1800, t); osc.frequency.exponentialRampToValueAtTime(600, t + 0.15);
+          gain.gain.setValueAtTime(0.35, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+          osc.connect(gain); gain.connect(ctx.destination); osc.start(t); osc.stop(t + 0.18);
+        } catch(e) {}
+      },
+      reward: (ctx, t) => { playTone(523.25, t, 0.15, 'triangle', 0.22); playTone(659.25, t + 0.09, 0.15, 'triangle', 0.25); playTone(783.99, t + 0.18, 0.18, 'triangle', 0.28); playTone(1046.50, t + 0.27, 0.5, 'sine', 0.35); },
+      pulse: (ctx, t) => { playTone(900, t, 0.08, 'sawtooth', 0.15); playTone(1400, t + 0.06, 0.18, 'triangle', 0.3); }
+    };
+
+    function playSoundByName(presetName) {
+      try {
+        const ctx = getAudioContext();
+        const engine = SOUND_ENGINES[presetName] || SOUND_ENGINES.bell;
+        engine(ctx, ctx.currentTime);
+      } catch (err) {}
+    }
+
+    function changeSoundPreset(presetKey) {
+      currentSoundPreset = presetKey;
+      localStorage.setItem('kds_sound_preset', presetKey);
+      playSoundByName(presetKey);
+    }
+
+    function previewCurrentSound() {
+      playSoundByName(currentSoundPreset);
+    }
+
+    function playFlowSound(eventType) {
+      if (eventType === 'new_order') playSoundByName(currentSoundPreset);
+      else if (eventType === 'preparing') playSoundByName('arcade');
+      else if (eventType === 'delivered') playSoundByName('dingdong');
+      else if (eventType === 'paid') playSoundByName('reward');
+      else if (eventType === 'archive') playSoundByName('fanfare');
+      else if (eventType === 'rewind') playSoundByName('zen');
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-panel').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('border-stone-900', 'text-stone-900', 'font-bold');
+        btn.classList.add('border-transparent', 'text-stone-500', 'font-medium');
+      });
+
+      const targetPanel = document.getElementById(`tab-${tabId}`);
+      const targetBtn = document.getElementById(`tabBtn-${tabId}`);
+      if (targetPanel && targetBtn) {
+        targetPanel.classList.remove('hidden');
+        targetBtn.classList.remove('border-transparent', 'text-stone-500', 'font-medium');
+        targetBtn.classList.add('border-stone-900', 'text-stone-900', 'font-bold');
+      }
+
+      if (tabId === 'analytics') renderAnalyticsDashboard();
+    }
+
+    // DATOS DE RESPALDO LOCAL PARA NUNCA QUEDAR EN BLANCO
+    const DEFAULT_ADMIN_CATS = [
+      { id: 'cat-1', name: 'Brunch & Cocina', icon: '🥪', order_index: 1 },
+      { id: 'cat-2', name: 'Cafetería de Especialidad', icon: '☕', order_index: 2 }
+    ];
+    const DEFAULT_ADMIN_TYPES = [
+      { id: 'typ-1', name: 'Salado / Brunch', icon: '🥪', order_index: 1 },
+      { id: 'typ-2', name: 'Bebida Caliente', icon: '☕', order_index: 2 }
+    ];
+    const DEFAULT_ADMIN_PRODS = [
+      { id: 'p-1', category_id: 'cat-1', type_id: 'typ-1', title: 'Tostón de Aguacate Trufado', price: 165.00, is_available: true, media: [{ type: 'image', url: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=800&q=80' }] },
+      { id: 'p-2', category_id: 'cat-2', type_id: 'typ-2', title: 'Flat White Oaxaca Pluma', price: 78.00, is_available: true, media: [{ type: 'image', url: 'https://images.unsplash.com/photo-1577968897966-3d4325b36b61?auto=format&fit=crop&w=800&q=80' }] }
+    ];
+    const DEFAULT_ADMIN_ORDERS = [
+      {
+        id: 'ord-init-1',
+        table_number: '01',
+        waiter_name: 'Carlos M.',
+        items: [
+          { title: 'Tostón de Aguacate Trufado', qty: 1, price: 165.00, modifiers: ['Sin Huevo Poché'] },
+          { title: 'Flat White Oaxaca Pluma', qty: 2, price: 78.00, modifiers: ['Leche de Avena Barista'] }
+        ],
+        subtotal: 321.00,
+        discount: 78.00,
+        total: 243.00,
+        status: 'pending',
+        is_archived: false,
+        created_at: new Date(Date.now() - 360000).toISOString()
+      }
+    ];
+
+    async function init() {
+      const selectEl = document.getElementById('soundPresetSelect');
+      if (selectEl) selectEl.value = currentSoundPreset;
+
+      // Cargar defaults de inmediato
+      adminCategories = DEFAULT_ADMIN_CATS;
+      adminTypes = DEFAULT_ADMIN_TYPES;
+      adminProducts = DEFAULT_ADMIN_PRODS;
+      adminOrders = DEFAULT_ADMIN_ORDERS;
+
+      renderDaysSelector();
+      renderPromoDynamicFields();
+      updatePromoLivePreview();
+
+      renderKanbanBoard();
+      renderTaxonomies();
+      renderProducts();
+      renderPromotionsHistory();
+
+      // Sincronizar en segundo plano
+      await syncData();
+      setInterval(updateOrderTimers, 1000);
+    }
+
+    async function syncData() {
+      if (!client) {
+        document.getElementById('connStatus').innerText = 'Modo Local (Sin conexión a BD)';
+        return;
+      }
+      try {
+        const [ordersRes, prodsRes, catsRes, typesRes, promosRes, callsRes] = await Promise.all([
+          client.from('orders').select('*').order('created_at', { ascending: false }),
+          client.from('products').select('*').order('created_at', { ascending: false }),
+          client.from('categories').select('*').order('order_index', { ascending: true }),
+          client.from('product_types').select('*').order('order_index', { ascending: true }),
+          client.from('promotions').select('*').order('created_at', { ascending: false }),
+          client.from('waiter_calls').select('*').eq('status', 'pending').order('called_at', { ascending: true })
+        ]);
+
+        const prevPending = adminOrders.filter(o => o.status === 'pending' && !o.is_archived).length;
+        if (ordersRes?.data && ordersRes.data.length > 0) adminOrders = ordersRes.data;
+        if (prodsRes?.data && prodsRes.data.length > 0) adminProducts = prodsRes.data;
+        if (catsRes?.data && catsRes.data.length > 0) adminCategories = catsRes.data;
+        if (typesRes?.data && typesRes.data.length > 0) adminTypes = typesRes.data;
+        if (promosRes?.data && promosRes.data.length > 0) adminPromos = promosRes.data;
+        if (callsRes?.data) adminCalls = callsRes.data;
+
+        document.getElementById('connStatus').innerText = 'Sincronizado en tiempo real ✓';
+
+        renderKanbanBoard();
+        renderTaxonomies();
+        renderProducts();
+        renderPromotionsHistory();
+        renderCalls();
+
+        // Realtime
+        client
+          .channel('kds_kanban_realtime')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, async () => {
+            const { data } = await client.from('orders').select('*').order('created_at', { ascending: false });
+            if (data) {
+              const newPending = data.filter(o => o.status === 'pending' && !o.is_archived).length;
+              if (newPending > prevPending) {
+                playFlowSound('new_order');
+              }
+              adminOrders = data;
+              renderKanbanBoard();
+              renderAnalyticsDashboard();
+            }
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'waiter_calls' }, async () => {
+            const { data } = await client.from('waiter_calls').select('*').eq('status', 'pending').order('called_at', { ascending: true });
+            if (data) { adminCalls = data; renderCalls(); }
+          })
+          .subscribe();
+
+      } catch (err) {
+        console.warn("Error cargando KDS:", err);
+        document.getElementById('connStatus').innerText = 'Modo Local (Error de conexión)';
+      }
+    }
+
+    // -------------------------------------------------------------
+    // MOTOR KANBAN (TRELLO)
+    // -------------------------------------------------------------
+
+    function setKanbanDisplayMode(mode) {
+      kanbanViewMode = mode;
+      const btnAll = document.getElementById('btnViewMode-all');
+      const btnSingle = document.getElementById('btnViewMode-single');
+      const singleWrapper = document.getElementById('singleStatusSelectorWrapper');
+
+      if (mode === 'all') {
+        btnAll.className = 'px-3.5 py-1.5 rounded-xl transition bg-stone-900 text-white shadow-sm flex items-center gap-1.5';
+        btnSingle.className = 'px-3.5 py-1.5 rounded-xl transition text-stone-600 hover:text-stone-900 flex items-center gap-1.5';
+        singleWrapper.classList.add('hidden');
+      } else {
+        btnSingle.className = 'px-3.5 py-1.5 rounded-xl transition bg-stone-900 text-white shadow-sm flex items-center gap-1.5';
+        btnAll.className = 'px-3.5 py-1.5 rounded-xl transition text-stone-600 hover:text-stone-900 flex items-center gap-1.5';
+        singleWrapper.classList.remove('hidden');
+      }
+
+      updateSingleStatusChipsUI();
+      renderKanbanBoard();
+    }
+
+    function changeSingleStatusView(status) {
+      selectedSingleStatus = status;
+      updateSingleStatusChipsUI();
+      renderKanbanBoard();
+    }
+
+    function updateSingleStatusChipsUI() {
+      STATUS_FLOW.forEach(st => {
+        const chip = document.getElementById(`chipStatus-${st}`);
+        if (!chip) return;
+        if (st === selectedSingleStatus) {
+          chip.className = 'px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-sm bg-amber-600 text-white border border-amber-600';
+        } else {
+          chip.className = 'px-3 py-1.5 rounded-xl text-xs font-bold transition border border-stone-200 bg-white text-stone-700 hover:bg-stone-50';
+        }
+      });
+    }
+
+    function renderKanbanBoard() {
+      const container = document.getElementById('kanbanBoardContainer');
+      const activeLiveOrders = adminOrders.filter(o => !o.is_archived);
+      const activeCount = activeLiveOrders.filter(o => o.status !== 'paid').length;
+      document.getElementById('kdsActiveCount').innerText = `${activeCount} comanda(s) activas`;
+      document.getElementById('badgeLiveOrders').innerText = activeCount;
+
+      STATUS_FLOW.forEach(st => {
+        const count = activeLiveOrders.filter(o => o.status === st).length;
+        const badgeEl = document.getElementById(`colCount-${st}`);
+        if (badgeEl) badgeEl.innerText = count;
+      });
+
+      if (kanbanViewMode === 'single') {
+        container.className = 'grid grid-cols-1 max-w-xl mx-auto gap-4 items-start';
+        STATUS_FLOW.forEach(st => {
+          const colEl = document.getElementById(`column-${st}`);
+          if (colEl) colEl.style.display = (st === selectedSingleStatus ? 'block' : 'none');
+        });
+      } else {
+        container.className = 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start';
+        STATUS_FLOW.forEach(st => {
+          const colEl = document.getElementById(`column-${st}`);
+          if (colEl) colEl.style.display = 'block';
+        });
+      }
+
+      STATUS_FLOW.forEach(statusKey => {
+        const colContainer = document.getElementById(`cards-${statusKey}`);
+        if (!colContainer) return;
+
+        const ordersInStatus = activeLiveOrders.filter(o => o.status === statusKey);
+
+        if (ordersInStatus.length === 0) {
+          colContainer.innerHTML = `
+            <div class="h-44 border-2 border-dashed border-stone-300/80 rounded-2xl flex flex-col items-center justify-center text-stone-400 text-xs">
+              <span>Sin comandas en este estatus</span>
+            </div>
+          `;
+          return;
+        }
+
+        colContainer.innerHTML = ordersInStatus.map(order => {
+          const elapsed = Math.floor((Date.now() - new Date(order.created_at).getTime()) / 1000);
+          const { timerClass, badgeBg, badgeText } = getTimerSLA(elapsed, order.status);
+          const items = Array.isArray(order.items) ? order.items : [];
+          const currentIdx = STATUS_FLOW.indexOf(order.status);
+
+          return `
+            <div class="bg-white rounded-2xl border-2 p-3.5 shadow-sm space-y-3 transition-all duration-200 ${timerClass}" id="card-${order.id}">
+              <div class="flex justify-between items-start gap-2">
+                <div>
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-base font-black text-stone-900">Mesa ${order.table_number}</span>
+                    <span class="text-[10px] text-stone-400 font-mono">#${(order.id || '').substring(0,4)}</span>
+                  </div>
+                  <div class="flex items-center gap-1 mt-0.5">
+                    <span class="text-[11px] text-stone-400">Mesero:</span>
+                    <select onchange="updateOrderWaiter('${order.id}', this.value)" class="text-xs font-bold text-stone-700 bg-transparent border-b border-stone-200 focus:outline-none cursor-pointer">
+                      ${WAITERS_LIST.map(w => `<option value="${w}" ${order.waiter_name === w ? 'selected' : ''}>${w}</option>`).join('')}
+                    </select>
+                  </div>
+                </div>
+
+                <div class="flex flex-col items-end gap-1.5">
+                  <span class="inline-flex items-center gap-1 text-[11px] font-mono font-black px-2 py-0.5 rounded-lg ${badgeBg} ${badgeText}" id="orderTimer-${order.id}">
+                    ⏱ ${formatElapsed(elapsed)}
+                  </span>
+                  <div class="flex items-center gap-1">
+                    <button onclick="openEditOrderModal('${order.id}')" class="p-1 hover:bg-stone-100 rounded-lg text-xs font-bold text-stone-600 transition" title="Editar comanda">✏️</button>
+                    <button onclick="deleteOrder('${order.id}')" class="p-1 hover:bg-rose-50 text-rose-500 rounded-lg text-xs font-bold transition" title="Eliminar comanda">🗑️</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="border-t border-stone-100 pt-2 space-y-1.5 text-xs">
+                ${items.map(it => `
+                  <div class="flex justify-between items-start gap-2">
+                    <div class="flex items-start gap-1.5">
+                      <span class="font-mono font-black bg-stone-900 text-white rounded px-1.5 text-[10px] flex-shrink-0 mt-0.5">${it.qty}x</span>
+                      <div>
+                        <span class="font-bold text-stone-800 leading-snug">${it.title}</span>
+                        ${it.modifiers && it.modifiers.length > 0 ? `<p class="text-[10px] text-amber-800 font-semibold">↳ ${it.modifiers.join(', ')}</p>` : ''}
+                      </div>
+                    </div>
+                    <span class="font-mono text-stone-500 text-[11px] font-semibold">$${(it.price * it.qty).toFixed(2)}</span>
+                  </div>
+                `).join('')}
+                ${order.customer_notes ? `<div class="bg-amber-50 border border-amber-200 rounded-lg p-1.5 text-[10px] text-amber-900 font-semibold mt-1"><span>📝 Nota:</span> ${order.customer_notes}</div>` : ''}
+              </div>
+
+              <div class="border-t border-stone-100 pt-2 flex justify-between items-center text-xs">
+                <div>
+                  ${order.discount > 0 ? `<div class="bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded text-[10px] font-bold text-emerald-800 flex items-center gap-1"><span>🏷️ Ahorro Promo:</span><span class="font-mono">-$${Number(order.discount).toFixed(2)}</span></div>` : ''}
+                </div>
+                <div class="text-right">
+                  <span class="text-[10px] text-stone-400 block font-medium">Total Mesa:</span>
+                  <span class="font-black font-mono text-sm text-stone-900">$${Number(order.total).toFixed(2)}</span>
+                </div>
+              </div>
+
+              <div class="border-t border-stone-100 pt-2 flex items-center justify-between gap-1.5">
+                ${currentIdx > 0 ? `
+                  <button onclick="moveOrderStatus('${order.id}', -1)" class="px-2.5 py-1.5 rounded-xl text-stone-600 bg-stone-100 hover:bg-stone-200 text-xs font-bold transition flex items-center gap-1 active:scale-95" title="Regresar"><span>←</span></button>
+                ` : '<div></div>'}
+
+                ${order.status === 'paid' ? `
+                  <button onclick="archiveOrder('${order.id}')" class="flex-grow px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm">
+                    <span>Enviar al Histórico del Día 📦</span>
+                  </button>
+                ` : `
+                  <button onclick="moveOrderStatus('${order.id}', 1)" class="flex-grow px-3 py-1.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm active:scale-95">
+                    <span>Mover a ${STATUS_LABELS[STATUS_FLOW[currentIdx + 1]]}</span><span>→</span>
+                  </button>
+                `}
+              </div>
+            </div>
+          `;
+        }).join('');
+      });
+    }
+
+    async function moveOrderStatus(orderId, direction) {
+      const order = adminOrders.find(o => o.id === orderId);
+      if (!order) return;
+
+      const currentIdx = STATUS_FLOW.indexOf(order.status);
+      const nextIdx = currentIdx + direction;
+      if (nextIdx < 0 || nextIdx >= STATUS_FLOW.length) return;
+
+      const newStatus = STATUS_FLOW[nextIdx];
+      order.status = newStatus;
+
+      if (direction < 0) playFlowSound('rewind');
+      else playFlowSound(newStatus);
+
+      const updatePayload = { status: newStatus };
+      const nowIso = new Date().toISOString();
+      if (newStatus === 'preparing') updatePayload.preparing_at = nowIso;
+      if (newStatus === 'delivered') updatePayload.delivered_at = nowIso;
+      if (newStatus === 'paid') updatePayload.paid_at = nowIso;
+
+      renderKanbanBoard();
+      if (client) await client.from('orders').update(updatePayload).eq('id', orderId);
+    }
+
+    async function archiveOrder(orderId) {
+      const order = adminOrders.find(o => o.id === orderId);
+      if (!order) return;
+      order.is_archived = true;
+      playFlowSound('archive');
+      renderKanbanBoard();
+      if (client) await client.from('orders').update({ is_archived: true }).eq('id', orderId);
+    }
+
+    async function deleteOrder(orderId) {
+      const order = adminOrders.find(o => o.id === orderId);
+      if (!confirm(`¿Eliminar la comanda de la Mesa ${order?.table_number || ''}?`)) return;
+      adminOrders = adminOrders.filter(o => o.id !== orderId);
+      renderKanbanBoard();
+      if (client) await client.from('orders').delete().eq('id', orderId);
+    }
+
+    // -------------------------------------------------------------
+    // ANALYTICS & DASHBOARD
+    // -------------------------------------------------------------
+
+    function renderAnalyticsDashboard() {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const todayOrders = adminOrders.filter(o => o.created_at && o.created_at.startsWith(todayStr));
+
+      const paidOrders = todayOrders.filter(o => o.status === 'paid');
+      const totalRevenue = paidOrders.reduce((acc, o) => acc + Number(o.total || 0), 0);
+      const avgTicket = paidOrders.length > 0 ? (totalRevenue / paidOrders.length) : 0;
+
+      const activeOrders = todayOrders.filter(o => o.status !== 'paid' && !o.is_archived);
+      const pendingRevenue = activeOrders.reduce((acc, o) => acc + Number(o.total || 0), 0);
+
+      document.getElementById('kpiRevenue').innerText = `$${totalRevenue.toFixed(2)} MXN`;
+      document.getElementById('kpiAvgTicket').innerText = `$${avgTicket.toFixed(2)}`;
+      document.getElementById('kpiTotalOrders').innerText = paidOrders.length;
+      document.getElementById('kpiPendingRevenue').innerText = `$${pendingRevenue.toFixed(2)}`;
+
+      let waitTimes = [];
+      let kitchenTimes = [];
+      let tableTimes = [];
+
+      todayOrders.forEach(o => {
+        const created = new Date(o.created_at).getTime();
+        if (o.preparing_at) waitTimes.push((new Date(o.preparing_at).getTime() - created) / 1000);
+        if (o.preparing_at && o.delivered_at) kitchenTimes.push((new Date(o.delivered_at).getTime() - new Date(o.preparing_at).getTime()) / 1000);
+        if (o.delivered_at && o.paid_at) tableTimes.push((new Date(o.paid_at).getTime() - new Date(o.delivered_at).getTime()) / 1000);
+      });
+
+      const avgWait = waitTimes.length > 0 ? Math.round(waitTimes.reduce((a, b) => a + b, 0) / waitTimes.length) : 0;
+      const avgKitchen = kitchenTimes.length > 0 ? Math.round(kitchenTimes.reduce((a, b) => a + b, 0) / kitchenTimes.length) : 0;
+      const avgTable = tableTimes.length > 0 ? Math.round(tableTimes.reduce((a, b) => a + b, 0) / tableTimes.length) : 0;
+
+      document.getElementById('slaWaitTime').innerText = formatElapsed(avgWait);
+      document.getElementById('slaKitchenTime').innerText = formatElapsed(avgKitchen);
+      document.getElementById('slaTableTime').innerText = formatElapsed(avgTable);
+
+      const productSales = {};
+      todayOrders.forEach(o => {
+        (o.items || []).forEach(it => {
+          if (!productSales[it.title]) productSales[it.title] = { qty: 0, revenue: 0 };
+          productSales[it.title].qty += it.qty;
+          productSales[it.title].revenue += it.qty * Number(it.price || 0);
+        });
+      });
+
+      const sortedProducts = Object.entries(productSales).sort((a, b) => b[1].qty - a[1].qty).slice(0, 5);
+      const topListEl = document.getElementById('topProductsList');
+
+      if (sortedProducts.length === 0) {
+        topListEl.innerHTML = '<p class="text-xs text-stone-400 text-center py-6">Sin registros de ventas aún.</p>';
+      } else {
+        topListEl.innerHTML = sortedProducts.map(([title, data], idx) => `
+          <div class="flex items-center justify-between p-2 rounded-xl bg-stone-50 border border-stone-100 text-xs">
+            <div class="flex items-center gap-2">
+              <span class="w-5 h-5 rounded-full bg-amber-600 text-white font-bold flex items-center justify-center text-[10px]">${idx + 1}</span>
+              <span class="font-bold text-stone-800">${title}</span>
+            </div>
+            <div class="text-right font-mono">
+              <span class="font-bold text-stone-900">${data.qty} vendidos</span>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      const tableBody = document.getElementById('historyTableBody');
+      if (adminOrders.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="7" class="py-6 text-center text-stone-400">No hay comandas registradas</td></tr>';
+        return;
+      }
+
+      tableBody.innerHTML = adminOrders.map(o => {
+        const itemsSummary = (o.items || []).map(i => `${i.qty}x ${i.title}`).join(', ');
+        return `
+          <tr class="hover:bg-stone-50 text-stone-700">
+            <td class="py-2.5 font-bold font-mono">Mesa ${o.table_number}</td>
+            <td class="py-2.5 font-mono text-stone-500">${new Date(o.created_at).toLocaleTimeString().substring(0,5)}</td>
+            <td class="py-2.5 font-semibold text-stone-800">${o.waiter_name || 'Sin asignar'}</td>
+            <td class="py-2.5 max-w-xs truncate" title="${itemsSummary}">${itemsSummary}</td>
+            <td class="py-2.5 font-mono text-emerald-600 font-semibold">${o.discount > 0 ? `-$${Number(o.discount).toFixed(2)}` : '-'}</td>
+            <td class="py-2.5 font-mono font-bold text-stone-900">$${Number(o.total).toFixed(2)}</td>
+            <td class="py-2.5">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${o.status === 'paid' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                ${o.is_archived ? 'Archivada' : STATUS_LABELS[o.status] || o.status}
+              </span>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // -------------------------------------------------------------
+    // MODAL DE EDICIÓN DE COMANDA
+    // -------------------------------------------------------------
+
+    function openEditOrderModal(orderId) {
+      const order = adminOrders.find(o => o.id === orderId);
+      if (!order) return;
+
+      currentEditingOrder = order;
+      modalOrderItems = JSON.parse(JSON.stringify(order.items || []));
+
+      document.getElementById('modalOrderId').value = order.id;
+      document.getElementById('modalOrderTableBadge').innerText = `Mesa ${order.table_number}`;
+      document.getElementById('modalOrderNotes').value = order.customer_notes || '';
+      document.getElementById('modalOrderStatus').value = order.status || 'pending';
+
+      const waiterSelect = document.getElementById('modalOrderWaiter');
+      waiterSelect.innerHTML = WAITERS_LIST.map(w => `<option value="${w}" ${order.waiter_name === w ? 'selected' : ''}>${w}</option>`).join('');
+
+      renderModalOrderItems();
+      document.getElementById('editOrderModal').classList.remove('hidden');
+    }
+
+    function closeEditOrderModal() {
+      document.getElementById('editOrderModal').classList.add('hidden');
+      document.getElementById('modalAddProdResults').classList.add('hidden');
+      document.getElementById('modalAddProdSearch').value = '';
+      currentEditingOrder = null;
+    }
+
+    function renderModalOrderItems() {
+      const container = document.getElementById('modalOrderItemsContainer');
+      if (modalOrderItems.length === 0) {
+        container.innerHTML = '<p class="text-xs text-stone-400 py-4 text-center">La comanda no tiene productos.</p>';
+        calculateModalOrderTotal();
+        return;
+      }
+
+      container.innerHTML = modalOrderItems.map((it, idx) => `
+        <div class="p-3 border rounded-2xl bg-stone-50 space-y-2 text-xs">
+          <div class="flex justify-between items-center">
+            <div>
+              <span class="font-bold text-stone-900">${it.title}</span>
+              <span class="text-stone-400 font-mono ml-1">($${Number(it.price).toFixed(2)} c/u)</span>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="flex items-center gap-1.5 bg-white border rounded-xl p-1 shadow-sm">
+                <button type="button" onclick="changeModalItemQty(${idx}, -1)" class="w-6 h-6 rounded-lg bg-stone-100 hover:bg-stone-200 font-bold flex items-center justify-center">-</button>
+                <span class="font-bold font-mono px-1.5">${it.qty}</span>
+                <button type="button" onclick="changeModalItemQty(${idx}, 1)" class="w-6 h-6 rounded-lg bg-stone-100 hover:bg-stone-200 font-bold flex items-center justify-center">+</button>
+              </div>
+              <span class="font-mono font-bold text-stone-900 w-16 text-right">$${(it.price * it.qty).toFixed(2)}</span>
+              <button type="button" onclick="removeModalItem(${idx})" class="text-rose-500 hover:text-rose-700 font-bold p-1">✕</button>
+            </div>
+          </div>
+          <div class="border-t border-stone-200/60 pt-1.5 flex flex-wrap items-center gap-1.5">
+            <span class="text-[10px] text-stone-500 font-semibold">Extras:</span>
+            ${(it.modifiers || []).map((mod, modIdx) => `
+              <span class="inline-flex items-center gap-1 bg-amber-100 text-amber-900 px-2 py-0.5 rounded-lg text-[10px] font-bold">
+                ${mod}
+                <button type="button" onclick="removeModalModifier(${idx}, ${modIdx})" class="hover:text-rose-600">×</button>
+              </span>
+            `).join('')}
+            <button type="button" onclick="addModalModifierPrompt(${idx})" class="text-[10px] bg-white border border-stone-300 hover:bg-stone-100 px-2 py-0.5 rounded-lg font-bold text-stone-600">+ Añadir extra</button>
+          </div>
+        </div>
+      `).join('');
+
+      calculateModalOrderTotal();
+    }
+
+    function changeModalItemQty(idx, delta) {
+      modalOrderItems[idx].qty += delta;
+      if (modalOrderItems[idx].qty <= 0) modalOrderItems.splice(idx, 1);
+      renderModalOrderItems();
+    }
+
+    function removeModalItem(idx) {
+      modalOrderItems.splice(idx, 1);
+      renderModalOrderItems();
+    }
+
+    function removeModalModifier(itemIdx, modIdx) {
+      modalOrderItems[itemIdx].modifiers.splice(modIdx, 1);
+      renderModalOrderItems();
+    }
+
+    function addModalModifierPrompt(itemIdx) {
+      const extraName = prompt("Escribe el extra (ej: 'Sin azúcar', 'Leche de avena'):");
+      if (!extraName || extraName.trim() === '') return;
+      if (!modalOrderItems[itemIdx].modifiers) modalOrderItems[itemIdx].modifiers = [];
+      modalOrderItems[itemIdx].modifiers.push(extraName.trim());
+      renderModalOrderItems();
+    }
+
+    function filterModalProductSearch(query) {
+      const q = query.toLowerCase().trim();
+      const resultsBox = document.getElementById('modalAddProdResults');
+      if (!q) { resultsBox.classList.add('hidden'); return; }
+
+      const matches = adminProducts.filter(p => p.title.toLowerCase().includes(q));
+      if (matches.length === 0) {
+        resultsBox.innerHTML = '<p class="text-xs text-stone-400 p-3 text-center">No hay coincidencias</p>';
+        resultsBox.classList.remove('hidden');
+        return;
+      }
+
+      resultsBox.innerHTML = matches.map(p => `
+        <div onclick="addModalNewProduct('${p.id}')" class="p-2.5 hover:bg-amber-50 cursor-pointer flex items-center justify-between transition">
+          <span class="font-bold text-stone-900">${p.title}</span>
+          <span class="font-mono font-bold text-amber-700">$${Number(p.price).toFixed(2)}</span>
+        </div>
+      `).join('');
+      resultsBox.classList.remove('hidden');
+    }
+
+    function addModalNewProduct(prodId) {
+      const prod = adminProducts.find(p => p.id === prodId);
+      if (!prod) return;
+      modalOrderItems.push({ id: prod.id, title: prod.title, price: Number(prod.price), qty: 1, modifiers: [] });
+      document.getElementById('modalAddProdSearch').value = '';
+      document.getElementById('modalAddProdResults').classList.add('hidden');
+      renderModalOrderItems();
+    }
+
+    function calculateModalOrderTotal() {
+      const subtotal = modalOrderItems.reduce((acc, it) => acc + (Number(it.price) * it.qty), 0);
+      const discount = currentEditingOrder?.discount || 0;
+      const total = Math.max(0, subtotal - discount);
+      document.getElementById('modalOrderTotalDisplay').innerText = `$${total.toFixed(2)} MXN`;
+      return { subtotal, discount, total };
+    }
+
+    async function saveOrderEdits() {
+      if (!currentEditingOrder) return;
+      if (modalOrderItems.length === 0) {
+        alert("La comanda debe tener al menos un platillo.");
+        return;
+      }
+
+      const { subtotal, total } = calculateModalOrderTotal();
+      const waiter = document.getElementById('modalOrderWaiter').value;
+      const status = document.getElementById('modalOrderStatus').value;
+      const notes = document.getElementById('modalOrderNotes').value.trim();
+
+      currentEditingOrder.items = modalOrderItems;
+      currentEditingOrder.subtotal = subtotal;
+      currentEditingOrder.total = total;
+      currentEditingOrder.waiter_name = waiter;
+      currentEditingOrder.status = status;
+      currentEditingOrder.customer_notes = notes;
+
+      renderKanbanBoard();
+      closeEditOrderModal();
+
+      if (client) {
+        await client.from('orders').update({
+          items: modalOrderItems,
+          subtotal: subtotal,
+          total: total,
+          waiter_name: waiter,
+          status: status,
+          customer_notes: notes
+        }).eq('id', currentEditingOrder.id);
+      }
+    }
+
+    function updateOrderTimers() {
+      adminOrders.forEach(o => {
+        const timerEl = document.getElementById(`orderTimer-${o.id}`);
+        if (timerEl && o.status !== 'paid' && !o.is_archived) {
+          const elapsed = Math.floor((Date.now() - new Date(o.created_at).getTime()) / 1000);
+          timerEl.innerText = `⏱ ${formatElapsed(elapsed)}`;
+        }
+      });
+    }
+
+    function formatElapsed(secs) {
+      const m = Math.floor(Math.max(0, secs) / 60);
+      const s = Math.max(0, secs) % 60;
+      return `${m}m ${s < 10 ? '0' : ''}${s}s`;
+    }
+
+    function getTimerSLA(secs, status) {
+      if (status === 'paid') return { timerClass: 'border-stone-200', badgeBg: 'bg-stone-100', badgeText: 'text-stone-500' };
+      if (status === 'delivered') return { timerClass: 'border-blue-200', badgeBg: 'bg-blue-100', badgeText: 'text-blue-800' };
+      if (status === 'preparing') return { timerClass: 'border-orange-300', badgeBg: 'bg-orange-100', badgeText: 'text-orange-900' };
+      if (secs > 1200) return { timerClass: 'pulse-danger border-rose-500', badgeBg: 'bg-rose-600', badgeText: 'text-white' };
+      if (secs > 600) return { timerClass: 'border-amber-400', badgeBg: 'bg-amber-100', badgeText: 'text-amber-900' };
+      return { timerClass: 'border-stone-200', badgeBg: 'bg-stone-100', badgeText: 'text-stone-700' };
+    }
+
+    async function updateOrderWaiter(orderId, waiterName) {
+      const order = adminOrders.find(o => o.id === orderId);
+      if (order) order.waiter_name = waiterName;
+      if (client) await client.from('orders').update({ waiter_name: waiterName }).eq('id', orderId);
+    }
+
+    async function testSimulateOrder() {
+      const mockTable = '0' + (Math.floor(Math.random() * 8) + 1);
+      const mockOrder = {
+        restaurant_id: REST_ID,
+        table_number: mockTable,
+        waiter_name: WAITERS_LIST[Math.floor(Math.random() * WAITERS_LIST.length)],
+        items: [
+          { title: 'Tostón de Aguacate Trufado', qty: 1, price: 165.00, modifiers: ['Sin Huevo Poché'] },
+          { title: 'Flat White Oaxaca Pluma', qty: 2, price: 78.00, modifiers: ['Leche de Avena Barista'] }
+        ],
+        subtotal: 321.00,
+        discount: 78.00,
+        total: 243.00,
+        status: 'pending',
+        is_archived: false,
+        customer_notes: 'Mesa con prisa'
+      };
+
+      playFlowSound('new_order');
+
+      if (client) {
+        await client.from('orders').insert([mockOrder]);
+      } else {
+        mockOrder.id = 'ord-' + Date.now();
+        mockOrder.created_at = new Date().toISOString();
+        adminOrders.unshift(mockOrder);
+        renderKanbanBoard();
+      }
+    }
+
+    function renderCalls() {
+      const grid = document.getElementById('waiterCallsGrid');
+      document.getElementById('pendingCallsBadge').innerText = adminCalls.length;
+      if (adminCalls.length === 0) {
+        grid.innerHTML = '<div class="col-span-full bg-white rounded-2xl p-8 text-center text-stone-400 text-xs">No hay mesas solicitando atención.</div>';
+        return;
+      }
+      grid.innerHTML = adminCalls.map(c => `
+        <div class="bg-white rounded-2xl p-4 border border-rose-200 shadow-sm flex items-center justify-between">
+          <span class="font-black text-sm text-stone-900">Mesa ${c.table_number}</span>
+          <button onclick="resolveCall('${c.id}')" class="bg-emerald-600 text-white font-bold text-xs px-3 py-1.5 rounded-xl">Atendida ✓</button>
+        </div>
+      `).join('');
+    }
+
+    async function resolveCall(id) {
+      adminCalls = adminCalls.filter(c => c.id !== id);
+      renderCalls();
+      if (client) await client.from('waiter_calls').update({ status: 'resolved' }).eq('id', id);
+    }
+
+    async function testSimulateCall() {
+      const mockTable = '0' + (Math.floor(Math.random() * 8) + 1);
+      if (client) await client.from('waiter_calls').insert([{ restaurant_id: REST_ID, table_number: mockTable, status: 'pending' }]);
+    }
+
+    // CATEGORÍAS & TIPOS
+    function toggleSection(sectionKey) {
+      const content = document.getElementById(`content-${sectionKey}`);
+      const arrow = document.getElementById(`arrow-${sectionKey}`);
+      sectionStates[sectionKey] = !sectionStates[sectionKey];
+      if (sectionStates[sectionKey]) {
+        content.classList.remove('hidden');
+        arrow.innerText = '▼';
+      } else {
+        content.classList.add('hidden');
+        arrow.innerText = '▲';
+      }
+    }
+
+    function renderTaxonomies() {
+      renderCategoriesList();
+      renderTypesList();
+    }
+
+    function renderCategoriesList() {
+      const cont = document.getElementById('categoriesListAdmin');
+      document.getElementById('badgeCatCount').innerText = adminCategories.length;
+      if (adminCategories.length === 0) {
+        cont.innerHTML = '<p class="text-xs text-stone-400 py-3 text-center">No hay categorías registradas.</p>';
+        return;
+      }
+      cont.innerHTML = adminCategories.map((cat, idx) => `
+        <div class="border rounded-xl p-2.5 bg-stone-50 flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2 flex-grow cursor-pointer" onclick="inspectItem('category', '${cat.id}')">
+            <span class="text-base">${cat.icon || '🍽️'}</span>
+            <span class="font-bold text-xs text-stone-900">${cat.name}</span>
+          </div>
+          <div class="flex items-center gap-1">
+            <button onclick="reorderTaxonomy('category', '${cat.id}', -1)" class="p-1 hover:bg-stone-200 rounded text-xs font-bold">▲</button>
+            <button onclick="reorderTaxonomy('category', '${cat.id}', 1)" class="p-1 hover:bg-stone-200 rounded text-xs font-bold">▼</button>
+            <button onclick="deleteTaxonomy('category', '${cat.id}')" class="p-1 text-rose-500 hover:text-rose-700 rounded text-xs font-bold">✕</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderTypesList() {
+      const cont = document.getElementById('typesListAdmin');
+      document.getElementById('badgeTypeCount').innerText = adminTypes.length;
+      if (adminTypes.length === 0) {
+        cont.innerHTML = '<p class="text-xs text-amber-700/60 py-3 text-center">No hay tipos registrados.</p>';
+        return;
+      }
+      cont.innerHTML = adminTypes.map((typ, idx) => `
+        <div class="border rounded-xl p-2.5 bg-amber-50/50 flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2 flex-grow cursor-pointer" onclick="inspectItem('type', '${typ.id}')">
+            <span class="text-base">${typ.icon || '🏷️'}</span>
+            <span class="font-bold text-xs text-amber-950">${typ.name}</span>
+          </div>
+          <div class="flex items-center gap-1">
+            <button onclick="reorderTaxonomy('type', '${typ.id}', -1)" class="p-1 hover:bg-amber-100 rounded text-xs font-bold">▲</button>
+            <button onclick="reorderTaxonomy('type', '${typ.id}', 1)" class="p-1 hover:bg-amber-100 rounded text-xs font-bold">▼</button>
+            <button onclick="deleteTaxonomy('type', '${typ.id}')" class="p-1 text-rose-500 hover:text-rose-700 rounded text-xs font-bold">✕</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function inspectItem(mode, id) {
+      const item = mode === 'category' ? adminCategories.find(c => c.id === id) : adminTypes.find(t => t.id === id);
+      if (!item) return;
+      currentInspector = { mode, id, name: item.name, icon: item.icon };
+      document.getElementById('inspectorBadge').innerText = mode === 'category' ? 'Categoría' : 'Tipo';
+      document.getElementById('inspectorTitle').innerHTML = `<span>${item.icon || ''}</span> <span>${item.name}</span>`;
+      document.getElementById('assignProductBox').classList.remove('hidden');
+
+      const assigned = adminProducts.filter(p => mode === 'category' ? p.category_id === id : p.type_id === id);
+      document.getElementById('inspectorCount').innerText = `${assigned.length} productos`;
+
+      const listCont = document.getElementById('inspectorProductsList');
+      if (assigned.length === 0) {
+        listCont.innerHTML = '<p class="text-xs text-stone-400 py-6 text-center">No hay productos asignados.</p>';
+        return;
+      }
+
+      listCont.innerHTML = assigned.map(p => `
+        <div class="flex items-center justify-between p-2 rounded-xl border bg-stone-50 text-xs">
+          <span class="font-bold text-stone-900">${p.title}</span>
+          <button onclick="unassignProductFromCurrent('${p.id}')" class="text-rose-600 font-bold px-2 py-0.5 rounded text-[11px]">Quitar</button>
+        </div>
+      `).join('');
+    }
+
+    function filterAssignSearchResults(query) {
+      if (!currentInspector) return;
+      const q = query.toLowerCase().trim();
+      const resultsBox = document.getElementById('assignSearchResultsBox');
+      const clearBtn = document.getElementById('clearAssignSearchBtn');
+      if (!q) { resultsBox.classList.add('hidden'); clearBtn.classList.add('hidden'); return; }
+
+      clearBtn.classList.remove('hidden');
+      const unassigned = adminProducts.filter(p => 
+        (currentInspector.mode === 'category' ? p.category_id !== currentInspector.id : p.type_id !== currentInspector.id) &&
+        p.title.toLowerCase().includes(q)
+      );
+
+      if (unassigned.length === 0) {
+        resultsBox.innerHTML = '<p class="text-xs text-stone-400 p-3 text-center">Sin resultados</p>';
+        resultsBox.classList.remove('hidden');
+        return;
+      }
+
+      resultsBox.innerHTML = unassigned.map(p => `
+        <div onclick="executeAssignProduct('${p.id}')" class="p-2 hover:bg-amber-50 cursor-pointer flex justify-between text-xs">
+          <span>${p.title}</span>
+          <span class="font-bold text-amber-700">+ Vincular</span>
+        </div>
+      `).join('');
+      resultsBox.classList.remove('hidden');
+    }
+
+    function clearAssignSearch() {
+      document.getElementById('assignSearchInput').value = '';
+      document.getElementById('assignSearchResultsBox').classList.add('hidden');
+      document.getElementById('clearAssignSearchBtn').classList.add('hidden');
+    }
+
+    async function executeAssignProduct(prodId) {
+      if (!currentInspector) return;
+      const prod = adminProducts.find(p => p.id === prodId);
+      if (prod) {
+        if (currentInspector.mode === 'category') prod.category_id = currentInspector.id;
+        else prod.type_id = currentInspector.id;
+      }
+      clearAssignSearch();
+      inspectItem(currentInspector.mode, currentInspector.id);
+      renderProducts();
+      if (client) {
+        const updateData = currentInspector.mode === 'category' ? { category_id: currentInspector.id } : { type_id: currentInspector.id };
+        await client.from('products').update(updateData).eq('id', prodId);
+      }
+    }
+
+    async function unassignProductFromCurrent(prodId) {
+      if (!currentInspector) return;
+      const prod = adminProducts.find(p => p.id === prodId);
+      if (prod) {
+        if (currentInspector.mode === 'category') prod.category_id = null;
+        else prod.type_id = null;
+      }
+      inspectItem(currentInspector.mode, currentInspector.id);
+      renderProducts();
+      if (client) {
+        const updateData = currentInspector.mode === 'category' ? { category_id: null } : { type_id: null };
+        await client.from('products').update(updateData).eq('id', prodId);
+      }
+    }
+
+    async function createCategory() {
+      const name = document.getElementById('newCategoryInput').value.trim();
+      const icon = document.getElementById('newCatIcon').value.trim() || '🍽️';
+      if (!name) return;
+      const newCat = { id: 'cat-' + Date.now(), restaurant_id: REST_ID, name, icon, order_index: adminCategories.length + 1 };
+      adminCategories.push(newCat);
+      document.getElementById('newCategoryInput').value = '';
+      renderCategoriesList();
+      if (client) await client.from('categories').insert([{ restaurant_id: REST_ID, name, icon, order_index: newCat.order_index }]);
+    }
+
+    async function createType() {
+      const name = document.getElementById('newTypeInput').value.trim();
+      const icon = document.getElementById('newTypeIcon').value.trim() || '☕';
+      if (!name) return;
+      const newTyp = { id: 'typ-' + Date.now(), restaurant_id: REST_ID, name, icon, order_index: adminTypes.length + 1 };
+      adminTypes.push(newTyp);
+      document.getElementById('newTypeInput').value = '';
+      renderTypesList();
+      if (client) await client.from('product_types').insert([{ restaurant_id: REST_ID, name, icon, order_index: newTyp.order_index }]);
+    }
+
+    async function reorderTaxonomy(mode, id, dir) {
+      const list = mode === 'category' ? adminCategories : adminTypes;
+      const idx = list.findIndex(item => item.id === id);
+      const targetIdx = idx + dir;
+      if (targetIdx < 0 || targetIdx >= list.length) return;
+      const temp = list[idx];
+      list[idx] = list[targetIdx];
+      list[targetIdx] = temp;
+      renderTaxonomies();
+    }
+
+    async function deleteTaxonomy(mode, id) {
+      if (!confirm("¿Eliminar este elemento?")) return;
+      if (mode === 'category') adminCategories = adminCategories.filter(c => c.id !== id);
+      else adminTypes = adminTypes.filter(t => t.id !== id);
+      renderTaxonomies();
+      if (client) {
+        const table = mode === 'category' ? 'categories' : 'product_types';
+        await client.from(table).delete().eq('id', id);
+      }
+    }
+
+    // PRODUCTOS
+    function renderProducts() {
+      const cont = document.getElementById('adminProductsList');
+      const selectCat = document.getElementById('newProdCategory');
+      const selectType = document.getElementById('newProdType');
+      document.getElementById('prodCount').innerText = `${adminProducts.length} platillos`;
+
+      selectCat.innerHTML = adminCategories.map(c => `<option value="${c.id}">${c.icon || ''} ${c.name}</option>`).join('');
+      selectType.innerHTML = `<option value="">-- Sin tipo --</option>` + adminTypes.map(t => `<option value="${t.id}">${t.icon || ''} ${t.name}</option>`).join('');
+
+      cont.innerHTML = adminProducts.map(p => {
+        const img = (p.media && p.media[0]) ? p.media[0].url : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=200&q=80';
+        return `
+          <div class="p-3 border rounded-xl bg-stone-50 flex items-center justify-between gap-3 text-xs">
+            <div class="flex items-center gap-3">
+              <img src="${img}" class="w-12 h-12 rounded-xl object-cover bg-stone-200">
+              <div>
+                <h4 class="font-bold text-sm text-stone-900">${p.title}</h4>
+                <span class="font-mono font-bold text-stone-700">$${Number(p.price).toFixed(2)}</span>
+              </div>
+            </div>
+            <button onclick="toggleProductStock('${p.id}')" class="px-2.5 py-1 rounded-lg font-bold ${p.is_available ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
+              ${p.is_available ? 'Disponible' : 'Agotado'}
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function toggleProductStock(prodId) {
+      const p = adminProducts.find(item => item.id === prodId);
+      if (!p) return;
+      p.is_available = !p.is_available;
+      renderProducts();
+      if (client) await client.from('products').update({ is_available: p.is_available }).eq('id', prodId);
+    }
+
+    function handleNewProductFile(input) {
+      if (input.files && input.files[0]) {
+        newProductSelectedFile = input.files[0];
+        document.getElementById('newProdFileName').innerText = newProductSelectedFile.name;
+      }
+    }
+
+    async function createProduct() {
+      const title = document.getElementById('newProdTitle').value.trim();
+      const price = parseFloat(document.getElementById('newProdPrice').value) || 0;
+      const catId = document.getElementById('newProdCategory').value;
+      const typeId = document.getElementById('newProdType').value || null;
+      const desc = document.getElementById('newProdDesc').value.trim();
+
+      if (!title || price <= 0) {
+        alert("Ingresa título y precio válidos.");
+        return;
+      }
+
+      const newProd = {
+        restaurant_id: REST_ID, category_id: catId, type_id: typeId, title, description: desc, price,
+        media: [{ type: 'image', url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80' }],
+        is_available: true
+      };
+
+      adminProducts.unshift(newProd);
+      renderProducts();
+      document.getElementById('newProdTitle').value = '';
+      document.getElementById('newProdPrice').value = '';
+      document.getElementById('newProdDesc').value = '';
+
+      if (client) await client.from('products').insert([newProd]);
+    }
+
+    // OCR
+    function openOcrModal() { document.getElementById('ocrModal').classList.remove('hidden'); }
+    function closeOcrModal() { document.getElementById('ocrModal').classList.add('hidden'); }
+
+    async function runMenuOCR(fileInput) {
+      if (!fileInput.files || !fileInput.files[0]) return;
+      const file = fileInput.files[0];
+      const loader = document.getElementById('ocrLoader');
+      const box = document.getElementById('ocrPreviewBox');
+      const rows = document.getElementById('ocrItemsRows');
+      loader.classList.remove('hidden');
+
+      try {
+        const { data: { text } } = await Tesseract.recognize(file, 'spa');
+        loader.classList.add('hidden');
+        box.classList.remove('hidden');
+
+        const lines = text.split('\n').filter(l => l.trim().length > 3);
+        const parsed = [];
+        lines.forEach(line => {
+          const matchPrice = line.match(/(\$\?\s*\d+([.,]\d{2})?)/);
+          if (matchPrice) {
+            const num = matchPrice[0].replace('$', '').trim().replace(',', '.');
+            const cleanTitle = line.replace(matchPrice[0], '').trim();
+            if (cleanTitle.length > 2) parsed.push({ title: cleanTitle, price: parseFloat(num) || 60.0 });
+          }
+        });
+
+        rows.innerHTML = parsed.map((item, idx) => `
+          <div class="flex items-center gap-2 bg-stone-50 p-2 rounded-xl border text-xs">
+            <input type="text" value="${item.title}" class="border rounded px-2 py-1 flex-grow font-semibold" id="ocrT-${idx}">
+            <input type="number" value="${item.price}" class="border rounded px-2 py-1 w-20 font-mono font-bold" id="ocrP-${idx}">
+            <button onclick="saveOcrItem(${idx})" class="bg-emerald-600 text-white px-3 py-1 rounded-lg font-bold">Guardar</button>
+          </div>
+        `).join('');
+      } catch (e) {
+        alert("Error procesando imagen: " + e.message);
+        loader.classList.add('hidden');
+      }
+    }
+
+    async function saveOcrItem(idx) {
+      const title = document.getElementById(`ocrT-${idx}`).value.trim();
+      const price = parseFloat(document.getElementById(`ocrP-${idx}`).value) || 0;
+      const catId = adminCategories[0]?.id || null;
+
+      const newProd = {
+        restaurant_id: REST_ID, category_id: catId, title, price, is_available: true,
+        media: [{ type: 'image', url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80' }]
+      };
+      adminProducts.unshift(newProd);
+      renderProducts();
+      document.getElementById(`ocrT-${idx}`).parentElement.remove();
+      if (client) await client.from('products').insert([newProd]);
+    }
+
+    // PROMOCIONES
+    function renderPromoDynamicFields() {
+      const type = document.getElementById('promoType').value;
+      const box = document.getElementById('dynamicRuleBox');
+      if (type === '2x1') {
+        box.innerHTML = `
+          <div class="flex gap-3 text-xs">
+            <div><label class="block font-bold mb-1">Compro (X):</label><input type="number" id="promoBuyQty" value="1" class="border rounded-xl p-2 w-20 text-center font-bold"></div>
+            <div><label class="block font-bold mb-1">Me llevo (Y):</label><input type="number" id="promoGetQty" value="2" class="border rounded-xl p-2 w-20 text-center font-bold text-emerald-700"></div>
+          </div>
+        `;
+      } else {
+        box.innerHTML = `<p class="text-xs text-stone-500">Configuración estándar de promoción.</p>`;
+      }
+    }
+
+    function updatePromoLivePreview() {
+      const title = document.getElementById('promoTitle').value.trim() || 'Título de la Promoción';
+      const desc = document.getElementById('promoDesc').value.trim() || 'Detalles de la promoción...';
+      const bgColor = document.getElementById('promoBgColor').value;
+      const textColor = document.getElementById('promoTextColor').value;
+
+      document.getElementById('promoBgColorCode').innerText = bgColor;
+      document.getElementById('promoTextColorCode').innerText = textColor;
+
+      const card = document.getElementById('promoLiveCard');
+      card.style.backgroundColor = bgColor;
+      card.style.color = textColor;
+
+      document.getElementById('previewTitle').innerText = title;
+      document.getElementById('previewDesc').innerText = desc;
+    }
+
+    async function savePromotion() {
+      const title = document.getElementById('promoTitle').value.trim();
+      if (!title) { alert("Ingresa un título"); return; }
+      const promoType = document.getElementById('promoType').value;
+      const buyQty = parseInt(document.getElementById('promoBuyQty')?.value) || 1;
+      const getQty = parseInt(document.getElementById('promoGetQty')?.value) || 2;
+
+      const payload = {
+        restaurant_id: REST_ID, title, description: document.getElementById('promoDesc').value.trim(),
+        promo_type: promoType, promo_value: `${getQty}x${buyQty}`, buy_qty: buyQty, get_qty: getQty,
+        bg_color: document.getElementById('promoBgColor').value, text_color: document.getElementById('promoTextColor').value,
+        is_active: true
+      };
+
+      adminPromos.unshift(payload);
+      renderPromotionsHistory();
+      if (client) await client.from('promotions').insert([payload]);
+      alert("Promoción publicada.");
+    }
+
+    function renderPromotionsHistory() {
+      const cont = document.getElementById('promotionsHistoryList');
+      if (adminPromos.length === 0) {
+        cont.innerHTML = '<p class="text-xs text-stone-400 py-4 text-center">No hay promociones registradas.</p>';
+        return;
+      }
+      cont.innerHTML = adminPromos.map(p => `
+        <div class="border rounded-2xl p-3 bg-stone-50 flex justify-between items-center text-xs">
+          <div>
+            <h4 class="font-bold text-stone-900">${p.title}</h4>
+            <span class="text-[10px] text-stone-500 font-mono">${p.promo_value || ''}</span>
+          </div>
+          <span class="text-emerald-700 font-bold bg-emerald-100 px-2 py-0.5 rounded-lg">Activa ✓</span>
+        </div>
+      `).join('');
+    }
+
+    function resetPromoForm() {
+      document.getElementById('promoTitle').value = '';
+      document.getElementById('promoDesc').value = '';
+      updatePromoLivePreview();
+    }
+
+    async function saveBottomNavConfig() {
+      const type = document.getElementById('cfgBottomType').value;
+      const label = document.getElementById('cfgBottomLabel').value.trim();
+      const url = document.getElementById('cfgBottomUrl').value.trim();
+      if (client) {
+        await client.from('restaurants').update({ bottom_left_type: type, bottom_left_label: label, bottom_left_url: url }).eq('id', REST_ID);
+        alert("Configuración guardada.");
+      }
+    }
+
     window.onload = init;
   </script>
 </body>
