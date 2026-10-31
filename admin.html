@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Tablero Kanban KDS & Gestión</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .pulse-danger { animation: pulseRed 1.8s infinite; }
+    @keyframes pulseRed {
+      0%, 100% { border-color: #ef4444; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+      50% { border-color: #b91c1c; box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+    }
+  </style>
+</head>
+<body class="bg-stone-100 text-stone-900 min-h-screen pb-20">
+
+  <!-- CABECERA -->
+  <header class="bg-stone-900 text-white px-6 py-4 flex flex-wrap justify-between items-center gap-4 shadow-md sticky top-0 z-30">
+    <div class="flex items-center gap-3">
+      <div class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></div>
+      <div>
+        <h1 class="text-base font-bold leading-tight">Estación de Servicio & Tablero Kanban</h1>
+        <p class="text-[11px] text-stone-400" id="connStatus">Sincronizado en tiempo real</p>
+      </div>
+    </div>
+
+    <!-- SELECTOR DE SONIDOS EN CABECERA -->
+    <div class="flex flex-wrap items-center gap-3 text-xs">
+      <div class="flex items-center gap-1.5 bg-stone-800 border border-stone-700 px-2.5 py-1.5 rounded-xl">
+        <span class="text-amber-400">🎵</span>
+        <label class="text-[11px] font-bold text-stone-300">Timbre:</label>
+        <select id="soundPresetSelect" onchange="changeSoundPreset(this.value)" class="bg-transparent font-semibold text-amber-300 focus:outline-none cursor-pointer text-xs">
+          <option value="bell" class="bg-stone-900 text-white">1. 🔔 Campana Bistro</option>
+          <option value="chime" class="bg-stone-900 text-white">2. ✨ Chime Mágico</option>
+          <option value="dingdong" class="bg-stone-900 text-white">3. 🛎️ Timbre de Hotel</option>
+          <option value="arcade" class="bg-stone-900 text-white">4. 🚀 Pop Arcade</option>
+          <option value="fanfare" class="bg-stone-900 text-white">5. 🎺 Clarín Alegre</option>
+          <option value="zen" class="bg-stone-900 text-white">6. 🥣 Cuenco Zen</option>
+          <option value="jazz" class="bg-stone-900 text-white">7. 🎹 Acorde Jazz</option>
+          <option value="drop" class="bg-stone-900 text-white">8. 💧 Gota de Agua</option>
+          <option value="reward" class="bg-stone-900 text-white">9. 🎮 Nivel Completado</option>
+          <option value="pulse" class="bg-stone-900 text-white">10. ⚡ Pulso Futurista</option>
+        </select>
+        <button onclick="previewCurrentSound()" class="hover:scale-110 active:scale-95 transition text-stone-400 hover:text-white px-1" title="Escuchar sonido">
+          ▶
+        </button>
+      </div>
+
+      <span id="kdsActiveCount" class="bg-amber-500/20 text-amber-300 border border-amber-500/30 px-3 py-1.5 rounded-xl font-bold font-mono">
+        0 comandas activas
+      </span>
+      <a href="index.html?mesa=01" target="_blank" class="bg-amber-600 hover:bg-amber-500 text-white font-bold px-3.5 py-1.5 rounded-xl transition shadow-sm">
+        Abrir Menú QR ↗
+      </a>
+    </div>
+  </header>
+
+  <!-- PESTAÑAS (TABS) -->
+  <div class="bg-white border-b border-stone-200 sticky top-[65px] z-20 shadow-sm">
+    <div class="max-w-[1600px] mx-auto px-4 flex gap-1 sm:gap-2 overflow-x-auto no-scrollbar">
+      <button onclick="switchTab('orders')" id="tabBtn-orders" class="tab-btn px-4 py-3 text-xs sm:text-sm font-bold border-b-2 border-stone-900 text-stone-900 flex items-center gap-2 whitespace-nowrap">
+        <span>📋 Tablero de Comandas</span>
+        <span id="badgeLiveOrders" class="bg-amber-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">0</span>
+      </button>
+
+      <button onclick="switchTab('analytics')" id="tabBtn-analytics" class="tab-btn px-4 py-3 text-xs sm:text-sm font-medium border-b-2 border-transparent text-stone-500 hover:text-stone-900 flex items-center gap-2 whitespace-nowrap">
+        <span>📊 Métricas & Histórico</span>
+      </button>
+
+      <button onclick="switchTab('calls')" id="tabBtn-calls" class="tab-btn px-4 py-3 text-xs sm:text-sm font-medium border-b-2 border-transparent text-stone-500 hover:text-stone-900 flex items-center gap-2 whitespace-nowrap">
+        <span>🔔 Mesero en Vivo</span>
+        <span id="pendingCallsBadge" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold">0</span>
+      </button>
+
+      <button onclick="switchTab('taxonomies')" id="tabBtn-taxonomies" class="tab-btn px-4 py-3 text-xs sm:text-sm font-medium border-b-2 border-transparent text-stone-500 hover:text-stone-900 flex items-center gap-2 whitespace-nowrap">
+        <span>📑 Categorías & Tipos</span>
+      </button>
+
+      <button onclick="switchTab('products')" id="tabBtn-products" class="tab-btn px-4 py-3 text-xs sm:text-sm font-medium border-b-2 border-transparent text-stone-500 hover:text-stone-900 flex items-center gap-2 whitespace-nowrap">
+        <span>🍽️ Carta y Platillos</span>
+      </button>
+
+      <button onclick="switchTab('promos')" id="tabBtn-promos" class="tab-btn px-4 py-3 text-xs sm:text-sm font-medium border-b-2 border-transparent text-stone-500 hover:text-stone-900 flex items-center gap-2 whitespace-nowrap">
+        <span>🏷️ Promociones & Barra</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- CONTENEDOR PRINCIPAL -->
+  <main class="max-w-[1600px] mx-auto p-4 sm:p-6">
+
+    <!-- 1. PESTAÑA: TABLERO KANBAN DE COMANDAS -->
+    <section id="tab-orders" class="tab-panel space-y-5">
+      <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-stone-200 flex flex-wrap justify-between items-center gap-4">
+        <div class="flex flex-wrap items-center gap-3">
+          <span class="text-xs font-bold text-stone-500 uppercase tracking-wider">Modo de Vista:</span>
+          
+          <div class="inline-flex p-1 bg-stone-100 rounded-2xl border border-stone-200 text-xs font-bold">
+            <button onclick="setKanbanDisplayMode('all')" id="btnViewMode-all" class="px-3.5 py-1.5 rounded-xl transition bg-stone-900 text-white shadow-sm flex items-center gap-1.5">
+              <span>🗂️ Ver Todas</span>
+            </button>
+            <button onclick="setKanbanDisplayMode('single')" id="btnViewMode-single" class="px-3.5 py-1.5 rounded-xl transition text-stone-600 hover:text-stone-900 flex items-center gap-1.5">
+              <span>🎯 Ver Solo un Estatus</span>
+            </button>
+          </div>
+
+          <div id="singleStatusSelectorWrapper" class="hidden flex items-center gap-1.5 pl-2 border-l border-stone-200">
+            <button onclick="changeSingleStatusView('pending')" id="chipStatus-pending" class="px-3 py-1.5 rounded-xl text-xs font-bold transition border border-stone-200 bg-white text-stone-700">
+              🟡 1. Recibida
+            </button>
+            <button onclick="changeSingleStatusView('preparing')" id="chipStatus-preparing" class="px-3 py-1.5 rounded-xl text-xs font-bold transition border border-stone-200 bg-white text-stone-700">
+              🟠 2. En Prep.
+            </button>
+            <button onclick="changeSingleStatusView('delivered')" id="chipStatus-delivered" class="px-3 py-1.5 rounded-xl text-xs font-bold transition border border-stone-200 bg-white text-stone-700">
+              🔵 3. En Mesa
+            </button>
+            <button onclick="changeSingleStatusView('paid')" id="chipStatus-paid" class="px-3 py-1.5 rounded-xl text-xs font-bold transition border border-stone-200 bg-white text-stone-700">
+              🟢 4. Cobrada
+            </button>
+          </div>
+        </div>
+
+        <button onclick="testSimulateOrder()" class="bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold px-3.5 py-2 rounded-xl border border-stone-300 transition active:scale-95 shadow-sm">
+          + Simular Comanda Entrante
+        </button>
+      </div>
+
+      <div id="kanbanBoardContainer" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start">
+        <div id="column-pending" class="kanban-col bg-stone-200/70 rounded-3xl p-3.5 space-y-3 border border-stone-300/80">
+          <div class="flex justify-between items-center px-2 py-1">
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+              <h3 class="font-extrabold text-xs uppercase tracking-wider text-stone-800">1. Recibida en Cocina</h3>
+            </div>
+            <span id="colCount-pending" class="text-xs font-mono font-bold bg-white text-stone-700 px-2.5 py-0.5 rounded-full shadow-sm">0</span>
+          </div>
+          <div id="cards-pending" class="space-y-3 min-h-[300px]"></div>
+        </div>
+
+        <div id="column-preparing" class="kanban-col bg-orange-100/60 rounded-3xl p-3.5 space-y-3 border border-orange-200/80">
+          <div class="flex justify-between items-center px-2 py-1">
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-orange-500 animate-pulse"></span>
+              <h3 class="font-extrabold text-xs uppercase tracking-wider text-orange-950">2. En Preparación</h3>
+            </div>
+            <span id="colCount-preparing" class="text-xs font-mono font-bold bg-white text-orange-900 px-2.5 py-0.5 rounded-full shadow-sm">0</span>
+          </div>
+          <div id="cards-preparing" class="space-y-3 min-h-[300px]"></div>
+        </div>
+
+        <div id="column-delivered" class="kanban-col bg-blue-100/50 rounded-3xl p-3.5 space-y-3 border border-blue-200/80">
+          <div class="flex justify-between items-center px-2 py-1">
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+              <h3 class="font-extrabold text-xs uppercase tracking-wider text-blue-950">3. Servida en Mesa</h3>
+            </div>
+            <span id="colCount-delivered" class="text-xs font-mono font-bold bg-white text-blue-900 px-2.5 py-0.5 rounded-full shadow-sm">0</span>
+          </div>
+          <div id="cards-delivered" class="space-y-3 min-h-[300px]"></div>
+        </div>
+
+        <div id="column-paid" class="kanban-col bg-emerald-100/40 rounded-3xl p-3.5 space-y-3 border border-emerald-200/80">
+          <div class="flex justify-between items-center px-2 py-1">
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+              <h3 class="font-extrabold text-xs uppercase tracking-wider text-emerald-950">4. Cobrada / Por Archivar</h3>
+            </div>
+            <span id="colCount-paid" class="text-xs font-mono font-bold bg-white text-emerald-900 px-2.5 py-0.5 rounded-full shadow-sm">0</span>
+          </div>
+          <div id="cards-paid" class="space-y-3 min-h-[300px]"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. PESTAÑA: DASHBOARD ANALYTICS & HISTÓRICO DE VENTAS -->
+    <section id="tab-analytics" class="tab-panel hidden space-y-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm">
+          <span class="text-xs font-bold text-stone-400 uppercase tracking-wider">Venta Total del Día</span>
+          <h3 class="text-2xl font-black font-mono text-stone-900 mt-1" id="kpiRevenue">$0.00 MXN</h3>
+          <p class="text-[11px] text-emerald-600 font-semibold mt-1">✓ Facturación acumulada</p>
+        </div>
+
+        <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm">
+          <span class="text-xs font-bold text-stone-400 uppercase tracking-wider">Ticket Promedio</span>
+          <h3 class="text-2xl font-black font-mono text-amber-700 mt-1" id="kpiAvgTicket">$0.00</h3>
+          <p class="text-[11px] text-stone-500 mt-1">Gasto medio por mesa</p>
+        </div>
+
+        <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm">
+          <span class="text-xs font-bold text-stone-400 uppercase tracking-wider">Comandas Atendidas</span>
+          <h3 class="text-2xl font-black font-mono text-stone-900 mt-1" id="kpiTotalOrders">0</h3>
+          <p class="text-[11px] text-stone-500 mt-1">Cobradas y archivadas</p>
+        </div>
+
+        <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm">
+          <span class="text-xs font-bold text-stone-400 uppercase tracking-wider">Ventas por Cobrar</span>
+          <h3 class="text-2xl font-black font-mono text-blue-700 mt-1" id="kpiPendingRevenue">$0.00</h3>
+          <p class="text-[11px] text-stone-500 mt-1">Mesas consumiendo activas</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-7 bg-white rounded-3xl p-6 border border-stone-200 shadow-sm space-y-4">
+          <div class="flex justify-between items-center border-b pb-3">
+            <div>
+              <h3 class="font-extrabold text-sm text-stone-900">Eficiencia Operativa: Tiempos de Servicio</h3>
+              <p class="text-xs text-stone-400">Promedio de respuesta del personal en cada punto.</p>
+            </div>
+            <span class="text-xs bg-stone-100 text-stone-700 px-2.5 py-1 rounded-xl font-bold font-mono">SLA Cocina</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+            <div class="bg-amber-50/60 border border-amber-200/80 rounded-2xl p-4 text-center">
+              <span class="text-lg">🟡 ➔ 🟠</span>
+              <p class="text-[11px] font-bold text-stone-600 mt-1">Espera a Cocina</p>
+              <h4 class="text-lg font-black font-mono text-amber-950 mt-0.5" id="slaWaitTime">0m 00s</h4>
+              <span class="text-[10px] text-stone-400">Recibida a preparación</span>
+            </div>
+
+            <div class="bg-orange-50/60 border border-orange-200/80 rounded-2xl p-4 text-center">
+              <span class="text-lg">🟠 ➔ 🔵</span>
+              <p class="text-[11px] font-bold text-stone-600 mt-1">Tiempo Cocina</p>
+              <h4 class="text-lg font-black font-mono text-orange-950 mt-0.5" id="slaKitchenTime">0m 00s</h4>
+              <span class="text-[10px] text-stone-400">Preparación a servido</span>
+            </div>
+
+            <div class="bg-blue-50/60 border border-blue-200/80 rounded-2xl p-4 text-center">
+              <span class="text-lg">🔵 ➔ 🟢</span>
+              <p class="text-[11px] font-bold text-stone-600 mt-1">Mesa a Cobro</p>
+              <h4 class="text-lg font-black font-mono text-blue-950 mt-0.5" id="slaTableTime">0m 00s</h4>
+              <span class="text-[10px] text-stone-400">Estancia del comensal</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-5 bg-white rounded-3xl p-6 border border-stone-200 shadow-sm space-y-4">
+          <div class="flex justify-between items-center border-b pb-3">
+            <div>
+              <h3 class="font-extrabold text-sm text-stone-900">Top 5 Platillos Populares</h3>
+              <p class="text-xs text-stone-400">Platillos con mayor rotación en comandas.</p>
+            </div>
+          </div>
+          <div id="topProductsList" class="space-y-2.5">
+            <p class="text-xs text-stone-400 text-center py-6">Sin registros de ventas aún.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-3xl p-6 border border-stone-200 shadow-sm space-y-4">
+        <div class="flex flex-wrap justify-between items-center gap-3 border-b pb-3">
+          <div>
+            <h3 class="font-extrabold text-base text-stone-900">Historial Detallado de Comandas</h3>
+            <p class="text-xs text-stone-400">Consulta todas las órdenes generadas, meseros y desgloses.</p>
+          </div>
+          <button onclick="syncData()" class="bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold px-3 py-1.5 rounded-xl transition">
+            Actualizar Datos 🔄
+          </button>
+        </div>
+
+        <div class="overflow-x-auto no-scrollbar">
+          <table class="w-full text-left text-xs">
+            <thead>
+              <tr class="border-b text-stone-400 font-bold uppercase tracking-wider text-[10px]">
+                <th class="pb-2.5">Mesa / Folio</th>
+                <th class="pb-2.5">Hora Ingreso</th>
+                <th class="pb-2.5">Mesero</th>
+                <th class="pb-2.5">Platillos</th>
+                <th class="pb-2.5">Descuento</th>
+                <th class="pb-2.5">Total Cobrado</th>
+                <th class="pb-2.5">Estatus</th>
+              </tr>
+            </thead>
+            <tbody id="historyTableBody" class="divide-y divide-stone-100"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. PESTAÑA: MESERO EN VIVO -->
+    <section id="tab-calls" class="tab-panel hidden space-y-4">
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200 flex justify-between items-center">
+        <div>
+          <h2 class="font-bold text-base text-stone-900">Llamadas Activas de Mesa</h2>
+          <p class="text-xs text-stone-500">Temporizador en tiempo real desde la llamada del comensal hasta la resolución.</p>
+        </div>
+        <button onclick="testSimulateCall()" class="text-xs bg-stone-100 hover:bg-stone-200 text-stone-700 px-3 py-1.5 rounded-xl border border-stone-300 font-semibold transition">
+          + Simular llamada
+        </button>
+      </div>
+      <div id="waiterCallsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    </section>
+
+    <!-- 4. PESTAÑA: CATEGORÍAS & TIPOS (COLAPSABLES CON BUSCADOR) -->
+    <section id="tab-taxonomies" class="tab-panel hidden space-y-5">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-stone-200 space-y-2">
+          <h3 class="font-bold text-xs uppercase tracking-wider text-stone-700">+ Nueva Categoría Principal</h3>
+          <div class="flex gap-2">
+            <input type="text" id="newCatIcon" value="🍽️" title="Icono / Emoji" class="w-12 text-center border rounded-xl p-2 text-sm">
+            <input type="text" id="newCategoryInput" placeholder="Nombre (ej: Cafetería de Especialidad)" class="border rounded-xl px-3 py-2 text-xs flex-grow outline-none focus:border-amber-600">
+            <button onclick="createCategory()" class="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs px-4 py-2 rounded-xl transition">
+              Crear
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-stone-200 space-y-2">
+          <h3 class="font-bold text-xs uppercase tracking-wider text-amber-800">+ Nuevo Tipo de Platillo</h3>
+          <div class="flex gap-2">
+            <input type="text" id="newTypeIcon" value="☕" title="Icono / Emoji" class="w-12 text-center border rounded-xl p-2 text-sm">
+            <input type="text" id="newTypeInput" placeholder="Nombre (ej: Bebida Caliente, Snack, Postre)" class="border rounded-xl px-3 py-2 text-xs flex-grow outline-none focus:border-amber-600">
+            <button onclick="createType()" class="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-4 py-2 rounded-xl transition">
+              Crear Tipo
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        <div class="lg:col-span-7 space-y-4">
+          <div class="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
+            <button onclick="toggleSection('categories')" class="w-full p-4 bg-stone-50 hover:bg-stone-100 flex items-center justify-between transition cursor-pointer select-none border-b border-stone-200/60">
+              <div class="flex items-center gap-2">
+                <span class="text-base">📁</span>
+                <span class="font-bold text-sm text-stone-900">Categorías de la Carta</span>
+                <span id="badgeCatCount" class="text-[11px] bg-stone-200 text-stone-700 px-2 py-0.5 rounded-full font-bold ml-1">0</span>
+              </div>
+              <span id="arrow-categories" class="text-stone-500 text-xs transition-transform duration-200">▼</span>
+            </button>
+            <div id="content-categories" class="p-4 space-y-2">
+              <div id="categoriesListAdmin" class="space-y-2"></div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
+            <button onclick="toggleSection('types')" class="w-full p-4 bg-amber-50/40 hover:bg-amber-50 flex items-center justify-between transition cursor-pointer select-none border-b border-amber-200/50">
+              <div class="flex items-center gap-2">
+                <span class="text-base">🏷️</span>
+                <span class="font-bold text-sm text-amber-950">Tipos de Platillo</span>
+                <span id="badgeTypeCount" class="text-[11px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-bold ml-1">0</span>
+              </div>
+              <span id="arrow-types" class="text-stone-500 text-xs transition-transform duration-200">▼</span>
+            </button>
+            <div id="content-types" class="p-4 space-y-2">
+              <div id="typesListAdmin" class="space-y-2"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-5 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-4 sticky top-[135px]">
+          <div class="border-b pb-3">
+            <div class="flex justify-between items-start">
+              <div>
+                <span class="text-[10px] uppercase tracking-wider font-bold text-stone-500" id="inspectorBadge">Selección</span>
+                <h3 class="font-bold text-base text-stone-900 flex items-center gap-1.5" id="inspectorTitle">
+                  <span>👈 Selecciona una opción</span>
+                </h3>
+              </div>
+              <span id="inspectorCount" class="text-xs bg-stone-100 text-stone-700 font-bold px-2 py-0.5 rounded-lg">0 productos</span>
+            </div>
+          </div>
+
+          <div id="assignProductBox" class="space-y-2 hidden">
+            <label class="block text-[11px] font-semibold text-stone-600">+ Vincular platillo (busca por nombre):</label>
+            <div class="relative">
+              <input type="text" id="assignSearchInput" oninput="filterAssignSearchResults(this.value)" placeholder="Escribe para buscar..." class="w-full border rounded-xl px-3 py-2 text-xs bg-stone-50 outline-none focus:bg-white focus:border-amber-600">
+              <button onclick="clearAssignSearch()" id="clearAssignSearchBtn" class="hidden absolute right-2.5 top-2 text-stone-400 hover:text-stone-700 text-xs font-bold">✕</button>
+            </div>
+            <div id="assignSearchResultsBox" class="hidden border border-stone-200 bg-white rounded-xl shadow-lg max-h-48 overflow-y-auto divide-y divide-stone-100 z-20 relative"></div>
+          </div>
+
+          <div id="inspectorProductsList" class="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+            <p class="text-xs text-stone-400 py-8 text-center">Haz clic en cualquier Categoría o Tipo para ver, añadir o remover sus platillos.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. PESTAÑA: CARTA Y PLATILLOS (CON MODAL OCR INTEGRADO) -->
+    <section id="tab-products" class="tab-panel hidden space-y-5">
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
+          <div>
+            <h3 class="font-bold text-sm text-stone-900">Crear Nuevo Producto</h3>
+            <p class="text-xs text-stone-500">Puedes capturarlo manualmente o escanear una hoja de tu menú físico.</p>
+          </div>
+          <button onclick="openOcrModal()" class="bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition shadow-sm flex items-center gap-1.5">
+            <span>📷 Escanear con Foto</span>
+          </button>
+        </div>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+          <div>
+            <label class="block font-semibold mb-1 text-stone-700">Título del Platillo</label>
+            <input type="text" id="newProdTitle" placeholder="Ej: Toast de Salmón" class="w-full border rounded-xl p-2.5 outline-none focus:border-amber-600">
+          </div>
+          <div>
+            <label class="block font-semibold mb-1 text-stone-700">Precio ($ MXN)</label>
+            <input type="number" step="0.5" placeholder="165.00" id="newProdPrice" class="w-full border rounded-xl p-2.5 outline-none focus:border-amber-600 font-mono">
+          </div>
+          <div>
+            <label class="block font-semibold mb-1 text-stone-700">Categoría</label>
+            <select id="newProdCategory" class="w-full border rounded-xl p-2.5 outline-none focus:border-amber-600 bg-white"></select>
+          </div>
+          <div>
+            <label class="block font-semibold mb-1 text-stone-700">Tipo de Platillo</label>
+            <select id="newProdType" class="w-full border rounded-xl p-2.5 outline-none focus:border-amber-600 bg-white"></select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold mb-1 text-xs text-stone-700">Descripción o Ingredientes</label>
+          <textarea id="newProdDesc" rows="2" placeholder="Detalles de preparación..." class="w-full text-xs border rounded-xl p-2.5 outline-none focus:border-amber-600"></textarea>
+        </div>
+
+        <div class="border-t border-stone-100 pt-3 flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <label class="bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-300 text-xs font-semibold px-4 py-2 rounded-xl cursor-pointer flex items-center gap-2 active:scale-95 transition">
+              <span>📁 Cargar Foto desde Dispositivo</span>
+              <input type="file" id="newProdFileInput" accept="image/*" class="hidden" onchange="handleNewProductFile(this)">
+            </label>
+            <span id="newProdFileName" class="text-xs text-stone-500 italic">Sin imagen seleccionada</span>
+          </div>
+
+          <button onclick="createProduct()" id="btnSaveNewProduct" class="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs px-6 py-2.5 rounded-xl transition active:scale-95 shadow-sm">
+            Guardar Platillo
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-3">
+        <div class="flex justify-between items-center mb-2">
+          <h3 class="font-bold text-base text-stone-900">Carta Activa</h3>
+          <span class="text-xs text-stone-400" id="prodCount">0 platillos</span>
+        </div>
+        <div id="adminProductsList" class="space-y-3"></div>
+      </div>
+    </section>
+
+    <!-- 6. PESTAÑA: PROMOCIONES Y BARRA (CON CONSTRUCTOR & PREVIEW) -->
+    <section id="tab-promos" class="tab-panel hidden space-y-6">
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-3">
+        <h3 class="font-bold text-sm text-stone-900">Botón Inferior Izquierdo del Menú Comensal</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div>
+            <label class="block font-semibold mb-1 text-stone-700">Modo de Operación</label>
+            <select id="cfgBottomType" class="w-full border rounded-xl p-2.5 bg-white">
+              <option value="promo">Abrir Promociones Internas</option>
+              <option value="custom_link">Redirigir a Enlace Externo</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold mb-1 text-stone-700">Texto de Pestaña</label>
+            <input type="text" id="cfgBottomLabel" value="Promos" class="w-full border rounded-xl p-2.5">
+          </div>
+          <div>
+            <label class="block font-semibold mb-1 text-stone-700">URL Externa</label>
+            <input type="text" id="cfgBottomUrl" placeholder="https://instagram.com/tucafe" class="w-full border rounded-xl p-2.5">
+          </div>
+        </div>
+        <div class="flex justify-end">
+          <button onclick="saveBottomNavConfig()" class="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs px-4 py-2 rounded-xl transition">
+            Guardar Configuración
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-stone-200 space-y-5">
+        <div class="flex justify-between items-center border-b pb-3">
+          <div>
+            <h3 class="font-bold text-base text-stone-900" id="promoFormHeader">Crear Nueva Promoción Dinámica</h3>
+            <p class="text-xs text-stone-500">Configura descuentos calculables automáticamente en la orden del comensal.</p>
+          </div>
+          <button id="btnCancelPromoEdit" onclick="resetPromoForm()" class="hidden text-xs bg-stone-100 hover:bg-stone-200 text-stone-700 px-3 py-1.5 rounded-xl font-bold">
+            Cancelar Edición
+          </button>
+        </div>
+
+        <input type="hidden" id="editingPromoId">
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <div class="lg:col-span-7 space-y-4 text-xs">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block font-bold text-stone-700 mb-1">Título de la Promoción *</label>
+                <input type="text" id="promoTitle" oninput="updatePromoLivePreview()" placeholder="Ej: Jueves 2x1 en Flat Whites" class="w-full border rounded-xl p-2.5 outline-none focus:border-amber-600 font-semibold">
+              </div>
+              <div>
+                <label class="block font-bold text-stone-700 mb-1">Tipo de Promoción</label>
+                <select id="promoType" onchange="renderPromoDynamicFields(); updatePromoLivePreview();" class="w-full border rounded-xl p-2.5 bg-white outline-none focus:border-amber-600 font-medium">
+                  <option value="2x1">Compro X cantidad y me llevo Y (ej: 2x1, 3x2)</option>
+                  <option value="gift_item">En la compra de X te llevas Y (Combo / Regalo)</option>
+                  <option value="percentage">Porcentaje de Descuento directo (%)</option>
+                  <option value="special_price">Precio Fijo Especial ($ MXN)</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="dynamicRuleBox" class="border border-amber-200 bg-amber-50/40 rounded-xl p-3.5 space-y-3"></div>
+
+            <div>
+              <label class="block font-bold text-stone-700 mb-1">Descripción / Condiciones</label>
+              <textarea id="promoDesc" rows="2" oninput="updatePromoLivePreview()" placeholder="Válido en mesa durante todo el día..." class="w-full border rounded-xl p-2.5 outline-none focus:border-amber-600"></textarea>
+            </div>
+
+            <div class="border rounded-xl p-3.5 bg-stone-50 space-y-3">
+              <h4 class="font-bold text-[11px] uppercase tracking-wider text-stone-600">Apariencia Visual del Banner</h4>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label class="block font-semibold mb-1 text-stone-700">Color Fondo</label>
+                  <div class="flex items-center gap-2">
+                    <input type="color" id="promoBgColor" value="#b45309" oninput="updatePromoLivePreview()" class="w-8 h-8 rounded-lg cursor-pointer border-0 p-0">
+                    <span class="font-mono text-[11px] text-stone-500" id="promoBgColorCode">#b45309</span>
+                  </div>
+                </div>
+                <div>
+                  <label class="block font-semibold mb-1 text-stone-700">Color Texto</label>
+                  <div class="flex items-center gap-2">
+                    <input type="color" id="promoTextColor" value="#ffffff" oninput="updatePromoLivePreview()" class="w-8 h-8 rounded-lg cursor-pointer border-0 p-0">
+                    <span class="font-mono text-[11px] text-stone-500" id="promoTextColorCode">#ffffff</span>
+                  </div>
+                </div>
+                <div>
+                  <label class="block font-semibold mb-1 text-stone-700">Imagen de Fondo</label>
+                  <label class="bg-white hover:bg-stone-100 text-stone-800 border rounded-xl px-3 py-1.5 cursor-pointer block text-center font-bold text-[11px] transition shadow-sm">
+                    <span>📷 Cargar Foto</span>
+                    <input type="file" accept="image/*" class="hidden" onchange="handlePromoImageUpload(this)">
+                  </label>
+                  <input type="hidden" id="promoBgImageUrl">
+                </div>
+              </div>
+            </div>
+
+            <div class="border rounded-xl p-3.5 bg-stone-50 space-y-3">
+              <h4 class="font-bold text-[11px] uppercase tracking-wider text-stone-600">Vigencia y Horarios</h4>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block font-semibold mb-1 text-stone-600">Fechas (Opcional)</label>
+                  <div class="flex gap-2">
+                    <input type="date" id="promoStartDate" onchange="updatePromoLivePreview()" class="border rounded-xl p-2 w-1/2 bg-white">
+                    <input type="date" id="promoEndDate" onchange="updatePromoLivePreview()" class="border rounded-xl p-2 w-1/2 bg-white">
+                  </div>
+                </div>
+                <div>
+                  <label class="block font-semibold mb-1 text-stone-600">Horario</label>
+                  <div class="flex gap-2">
+                    <input type="time" id="promoStartTime" value="00:00" onchange="updatePromoLivePreview()" class="border rounded-xl p-2 w-1/2 bg-white">
+                    <input type="time" id="promoEndTime" value="23:59" onchange="updatePromoLivePreview()" class="border rounded-xl p-2 w-1/2 bg-white">
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label class="block font-semibold mb-1.5 text-stone-600">Días que aplica:</label>
+                <div class="flex flex-wrap gap-1.5" id="promoDaysContainer"></div>
+              </div>
+            </div>
+
+            <div id="scopeSection" class="border rounded-xl p-3.5 bg-stone-50 space-y-3">
+              <h4 class="font-bold text-[11px] uppercase tracking-wider text-stone-600">¿Para cuáles productos aplica?</h4>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <label class="flex items-center gap-1.5 bg-white border p-2 rounded-xl cursor-pointer">
+                  <input type="radio" name="promoScope" value="all" checked onchange="handlePromoScopeChange(); updatePromoLivePreview();" class="text-amber-600">
+                  <span class="font-bold text-stone-800">Toda la Carta</span>
+                </label>
+                <label class="flex items-center gap-1.5 bg-white border p-2 rounded-xl cursor-pointer">
+                  <input type="radio" name="promoScope" value="categories" onchange="handlePromoScopeChange(); updatePromoLivePreview();" class="text-amber-600">
+                  <span class="font-bold text-stone-800">Categorías</span>
+                </label>
+                <label class="flex items-center gap-1.5 bg-white border p-2 rounded-xl cursor-pointer">
+                  <input type="radio" name="promoScope" value="types" onchange="handlePromoScopeChange(); updatePromoLivePreview();" class="text-amber-600">
+                  <span class="font-bold text-stone-800">Tipos</span>
+                </label>
+                <label class="flex items-center gap-1.5 bg-white border p-2 rounded-xl cursor-pointer">
+                  <input type="radio" name="promoScope" value="products" onchange="handlePromoScopeChange(); updatePromoLivePreview();" class="text-amber-600">
+                  <span class="font-bold text-stone-800">Específicos</span>
+                </label>
+              </div>
+
+              <div id="scopeSelectContainer" class="hidden pt-2">
+                <div id="scopeItemsList" class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1.5 border rounded-xl bg-white"></div>
+              </div>
+            </div>
+
+            <div class="flex justify-end pt-2">
+              <button onclick="savePromotion()" id="btnSavePromo" class="bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-bold text-xs px-6 py-2.5 rounded-xl transition shadow-md">
+                Publicar Promoción
+              </button>
+            </div>
+          </div>
+
+          <div class="lg:col-span-5 sticky top-[135px] space-y-3">
+            <div class="flex justify-between items-center">
+              <span class="text-xs font-bold uppercase tracking-wider text-stone-500">Live Preview</span>
+              <span class="text-[11px] text-amber-800 bg-amber-50 px-2 py-0.5 rounded font-semibold border border-amber-200">En Menú Comensal</span>
+            </div>
+
+            <div id="promoLiveCard" class="relative rounded-3xl p-5 shadow-lg overflow-hidden min-h-[190px] flex flex-col justify-between transition-all duration-200">
+              <div id="previewBgImgOverlay" class="absolute inset-0 bg-cover bg-center hidden">
+                <div class="absolute inset-0 bg-black/50 backdrop-blur-[1px]"></div>
+              </div>
+
+              <div class="relative z-10 space-y-2">
+                <div class="flex justify-between items-start gap-2">
+                  <span id="previewBadge" class="bg-white/20 backdrop-blur-md text-[11px] font-bold px-2.5 py-1 rounded-xl uppercase tracking-wider shadow-sm">
+                    PROMO 2x1
+                  </span>
+                  <span id="previewScopeBadge" class="bg-black/25 text-[10px] px-2 py-0.5 rounded-lg font-medium">
+                    Toda la Carta
+                  </span>
+                </div>
+
+                <h3 id="previewTitle" class="text-lg font-extrabold leading-snug drop-shadow-sm">
+                  Título de la Promoción
+                </h3>
+
+                <p id="previewDesc" class="text-xs opacity-90 leading-relaxed drop-shadow-sm line-clamp-3">
+                  Detalles de la promoción...
+                </p>
+              </div>
+
+              <div class="relative z-10 pt-3 border-t border-white/20 flex flex-wrap justify-between items-center text-[10px] opacity-90 font-mono">
+                <span id="previewSchedule">⏰ Horario: Todo el día</span>
+                <span id="previewDates">📅 Vigencia activa</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-stone-200 space-y-4">
+        <div class="flex justify-between items-center border-b pb-3">
+          <div>
+            <h3 class="font-bold text-base text-stone-900">Histórico de Promociones</h3>
+            <p class="text-xs text-stone-500">Activa, pausa, edita o elimina promociones vigentes.</p>
+          </div>
+          <span class="text-xs bg-stone-100 text-stone-600 px-2.5 py-1 rounded-lg font-bold font-mono" id="promosHistoryCount">0 promociones</span>
+        </div>
+        <div id="promotionsHistoryList" class="space-y-3"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // Configuración general
+    window.onload = init;
+  </script>
+</body>
+</html>
