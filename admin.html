@@ -48,7 +48,7 @@
     <span>✕ Salir de Pantalla Completa</span>
   </button>
 
-  <!-- SIDEBAR -->
+  <!-- BARRA LATERAL (SIDEBAR) -->
   <aside id="appSidebar" class="w-64 bg-stone-900 text-stone-300 flex-shrink-0 flex flex-col justify-between fixed top-0 bottom-0 left-0 z-40 transition-transform duration-300 border-r border-stone-800 shadow-xl">
     <div class="flex flex-col h-full">
       <div class="p-5 border-b border-stone-800 flex items-center justify-between">
@@ -137,7 +137,7 @@
   <div id="mainContentArea" class="flex-grow ml-0 md:ml-64 flex flex-col min-h-screen transition-all duration-300">
     <header id="appHeader" class="bg-white border-b border-stone-200 px-4 sm:px-6 py-3.5 flex flex-wrap justify-between items-center gap-3 sticky top-0 z-30 shadow-xs">
       <div class="flex items-center gap-3">
-        <button onclick="toggleSidebar()" class="p-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-sm transition">
+        <button onclick="toggleSidebar()" class="p-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-sm transition" title="Menú">
           ☰
         </button>
         <h2 id="topbarTitle" class="text-base font-extrabold text-stone-900">Tablero Kanban KDS</h2>
@@ -176,7 +176,7 @@
 
           <button onclick="openNewOrderModal()" class="bg-amber-600 hover:bg-amber-500 active:scale-95 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-md transition flex items-center gap-2">
             <span>➕</span>
-            <span>Nuevo Pedido</span>
+            <span>Nuevo Pedido Manual</span>
           </button>
         </div>
 
@@ -185,12 +185,206 @@
 
       <!-- 2. ANALYTICS -->
       <section id="tab-analytics" class="tab-panel hidden space-y-6">
-        <!-- Panel Analítico con Reportes y KPIs -->
+        <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-stone-200 flex flex-wrap justify-between items-center gap-4">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-xs font-bold text-stone-500 uppercase tracking-wider mr-1">Periodo:</span>
+            <button onclick="setAnalyticsDateFilter('today')" id="btnDate-today" class="px-3 py-1.5 rounded-xl text-xs font-bold transition bg-stone-900 text-white shadow-sm">Hoy</button>
+            <button onclick="setAnalyticsDateFilter('yesterday')" id="btnDate-yesterday" class="px-3 py-1.5 rounded-xl text-xs font-bold transition bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-200">Ayer</button>
+            <button onclick="setAnalyticsDateFilter('week')" id="btnDate-week" class="px-3 py-1.5 rounded-xl text-xs font-bold transition bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-200">Últimos 7 días</button>
+            <button onclick="setAnalyticsDateFilter('all')" id="btnDate-all" class="px-3 py-1.5 rounded-xl text-xs font-bold transition bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-200">Todo el Histórico</button>
+          </div>
+          <button onclick="exportHistoryToCSV()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3.5 py-1.5 rounded-xl transition shadow-sm text-xs">
+            📥 Exportar CSV
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm">
+            <span class="text-xs font-bold text-stone-400 uppercase tracking-wider">Venta Neta del Periodo</span>
+            <h3 class="text-2xl font-black font-mono text-stone-900 mt-1" id="kpiRevenue">$0.00 MXN</h3>
+          </div>
+          <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm">
+            <span class="text-xs font-bold text-stone-400 uppercase tracking-wider">Food Cost Teórico</span>
+            <h3 class="text-2xl font-black font-mono text-stone-900 mt-1" id="kpiFoodCostPct">0.0%</h3>
+            <p class="text-[11px] text-stone-500 mt-1" id="kpiFoodCostAmount">Costo insumos: $0.00</p>
+          </div>
+          <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm">
+            <span class="text-xs font-bold text-stone-400 uppercase tracking-wider">Ticket Promedio</span>
+            <h3 class="text-2xl font-black font-mono text-amber-700 mt-1" id="kpiAvgTicket">$0.00</h3>
+          </div>
+          <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm">
+            <span class="text-xs font-bold text-stone-400 uppercase tracking-wider">Ventas por Canal</span>
+            <div class="text-[11px] font-mono mt-1.5 space-y-0.5">
+              <div class="flex justify-between"><span>Mesa:</span><b id="kpiChanDine">$0.00</b></div>
+              <div class="flex justify-between"><span>Takeout:</span><b id="kpiChanTakeout">$0.00</b></div>
+              <div class="flex justify-between"><span>Delivery:</span><b id="kpiChanDelivery">$0.00</b></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-stone-200 space-y-4">
+          <h3 class="font-extrabold text-base text-stone-900">Historial Detallado de Comandas</h3>
+          <div class="overflow-x-auto no-scrollbar">
+            <table class="w-full text-left text-xs">
+              <thead>
+                <tr class="border-b text-stone-400 font-bold uppercase text-[10px]">
+                  <th class="pb-2.5">Mesa / Canal</th>
+                  <th class="pb-2.5">Fecha y Hora</th>
+                  <th class="pb-2.5">Mesero</th>
+                  <th class="pb-2.5">Platillos</th>
+                  <th class="pb-2.5">Total</th>
+                  <th class="pb-2.5">Estatus</th>
+                </tr>
+              </thead>
+              <tbody id="historyTableBody" class="divide-y divide-stone-100"></tbody>
+            </table>
+          </div>
+        </div>
       </section>
 
-      <!-- 3. ALMACÉN Y MERMAS -->
+      <!-- 3. INVENTARIO -->
       <section id="tab-inventory" class="tab-panel hidden space-y-6">
-        <div id="suppliesTableContainer"></div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm">
+            <span class="text-xs font-bold text-stone-400 uppercase tracking-wider">Valor en Stock</span>
+            <h3 class="text-2xl font-black font-mono text-stone-900 mt-1" id="kpiInventoryValue">$0.00 MXN</h3>
+          </div>
+          <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm">
+            <span class="text-xs font-bold text-stone-400 uppercase tracking-wider">Insumos Críticos</span>
+            <h3 class="text-2xl font-black font-mono text-rose-600 mt-1" id="kpiLowStockCount">0</h3>
+          </div>
+          <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm">
+            <span class="text-xs font-bold text-stone-400 uppercase tracking-wider">Pérdida por Merma</span>
+            <h3 class="text-2xl font-black font-mono text-amber-800 mt-1" id="kpiWasteLossTotal">$0.00 MXN</h3>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <div class="lg:col-span-7 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+              <h3 class="font-bold text-sm text-stone-900">Catálogo de Insumos</h3>
+              <button onclick="openNewSupplyModal()" class="bg-stone-900 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl">+ Nuevo Insumo</button>
+            </div>
+            <table class="w-full text-left text-xs">
+              <thead>
+                <tr class="border-b text-stone-400 font-bold uppercase text-[10px]">
+                  <th class="pb-2">Insumo</th>
+                  <th class="pb-2">Stock</th>
+                  <th class="pb-2">Alerta</th>
+                  <th class="pb-2">Costo Unit.</th>
+                  <th class="pb-2">Total</th>
+                  <th class="pb-2">Ajustar</th>
+                </tr>
+              </thead>
+              <tbody id="suppliesTableBody" class="divide-y divide-stone-100"></tbody>
+            </table>
+          </div>
+
+          <div class="lg:col-span-5 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-4">
+            <h3 class="font-bold text-sm text-stone-900 border-b pb-3">Escandallo por Platillo</h3>
+            <select id="recipeProductSelect" onchange="loadProductRecipe(this.value)" class="w-full border rounded-xl p-2.5 text-xs bg-stone-50 font-semibold"></select>
+            <div id="recipeIngredientsList" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
+            <div class="border-t pt-3 space-y-2">
+              <div class="grid grid-cols-3 gap-2">
+                <select id="newRecipeSupplySelect" class="border rounded-xl p-2 text-xs bg-white col-span-2"></select>
+                <input type="number" step="0.01" id="newRecipeQty" placeholder="Cant." class="border rounded-xl p-2 text-xs font-mono">
+              </div>
+              <button onclick="addIngredientToRecipe()" class="w-full bg-amber-600 text-white font-bold text-xs py-2 rounded-xl">Vincular a Platillo</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-3">
+            <h3 class="font-bold text-sm text-stone-900 border-b pb-3">🥪 Preparados por Vender (Buffer)</h3>
+            <div id="preparedBufferList" class="space-y-2"></div>
+          </div>
+
+          <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-3">
+            <h3 class="font-bold text-sm text-stone-900 border-b pb-3">🗑️ Registro de Mermas de Cocina</h3>
+            <div id="kitchenWasteList" class="space-y-2 max-h-64 overflow-y-auto pr-1"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. RESERVAS -->
+      <section id="tab-reservations" class="tab-panel hidden space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <div class="lg:col-span-4 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-3">
+            <h3 class="font-bold text-sm text-stone-900 border-b pb-2">+ Nueva Reserva</h3>
+            <div class="space-y-2 text-xs">
+              <input type="text" id="resClientName" placeholder="Nombre cliente" class="w-full border rounded-xl p-2 outline-none">
+              <input type="tel" id="resClientPhone" placeholder="Teléfono" class="w-full border rounded-xl p-2 outline-none">
+              <div class="grid grid-cols-2 gap-2">
+                <input type="number" id="resPartySize" value="2" class="border rounded-xl p-2 font-mono" placeholder="Personas">
+                <input type="text" id="resTableNum" placeholder="Mesa" class="border rounded-xl p-2 font-mono">
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <input type="date" id="resDate" class="border rounded-xl p-2">
+                <input type="time" id="resTime" value="14:00" class="border rounded-xl p-2">
+              </div>
+              <textarea id="resNotes" rows="2" placeholder="Notas" class="w-full border rounded-xl p-2"></textarea>
+              <button onclick="createReservation()" class="w-full bg-stone-900 text-white font-bold py-2.5 rounded-xl shadow-sm">Registrar Reserva</button>
+            </div>
+          </div>
+
+          <div class="lg:col-span-8 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-4">
+            <h3 class="font-bold text-sm text-stone-900 border-b pb-3">Agenda de Reservas</h3>
+            <div id="reservationsListContainer" class="space-y-2.5"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. MESERO EN VIVO -->
+      <section id="tab-calls" class="tab-panel hidden space-y-4">
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200 flex justify-between items-center">
+          <div>
+            <h2 class="font-bold text-base text-stone-900">Llamadas Activas de Mesa</h2>
+            <p class="text-xs text-stone-500">Alertas sonoras y en tiempo real de mesas llamando al personal.</p>
+          </div>
+          <button onclick="testSimulateCall()" class="text-xs bg-stone-100 hover:bg-stone-200 text-stone-700 px-3 py-1.5 rounded-xl border border-stone-300 font-semibold transition">
+            + Simular llamada
+          </button>
+        </div>
+        <div id="waiterCallsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      </section>
+
+      <!-- 6. CATEGORÍAS -->
+      <section id="tab-taxonomies" class="tab-panel hidden space-y-5">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+          <div class="bg-white rounded-2xl shadow-sm border border-stone-200 p-4 space-y-3">
+            <h4 class="font-bold text-xs uppercase text-stone-600">Categorías</h4>
+            <div id="categoriesListAdmin" class="space-y-2"></div>
+          </div>
+          <div class="bg-white rounded-2xl shadow-sm border border-stone-200 p-4 space-y-3">
+            <h4 class="font-bold text-xs uppercase text-amber-900">Tipos de Platillo</h4>
+            <div id="typesListAdmin" class="space-y-2"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7. PRODUCTOS -->
+      <section id="tab-products" class="tab-panel hidden space-y-5">
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-4">
+          <h3 class="font-bold text-sm text-stone-900 border-b pb-3">Carta de Platillos</h3>
+          <div id="adminProductsList" class="space-y-3"></div>
+        </div>
+      </section>
+
+      <!-- 8. MARKETING -->
+      <section id="tab-marketing" class="tab-panel hidden space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <div class="lg:col-span-7 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-4">
+            <h3 class="font-bold text-base text-stone-900 border-b pb-3">Google Maps & Reseñas</h3>
+            <div class="flex gap-2">
+              <input type="text" id="gmapsEmbedInput" placeholder="<iframe src='...'></iframe>" class="flex-grow border rounded-xl px-3 py-2 text-xs font-mono">
+              <button onclick="saveGoogleMapsEmbed()" class="bg-stone-900 text-white font-bold text-xs px-4 py-2 rounded-xl">Guardar</button>
+            </div>
+            <div id="gmapsPreviewContainer" class="rounded-2xl overflow-hidden border shadow-inner min-h-[250px] bg-stone-50 flex items-center justify-center text-stone-400 text-xs">
+              Sin mapa configurado
+            </div>
+          </div>
+        </div>
       </section>
     </main>
   </div>
@@ -214,7 +408,7 @@
   <div id="newOrderManualModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
     <div class="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto no-scrollbar">
       <div class="flex justify-between items-center border-b pb-2">
-        <h3 class="font-extrabold text-base text-stone-900">🛎️ Tomar Pedido</h3>
+        <h3 class="font-extrabold text-base text-stone-900">🛎️ Tomar Pedido Manual</h3>
         <button onclick="closeNewOrderModal()" class="text-stone-400 font-bold text-lg">✕</button>
       </div>
 
@@ -239,8 +433,9 @@
         </div>
       </div>
 
+      <!-- Buscador con fotos y desplegable -->
       <div class="border rounded-2xl p-3 bg-stone-50 space-y-2 text-xs">
-        <label class="block font-bold text-stone-800">Buscar Platillo:</label>
+        <label class="block font-bold text-stone-800">Buscar Platillo de la Carta:</label>
         <input type="text" id="manualProdSearchInput" oninput="filterManualProductDropdown(this.value)" placeholder="Escribe el nombre del platillo..." class="w-full border rounded-xl p-2 bg-white">
         <div id="manualProdDropdown" class="hidden border rounded-xl bg-white max-h-48 overflow-y-auto divide-y shadow-md"></div>
       </div>
@@ -259,6 +454,101 @@
         <span class="text-xl font-black font-mono text-stone-900" id="manualOrderTotalDisplay">$0.00 MXN</span>
         <button onclick="submitManualOrder()" class="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-6 py-2.5 rounded-xl shadow-md">
           Crear Comanda 🛎️
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL EDITAR COMANDA CON CONFIRMACIÓN -->
+  <div id="editOrderModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-xl rounded-3xl max-h-[92vh] overflow-y-auto no-scrollbar shadow-2xl p-6 space-y-5">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="font-bold text-base text-stone-900 flex items-center gap-2">
+          <span>✏️ Editar Comanda</span>
+          <span id="modalOrderTableBadge" class="bg-amber-100 text-amber-900 font-black text-xs px-2.5 py-0.5 rounded-lg font-mono">Mesa --</span>
+        </h3>
+        <button onclick="closeEditOrderModal()" class="text-stone-400 font-bold text-lg p-1">✕</button>
+      </div>
+
+      <input type="hidden" id="modalOrderId">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">Mesero Asignado:</label>
+          <select id="modalOrderWaiter" class="w-full border rounded-xl p-2.5 bg-stone-50 font-bold text-stone-800 outline-none"></select>
+        </div>
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">Estatus Actual:</label>
+          <select id="modalOrderStatus" class="w-full border rounded-xl p-2.5 bg-stone-50 font-bold text-stone-800 outline-none"></select>
+        </div>
+      </div>
+
+      <div class="space-y-3">
+        <h4 class="font-bold text-xs uppercase tracking-wider text-stone-700">Platillos:</h4>
+        <div id="modalOrderItemsContainer" class="space-y-2.5 max-h-60 overflow-y-auto pr-1"></div>
+      </div>
+
+      <div>
+        <label class="block font-bold text-xs text-stone-700 mb-1">Notas especiales:</label>
+        <textarea id="modalOrderNotes" rows="2" class="w-full border rounded-xl p-2.5 text-xs outline-none bg-stone-50"></textarea>
+      </div>
+
+      <div class="border-t pt-4 flex justify-between items-center">
+        <p class="text-xl font-black font-mono text-stone-900" id="modalOrderTotalDisplay">$0.00 MXN</p>
+        <button onclick="saveOrderEditsWithConfirm()" class="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-6 py-2.5 rounded-xl shadow-md">
+          Guardar Cambios ✓
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DETALLE DE COMANDA (IMPRIMIR TICKET Y PDF) -->
+  <div id="orderDetailModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-3xl max-h-[92vh] overflow-y-auto no-scrollbar shadow-2xl p-6 space-y-4">
+      <div class="flex justify-between items-start border-b pb-3">
+        <div>
+          <span class="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Detalle de Comanda</span>
+          <h3 class="text-lg font-black text-stone-900 flex items-center gap-2 mt-0.5">
+            <span id="detailTableNum">Mesa --</span>
+            <span id="detailOrderId" class="text-xs font-mono font-normal text-stone-400">#0000</span>
+          </h3>
+        </div>
+        <button onclick="closeOrderDetailModal()" class="text-stone-400 hover:text-stone-700 font-bold text-lg p-1">✕</button>
+      </div>
+
+      <!-- Ticket térmico imprimible -->
+      <div id="printableTicketArea" class="bg-stone-50 border border-stone-200 rounded-2xl p-4 font-mono text-xs space-y-3">
+        <div class="text-center pb-2 border-b border-dashed border-stone-300">
+          <h4 class="font-extrabold text-sm text-stone-900 uppercase">Café & Bistro Áurea</h4>
+          <p class="text-[10px] text-stone-500 mt-0.5" id="ticketDateTime">--/--/---- --:--</p>
+          <div class="flex justify-center gap-2 mt-1 text-[11px] font-bold">
+            <span id="ticketChannelBadge" class="bg-stone-200 px-1.5 py-0.5 rounded text-stone-800">Mesa</span>
+            <span id="ticketWaiter" class="text-stone-700">Mesero: --</span>
+          </div>
+        </div>
+
+        <div id="ticketItemsContainer" class="space-y-1.5 py-1"></div>
+
+        <div class="border-t border-dashed border-stone-300 pt-2 space-y-1 text-[11px]">
+          <div class="flex justify-between">
+            <span>Subtotal:</span>
+            <span id="ticketSubtotal">$0.00</span>
+          </div>
+          <div class="flex justify-between text-sm font-black border-t pt-1 text-stone-900">
+            <span>TOTAL:</span>
+            <span id="ticketTotal">$0.00 MXN</span>
+          </div>
+        </div>
+
+        <!-- Bloque de cuenta dividida si existe -->
+        <div id="ticketSplitStatusBox" class="hidden border-t border-dashed border-stone-300 pt-2 space-y-1"></div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2 border-t">
+        <button onclick="printCurrentOrderTicket()" class="flex-grow bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm">
+          <span>🖨️ Imprimir Ticket / Guardar PDF</span>
+        </button>
+        <button onclick="closeOrderDetailModal()" class="px-4 py-2.5 border rounded-xl text-xs font-bold text-stone-600 hover:bg-stone-100">
+          Cerrar
         </button>
       </div>
     </div>
@@ -325,6 +615,33 @@
     </div>
   </div>
 
+  <!-- MODAL NUEVO INSUMO -->
+  <div id="newSupplyModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl space-y-3">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-sm text-stone-900">+ Nuevo Insumo</h3>
+        <button onclick="closeNewSupplyModal()" class="text-stone-400 font-bold">✕</button>
+      </div>
+      <div class="space-y-2 text-xs">
+        <input type="text" id="supName" placeholder="Nombre insumo" class="w-full border rounded-xl p-2">
+        <div class="grid grid-cols-2 gap-2">
+          <select id="supUnit" class="border rounded-xl p-2 bg-white">
+            <option value="g">Gramos (g)</option>
+            <option value="ml">Mililitros (ml)</option>
+            <option value="oz">Onzas (oz)</option>
+            <option value="pza">Pieza (pza)</option>
+          </select>
+          <input type="number" id="supStock" placeholder="Stock" class="border rounded-xl p-2">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <input type="number" id="supMin" placeholder="Alerta Mín." class="border rounded-xl p-2">
+          <input type="number" step="0.0001" id="supCost" placeholder="Costo Unit." class="border rounded-xl p-2">
+        </div>
+        <button onclick="saveNewSupply()" class="w-full bg-stone-900 text-white font-bold py-2.5 rounded-xl shadow-sm">Guardar Insumo</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const REST_ID = 'b47a9880-9fd3-4c9b-b05b-86ea8f0d014d';
     const SUPABASE_URL = 'https://jmqqkgshwwycercknzgy.supabase.co';
@@ -349,11 +666,24 @@
     let adminRecipes = [];
     let adminBuffer = [];
     let adminWaste = [];
+    let adminReservations = [];
+    let adminCalls = [];
+    let adminCategories = [];
+    let adminTypes = [];
     let manualOrderItems = [];
 
+    let currentEditingOrder = null;
+    let currentSelectedDetailOrder = null;
     let retrocesoOrderId = null;
     let retrocesoInventoryChoice = null;
     let retrocesoPreparedDest = null;
+
+    let kanbanViewMode = 'all';
+    let selectedSingleStatus = 'pending';
+    let currentChannelFilter = 'all';
+    let currentAnalyticsFilter = 'today';
+    let customDateFrom = null;
+    let customDateTo = null;
 
     // AUDIO API
     let audioCtx = null;
@@ -394,6 +724,7 @@
       } catch(e) {}
     }
 
+    // NAVEGACIÓN Y TOGGLE
     function toggleSidebar(forceState) {
       const sidebar = document.getElementById('appSidebar');
       const content = document.getElementById('mainContentArea');
@@ -443,20 +774,52 @@
         targetBtn.classList.remove('text-stone-400', 'font-medium');
         targetBtn.classList.add('bg-amber-600', 'text-white', 'shadow-sm', 'font-bold');
       }
+      if (window.innerWidth < 768) toggleSidebar(false);
+
+      if (tabId === 'analytics') renderAnalyticsDashboard();
+      if (tabId === 'inventory') renderInventoryTab();
+      if (tabId === 'reservations') renderReservationsList();
+      if (tabId === 'calls') renderCalls();
+      if (tabId === 'products') renderProducts();
+      if (tabId === 'taxonomies') renderTaxonomies();
     }
 
-    // RENDERIZADO DEL KANBAN CON DUAL TIMER E INDICADORES VISUALES
+    function filterByChannel(channel) {
+      currentChannelFilter = channel;
+      ['all', 'dine_in', 'takeout', 'delivery'].forEach(ch => {
+        const btn = document.getElementById(`btnChannel-${ch}`);
+        if (btn) btn.className = (ch === channel) ? 'px-3 py-1.5 rounded-xl bg-stone-900 text-white shadow-sm' : 'px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900';
+      });
+      renderKanbanBoard();
+    }
+
+    function setKanbanDisplayMode(mode) {
+      kanbanViewMode = mode;
+      document.getElementById('btnViewMode-all').className = mode === 'all' ? 'px-3.5 py-1.5 rounded-xl bg-stone-900 text-white shadow-sm' : 'px-3.5 py-1.5 rounded-xl text-stone-600 hover:text-stone-900';
+      document.getElementById('btnViewMode-single').className = mode === 'single' ? 'px-3.5 py-1.5 rounded-xl bg-stone-900 text-white shadow-sm' : 'px-3.5 py-1.5 rounded-xl text-stone-600 hover:text-stone-900';
+      renderKanbanBoard();
+    }
+
+    // KANBAN BOARD & CRONÓMETRO DUAL
     function renderKanbanBoard() {
       const container = document.getElementById('kanbanBoardContainer');
       if (!container) return;
 
+      let filtered = adminOrders.filter(o => !o.is_archived);
+      if (currentChannelFilter === 'dine_in') filtered = filtered.filter(o => !o.order_channel || o.order_channel === 'dine_in');
+      else if (currentChannelFilter === 'takeout') filtered = filtered.filter(o => o.order_channel === 'takeout');
+      else if (currentChannelFilter === 'delivery') filtered = filtered.filter(o => ['rappi', 'didi', 'ubereats'].includes(o.order_channel));
+
+      const activeCount = filtered.filter(o => o.status !== 'paid' && o.status !== 'cancelled').length;
+      document.getElementById('kdsActiveCount').innerText = `${activeCount} activas`;
+      document.getElementById('badgeLiveOrders').innerText = activeCount;
+
       container.innerHTML = customStatusConfig.map((col, idx) => {
-        const ordersInStatus = adminOrders.filter(o => !o.is_archived && o.status === col.id);
+        const ordersInStatus = filtered.filter(o => o.status === col.id);
         const count = ordersInStatus.length;
 
         return `
           <div id="column-${col.id}" class="bg-stone-200/70 rounded-3xl p-3.5 space-y-3 border border-stone-300">
-            <!-- HEADER DE COLUMNA GRANDE -->
             <div class="flex justify-between items-center p-2 rounded-2xl bg-white shadow-xs border">
               <div class="flex items-center gap-2">
                 <span class="w-3.5 h-3.5 rounded-full" style="background-color: ${col.color}"></span>
@@ -506,10 +869,13 @@
               <span class="bg-amber-100 text-amber-900 text-[10px] font-black px-2 py-0.5 rounded-lg">Mesa ${order.table_number}</span>
               <span class="text-[10px] text-stone-400 font-mono ml-1">#${(order.id||'').substring(0,4)}</span>
             </div>
-            <span class="text-xs font-bold text-stone-600">${order.waiter_name || 'Sin asignar'}</span>
+            <div class="flex items-center gap-1">
+              <button onclick="openEditOrderModal('${order.id}')" class="p-1 hover:bg-stone-100 rounded text-xs" title="Editar">✏️</button>
+              <button onclick="openOrderDetailModal('${order.id}')" class="p-1 hover:bg-stone-100 rounded text-xs text-amber-700" title="Imprimir / PDF">🖨️</button>
+            </div>
           </div>
 
-          <!-- CRONÓMETRO DUAL -->
+          <!-- Cronómetro Dual -->
           <div class="bg-stone-50 border rounded-xl p-2 space-y-1">
             <div class="grid grid-cols-2 gap-1 text-[10px] font-mono font-bold text-center">
               <div class="border rounded-lg p-1 ${t1Class}">${t1Label}</div>
@@ -520,7 +886,7 @@
             </div>
           </div>
 
-          <!-- PRODUCTOS RESALTANDO LO NUEVO -->
+          <!-- Productos con Resaltado de lo Nuevo -->
           <div class="space-y-1 text-xs border-t pt-2">
             ${items.map(it => `
               <div class="flex justify-between items-start ${it.is_new ? 'bg-amber-100 border border-amber-300 rounded p-1 font-bold' : ''}">
@@ -583,7 +949,7 @@
       }
     }
 
-    // RETROCESO EN 2 PASOS CON VISUALIZACIÓN ACTIVA
+    // RETROCESO DE PREPARACIÓN CON OPCIONES MARCADAS
     function requestRetrocesoOrder(orderId) {
       const order = adminOrders.find(o => o.id === orderId);
       if (!order) return;
@@ -592,7 +958,7 @@
       retrocesoInventoryChoice = null;
       retrocesoPreparedDest = null;
 
-      // Reset visual de botones
+      // Resetear clases de botones
       ['btnRetroNoPrep', 'btnRetroPrep', 'btnRetroBuffer', 'btnRetroWaste'].forEach(b => {
         const el = document.getElementById(b);
         if (el) el.className = 'p-3 border rounded-xl text-left transition space-y-1 bg-white';
@@ -605,7 +971,7 @@
         document.getElementById('retrocesoStep2').classList.add('hidden');
         document.getElementById('retrocesoModal').classList.remove('hidden');
       } else if (order.status === 'delivered') {
-        const rePrep = confirm("¿Se preparará en cocina algún producto nuevo o modificación?\n\n• [Aceptar]: Regresar a 'En Preparación' e iniciar nuevo contador de cocina.\n• [Cancelar]: Regresar normalmente.");
+        const rePrep = confirm("¿Se preparará en cocina algún platillo nuevo o modificación?\n\n• [Aceptar]: Regresar a 'En Preparación' e iniciar nuevo contador de cocina.\n• [Cancelar]: Regresar normalmente.");
         if (rePrep) {
           order.status = 'preparing';
           order.kitchen_cycle_started_at = new Date().toISOString();
@@ -659,13 +1025,11 @@
       if (client) await client.from('orders').update({ status: order.status, is_archived: order.is_archived }).eq('id', order.id);
     }
 
-    function closeRetrocesoModal() {
-      document.getElementById('retrocesoModal').classList.add('hidden');
-    }
+    function closeRetrocesoModal() { document.getElementById('retrocesoModal').classList.add('hidden'); }
 
-    // CANDADO DE ASIGNACIÓN DE MESAS
+    // CANDADO DE ASIGNACIÓN DE MESAS Y BUSCADOR
     async function submitManualOrder() {
-      if (manualOrderItems.length === 0) { alert("Agrega al menos un platillo."); return; }
+      if (manualOrderItems.length === 0) { alert("Agrega al menos un platillo a la comanda."); return; }
       const tableNum = document.getElementById('manualOrderTable').value.trim() || '01';
       const channel = document.getElementById('manualOrderChannel').value;
 
@@ -735,12 +1099,18 @@
 
       const matches = adminProducts.filter(p => p.title.toLowerCase().includes(q));
       drop.classList.remove('hidden');
-      drop.innerHTML = matches.map(p => `
-        <div onclick="selectProductToAddManual('${p.id}')" class="p-2 hover:bg-amber-50 cursor-pointer flex justify-between text-xs">
-          <span>${p.title}</span>
-          <span class="font-bold font-mono">$${Number(p.price).toFixed(2)}</span>
-        </div>
-      `).join('');
+      drop.innerHTML = matches.map(p => {
+        const img = (p.media && p.media[0]) ? p.media[0].url : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=100&q=80';
+        return `
+          <div onclick="selectProductToAddManual('${p.id}')" class="p-2 hover:bg-amber-50 cursor-pointer flex items-center justify-between text-xs">
+            <div class="flex items-center gap-2">
+              <img src="${img}" class="w-8 h-8 rounded-lg object-cover">
+              <span class="font-bold text-stone-900">${p.title}</span>
+            </div>
+            <span class="font-mono font-bold text-amber-700">$${Number(p.price).toFixed(2)}</span>
+          </div>
+        `;
+      }).join('');
     }
 
     function selectProductToAddManual(prodId) {
@@ -767,12 +1137,137 @@
       document.getElementById('manualOrderTotalDisplay').innerText = `$${total.toFixed(2)} MXN`;
     }
 
+    // MODAL EDITAR COMANDA CON CONFIRMACIÓN
+    function openEditOrderModal(orderId) {
+      const order = adminOrders.find(o => o.id === orderId);
+      if (!order) return;
+      currentEditingOrder = order;
+
+      document.getElementById('modalOrderId').value = order.id;
+      document.getElementById('modalOrderTableBadge').innerText = `Mesa ${order.table_number}`;
+      document.getElementById('modalOrderNotes').value = order.customer_notes || '';
+
+      const waiterSelect = document.getElementById('modalOrderWaiter');
+      waiterSelect.innerHTML = WAITERS_LIST.map(w => `<option value="${w}" ${order.waiter_name === w ? 'selected' : ''}>${w}</option>`).join('');
+
+      const statusSelect = document.getElementById('modalOrderStatus');
+      statusSelect.innerHTML = customStatusConfig.map(s => `<option value="${s.id}" ${order.status === s.id ? 'selected' : ''}>${s.name}</option>`).join('');
+
+      renderEditOrderItems();
+      document.getElementById('editOrderModal').classList.remove('hidden');
+    }
+
+    function closeEditOrderModal() { document.getElementById('editOrderModal').classList.add('hidden'); }
+
+    function renderEditOrderItems() {
+      const cont = document.getElementById('modalOrderItemsContainer');
+      const items = currentEditingOrder?.items || [];
+      cont.innerHTML = items.map((it, idx) => `
+        <div class="flex justify-between items-center p-2 rounded-xl bg-stone-50 border text-xs">
+          <span>${it.qty}x ${it.title}</span>
+          <div class="flex items-center gap-2">
+            <span class="font-mono font-bold">$${(it.price * it.qty).toFixed(2)}</span>
+            <button onclick="currentEditingOrder.items.splice(${idx},1); renderEditOrderItems();" class="text-rose-600 font-bold">✕</button>
+          </div>
+        </div>
+      `).join('');
+
+      const total = items.reduce((acc, it) => acc + (it.price * it.qty), 0);
+      document.getElementById('modalOrderTotalDisplay').innerText = `$${total.toFixed(2)} MXN`;
+    }
+
+    async function saveOrderEditsWithConfirm() {
+      if (!currentEditingOrder) return;
+      const ok = confirm(`¿Confirmas la modificación de la comanda de la Mesa ${currentEditingOrder.table_number}?\n\nEsta acción modificará los productos y notas registrados.`);
+      if (!ok) return;
+
+      currentEditingOrder.waiter_name = document.getElementById('modalOrderWaiter').value;
+      currentEditingOrder.status = document.getElementById('modalOrderStatus').value;
+      currentEditingOrder.customer_notes = document.getElementById('modalOrderNotes').value.trim();
+      currentEditingOrder.total = currentEditingOrder.items.reduce((acc, it) => acc + (it.price * it.qty), 0);
+
+      renderKanbanBoard();
+      closeEditOrderModal();
+
+      if (client) {
+        await client.from('orders').update({
+          items: currentEditingOrder.items,
+          waiter_name: currentEditingOrder.waiter_name,
+          status: currentEditingOrder.status,
+          customer_notes: currentEditingOrder.customer_notes,
+          total: currentEditingOrder.total
+        }).eq('id', currentEditingOrder.id);
+      }
+    }
+
+    // DETALLE DE COMANDA (IMPRIMIR TICKET Y PDF)
+    function openOrderDetailModal(orderId) {
+      const order = adminOrders.find(o => o.id === orderId);
+      if (!order) return;
+      currentSelectedDetailOrder = order;
+
+      document.getElementById('detailTableNum').innerText = `Mesa ${order.table_number}`;
+      document.getElementById('detailOrderId').innerText = `#${(order.id || '').substring(0,6)}`;
+      document.getElementById('ticketDateTime').innerText = new Date(order.created_at).toLocaleString();
+      document.getElementById('ticketWaiter').innerText = `Mesero: ${order.waiter_name || 'Sin asignar'}`;
+      document.getElementById('ticketChannelBadge').innerText = order.order_channel === 'takeout' ? 'Para Llevar' : (order.order_channel === 'delivery' ? 'Delivery' : 'En Mesa');
+
+      const items = Array.isArray(order.items) ? order.items : [];
+      document.getElementById('ticketItemsContainer').innerHTML = items.map(it => `
+        <div class="flex justify-between items-start">
+          <span>${it.qty}x ${it.title}</span>
+          <span class="font-bold">$${(it.price * it.qty).toFixed(2)}</span>
+        </div>
+      `).join('');
+
+      document.getElementById('ticketSubtotal').innerText = `$${Number(order.subtotal || order.total).toFixed(2)}`;
+      document.getElementById('ticketTotal').innerText = `$${Number(order.total).toFixed(2)} MXN`;
+
+      // Cuenta dividida si existe
+      const splitBox = document.getElementById('ticketSplitStatusBox');
+      if (order.split_type && order.split_type !== 'single' && order.split_details) {
+        splitBox.classList.remove('hidden');
+        splitBox.innerHTML = `
+          <div class="border-t border-dashed border-stone-300 pt-2 space-y-1">
+            <span class="font-bold text-[11px] text-amber-900 block">👥 Cuenta Dividida:</span>
+            ${order.split_details.map(p => `
+              <div class="flex justify-between text-[10px]">
+                <span>${p.name}: $${Number(p.amount).toFixed(2)}</span>
+                <span class="${p.paid ? 'text-emerald-700 font-bold' : 'text-stone-400'}">${p.paid ? 'Pagado ✓' : 'Pendiente'}</span>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } else {
+        splitBox.classList.add('hidden');
+      }
+
+      document.getElementById('orderDetailModal').classList.remove('hidden');
+    }
+
+    function closeOrderDetailModal() { document.getElementById('orderDetailModal').classList.add('hidden'); }
+
+    function printCurrentOrderTicket() {
+      const printContents = document.getElementById('printableTicketArea').innerHTML;
+      const printWindow = window.open('', '_blank', 'width=380,height=600');
+      printWindow.document.write(`
+        <html><head><title>Ticket Mesa ${currentSelectedDetailOrder?.table_number}</title>
+        <style>body { font-family: monospace; font-size: 12px; margin: 20px; } .flex { display: flex; justify-content: space-between; } .border-b { border-bottom: 1px dashed #000; padding-bottom: 8px; margin-bottom: 8px; }</style>
+        </head><body>${printContents}</body></html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    }
+
+    // CONFIGURACIÓN DE ESTATUS Y SONIDOS
     function openStatusConfigModal() {
       const cont = document.getElementById('statusConfigList');
       cont.innerHTML = customStatusConfig.map((st, idx) => `
         <div class="border rounded-2xl p-3 bg-stone-50 text-xs flex justify-between items-center">
           <input type="text" value="${st.name}" onchange="customStatusConfig[${idx}].name=this.value" class="border rounded px-2 py-1 font-bold">
-          <button onclick="playSoundByName('${st.sound_in}')" class="text-stone-500 font-bold">▶ Sonido In</button>
+          <button onclick="playSoundByName('${st.sound_in}')" class="text-stone-500 font-bold">▶ Probar Sonido</button>
         </div>
       `).join('');
       document.getElementById('statusConfigModal').classList.remove('hidden');
@@ -784,44 +1279,193 @@
       renderKanbanBoard();
     }
 
+    // INVENTARIO, RESERVAS Y ALERTAS
+    function renderInventoryTab() {
+      const tbody = document.getElementById('suppliesTableBody');
+      if (tbody) {
+        tbody.innerHTML = adminSupplies.map(s => `
+          <tr class="hover:bg-stone-50 text-stone-700">
+            <td class="py-2.5 font-bold">${s.name}</td>
+            <td class="py-2.5 font-mono">${s.current_stock} ${s.unit}</td>
+            <td class="py-2.5 font-mono text-stone-400">${s.min_stock_alert} ${s.unit}</td>
+            <td class="py-2.5 font-mono">$${Number(s.unit_cost).toFixed(4)}</td>
+            <td class="py-2.5 font-mono font-bold">$${(s.current_stock * s.unit_cost).toFixed(2)}</td>
+            <td class="py-2.5"><button onclick="quickStockAdjust('${s.id}')" class="text-[10px] bg-stone-100 px-2 py-0.5 rounded font-bold">Ajustar</button></td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    function quickStockAdjust(supId) {
+      const sup = adminSupplies.find(s => s.id === supId);
+      if (!sup) return;
+      const val = prompt(`Ajustar stock de ${sup.name}:`, sup.current_stock);
+      if (val !== null && !isNaN(parseFloat(val))) {
+        sup.current_stock = parseFloat(val);
+        renderInventoryTab();
+        if (client) client.from('supplies').update({ current_stock: sup.current_stock }).eq('id', sup.id);
+      }
+    }
+
+    function renderCalls() {
+      const grid = document.getElementById('waiterCallsGrid');
+      document.getElementById('pendingCallsBadge').innerText = adminCalls.length;
+      if (!grid) return;
+      if (adminCalls.length === 0) {
+        grid.innerHTML = '<div class="col-span-full bg-white rounded-2xl p-8 text-center text-stone-400 text-xs">No hay llamadas activas.</div>';
+        return;
+      }
+      grid.innerHTML = adminCalls.map(c => `
+        <div class="bg-white rounded-2xl p-4 border border-rose-200 shadow-sm flex items-center justify-between">
+          <span class="font-black text-sm text-stone-900">Mesa ${c.table_number}</span>
+          <button onclick="resolveCall('${c.id}')" class="bg-emerald-600 text-white font-bold text-xs px-3 py-1.5 rounded-xl">Atendida ✓</button>
+        </div>
+      `).join('');
+    }
+
+    async function resolveCall(id) {
+      adminCalls = adminCalls.filter(c => c.id !== id);
+      renderCalls();
+      if (client) await client.from('waiter_calls').update({ status: 'resolved' }).eq('id', id);
+    }
+
+    async function testSimulateCall() {
+      const mockTable = '0' + (Math.floor(Math.random() * 8) + 1);
+      const newCall = { id: 'call-' + Date.now(), restaurant_id: REST_ID, table_number: mockTable, status: 'pending' };
+      adminCalls.unshift(newCall);
+      renderCalls();
+      playSoundByName('dingdong');
+      if (client) await client.from('waiter_calls').insert([newCall]);
+    }
+
+    function renderReservationsList() {
+      const cont = document.getElementById('reservationsListContainer');
+      document.getElementById('badgeReservationsCount').innerText = adminReservations.length;
+      if (!cont) return;
+      cont.innerHTML = adminReservations.map(r => `
+        <div class="p-3 rounded-2xl border bg-stone-50 flex items-center justify-between text-xs">
+          <div>
+            <span class="font-bold text-stone-900">${r.customer_name}</span> (${r.party_size} pers.) • Mesa ${r.table_number}
+            <p class="text-[11px] text-stone-500">${r.reservation_time} | 📞 ${r.customer_phone}</p>
+          </div>
+          <span class="text-emerald-700 font-bold bg-emerald-100 px-2.5 py-1 rounded-xl">Confirmada</span>
+        </div>
+      `).join('');
+    }
+
+    function renderProducts() {
+      const cont = document.getElementById('adminProductsList');
+      if (cont) {
+        cont.innerHTML = adminProducts.map(p => `
+          <div class="p-3 border rounded-xl bg-stone-50 flex items-center justify-between text-xs">
+            <span class="font-bold text-stone-900">${p.title}</span>
+            <span class="font-mono font-bold">$${Number(p.price).toFixed(2)}</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    function renderTaxonomies() {
+      const catCont = document.getElementById('categoriesListAdmin');
+      if (catCont) catCont.innerHTML = adminCategories.map(c => `<div class="p-2 border rounded-xl bg-stone-50 text-xs font-bold">${c.name}</div>`).join('');
+      const typCont = document.getElementById('typesListAdmin');
+      if (typCont) typCont.innerHTML = adminTypes.map(t => `<div class="p-2 border rounded-xl bg-amber-50 text-xs font-bold">${t.name}</div>`).join('');
+    }
+
+    function renderAnalyticsDashboard() {
+      const paid = adminOrders.filter(o => o.status === 'paid');
+      const total = paid.reduce((acc, o) => acc + Number(o.total || 0), 0);
+      document.getElementById('kpiRevenue').innerText = `$${total.toFixed(2)} MXN`;
+      document.getElementById('kpiAvgTicket').innerText = paid.length > 0 ? `$${(total / paid.length).toFixed(2)}` : '$0.00';
+
+      const tbody = document.getElementById('historyTableBody');
+      if (tbody) {
+        tbody.innerHTML = adminOrders.map(o => `
+          <tr onclick="openOrderDetailModal('${o.id}')" class="hover:bg-amber-50 cursor-pointer text-stone-700">
+            <td class="py-2.5 font-bold font-mono">Mesa ${o.table_number}</td>
+            <td class="py-2.5 font-mono text-stone-500">${new Date(o.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+            <td class="py-2.5">${o.waiter_name || 'Sin asignar'}</td>
+            <td class="py-2.5 max-w-xs truncate">${(o.items||[]).map(i => `${i.qty}x ${i.title}`).join(', ')}</td>
+            <td class="py-2.5 font-mono font-bold text-stone-900">$${Number(o.total).toFixed(2)}</td>
+            <td class="py-2.5"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${o.status==='paid'?'bg-emerald-100 text-emerald-800':'bg-amber-100 text-amber-800'}">${o.status}</span></td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    function exportHistoryToCSV() {
+      let csv = "data:text/csv;charset=utf-8,Mesa,Fecha,Hora,Total,Estatus\\n";
+      adminOrders.forEach(o => {
+        csv += `"${o.table_number}","${new Date(o.created_at).toLocaleDateString()}","${new Date(o.created_at).toLocaleTimeString()}",${o.total},"${o.status}"\\n`;
+      });
+      const link = document.createElement("a");
+      link.setAttribute("href", encodeURI(csv));
+      link.setAttribute("download", `comandas_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function saveGoogleMapsEmbed() {
+      const val = document.getElementById('gmapsEmbedInput')?.value?.trim();
+      if (!val) return;
+      document.getElementById('gmapsPreviewContainer').innerHTML = val;
+      if (client) client.from('restaurants').update({ google_maps_embed: val }).eq('id', REST_ID);
+      alert("Google Maps vinculado correctamente.");
+    }
+
     function formatElapsed(secs) {
       const m = Math.floor(Math.max(0, secs) / 60);
       const s = Math.max(0, secs) % 60;
       return `${m}m ${s < 10 ? '0' : ''}${s}s`;
     }
 
+    // INICIALIZACIÓN
     async function init() {
       adminOrders = [
         {
-          id: 'ord-demo-1',
+          id: 'ord-1',
           table_number: '01',
+          order_channel: 'dine_in',
           waiter_name: 'Carlos M.',
-          items: [{ title: 'Tostón de Aguacate Trufado', qty: 2, price: 165.00 }, { title: 'Flat White Pluma', qty: 2, price: 78.00 }],
+          items: [{ id: 'p1', title: 'Tostón de Aguacate Trufado', qty: 2, price: 165.00 }, { id: 'p2', title: 'Flat White Oaxaca Pluma', qty: 2, price: 78.00 }],
+          subtotal: 486.00,
           total: 486.00,
-          status: 'pending',
-          created_at: new Date(Date.now() - 300000).toISOString()
+          status: 'paid',
+          is_archived: false,
+          created_at: new Date(Date.now() - 3600000).toISOString(),
+          preparing_at: new Date(Date.now() - 3400000).toISOString(),
+          delivered_at: new Date(Date.now() - 2200000).toISOString(),
+          paid_at: new Date(Date.now() - 600000).toISOString()
         }
       ];
+
       adminProducts = [
-        { id: 'p1', title: 'Tostón de Aguacate Trufado', price: 165.00 },
-        { id: 'p2', title: 'Flat White Pluma', price: 78.00 }
+        { id: 'p1', title: 'Tostón de Aguacate Trufado', price: 165.00, media: [{ url: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=400&q=80' }] },
+        { id: 'p2', title: 'Flat White Oaxaca Pluma', price: 78.00, media: [{ url: 'https://images.unsplash.com/photo-1577968897966-3d4325b36b61?auto=format&fit=crop&w=400&q=80' }] }
+      ];
+
+      adminSupplies = [
+        { id: 's1', name: 'Café Pluma Oaxaca Grano', unit: 'g', current_stock: 4500, min_stock_alert: 1000, unit_cost: 0.42 },
+        { id: 's2', name: 'Leche Entera Barista', unit: 'ml', current_stock: 12000, min_stock_alert: 3000, unit_cost: 0.032 }
       ];
 
       renderKanbanBoard();
       document.getElementById('connStatus').innerText = 'Sincronizado en tiempo real ✓';
 
       if (client) {
-        const { data } = await client.from('orders').select('*').order('created_at', { ascending: false });
-        if (data && data.length > 0) adminOrders = data;
-        const prods = await client.from('products').select('*');
-        if (prods?.data) adminProducts = prods.data;
-        renderKanbanBoard();
-      }
+        try {
+          const [ordersRes, prodsRes, callsRes, catsRes, typesRes, supsRes, resRes, restRes] = await Promise.all([
+            client.from('orders').select('*').order('created_at', { ascending: false }),
+            client.from('products').select('*').order('created_at', { ascending: false }),
+            client.from('waiter_calls').select('*').eq('status', 'pending').order('called_at', { ascending: true }),
+            client.from('categories').select('*').order('order_index', { ascending: true }),
+            client.from('product_types').select('*').order('order_index', { ascending: true }),
+            client.from('supplies').select('*').order('name', { ascending: true }),
+            client.from('reservations').select('*').order('reservation_time', { ascending: true }),
+            client.from('restaurants').select('google_maps_embed').eq('id', REST_ID).maybeSingle()
+          ]);
 
-      setInterval(renderKanbanBoard, 1000);
-    }
-
-    window.onload = init;
-  </script>
-</body>
-</html>
+          if (ordersRes?.data && ordersRes.data.length > 0) adminOrders = ordersRes.data;
+          if (prodsRes?.data && prodsRes.data.length > 0) adminProducts = prodsRes.data;
+          if (callsRes?.data) adminCalls = callsRes.
