@@ -172,9 +172,29 @@
 
     <!-- 2. ANALYTICS -->
     <section id="tab-analytics" class="tab-panel hidden space-y-6">
+      <!-- BARRA DE CONTROL DE FECHAS -->
+      <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-stone-200 flex flex-wrap justify-between items-center gap-4">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-xs font-bold text-stone-500 uppercase tracking-wider mr-1">Periodo:</span>
+          <button onclick="setAnalyticsDateFilter('today')" id="btnDate-today" class="px-3 py-1.5 rounded-xl text-xs font-bold transition bg-stone-900 text-white shadow-sm">Hoy</button>
+          <button onclick="setAnalyticsDateFilter('yesterday')" id="btnDate-yesterday" class="px-3 py-1.5 rounded-xl text-xs font-bold transition bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-200">Ayer</button>
+          <button onclick="setAnalyticsDateFilter('week')" id="btnDate-week" class="px-3 py-1.5 rounded-xl text-xs font-bold transition bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-200">Últimos 7 días</button>
+          <button onclick="setAnalyticsDateFilter('all')" id="btnDate-all" class="px-3 py-1.5 rounded-xl text-xs font-bold transition bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-200">Todo el Histórico</button>
+        </div>
+
+        <div class="flex items-center gap-2 text-xs">
+          <span class="text-stone-400 font-semibold">Rango personalizado:</span>
+          <input type="date" id="analyticsDateFrom" onchange="applyCustomDateRange()" class="border border-stone-200 rounded-xl px-2.5 py-1.5 bg-stone-50 text-stone-800 font-medium outline-none focus:border-amber-600">
+          <span class="text-stone-400">a</span>
+          <input type="date" id="analyticsDateTo" onchange="applyCustomDateRange()" class="border border-stone-200 rounded-xl px-2.5 py-1.5 bg-stone-50 text-stone-800 font-medium outline-none focus:border-amber-600">
+          <button onclick="applyCustomDateRange()" class="bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-xl font-bold shadow-sm transition">Filtrar</button>
+        </div>
+      </div>
+
+      <!-- TARJETAS KPIS -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm">
-          <span class="text-xs font-bold text-stone-400 uppercase tracking-wider">Venta Total del Día</span>
+          <span class="text-xs font-bold text-stone-400 uppercase tracking-wider" id="kpiRevLabel">Venta del Periodo</span>
           <h3 class="text-2xl font-black font-mono text-stone-900 mt-1" id="kpiRevenue">$0.00 MXN</h3>
           <p class="text-[11px] text-emerald-600 font-semibold mt-1">✓ Facturación acumulada</p>
         </div>
@@ -186,7 +206,7 @@
         <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm">
           <span class="text-xs font-bold text-stone-400 uppercase tracking-wider">Comandas Atendidas</span>
           <h3 class="text-2xl font-black font-mono text-stone-900 mt-1" id="kpiTotalOrders">0</h3>
-          <p class="text-[11px] text-stone-500 mt-1">Cobradas y archivadas</p>
+          <p class="text-[11px] text-stone-500 mt-1">Cobradas y finalizadas</p>
         </div>
         <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm">
           <span class="text-xs font-bold text-stone-400 uppercase tracking-wider">Ventas por Cobrar</span>
@@ -195,49 +215,63 @@
         </div>
       </div>
 
+      <!-- SLA TIEMPOS Y TOP PLATILLOS -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div class="lg:col-span-7 bg-white rounded-3xl p-6 border border-stone-200 shadow-sm space-y-4">
           <div class="flex justify-between items-center border-b pb-3">
             <div>
               <h3 class="font-extrabold text-sm text-stone-900">Eficiencia Operativa: Tiempos de Servicio</h3>
-              <p class="text-xs text-stone-400">Promedio de respuesta del personal en cada punto.</p>
+              <p class="text-xs text-stone-400">Promedio de respuesta del personal en cada punto del periodo seleccionado.</p>
             </div>
+            <span class="text-xs bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-1 rounded-xl font-bold font-mono">SLA Servicio</span>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
             <div class="bg-amber-50/60 border border-amber-200/80 rounded-2xl p-4 text-center">
               <span class="text-lg">🟡 ➔ 🟠</span>
               <p class="text-[11px] font-bold text-stone-600 mt-1">Espera a Cocina</p>
               <h4 class="text-lg font-black font-mono text-amber-950 mt-0.5" id="slaWaitTime">0m 00s</h4>
+              <span class="text-[10px] text-stone-400">Recibida a preparación</span>
             </div>
             <div class="bg-orange-50/60 border border-orange-200/80 rounded-2xl p-4 text-center">
               <span class="text-lg">🟠 ➔ 🔵</span>
               <p class="text-[11px] font-bold text-stone-600 mt-1">Tiempo Cocina</p>
               <h4 class="text-lg font-black font-mono text-orange-950 mt-0.5" id="slaKitchenTime">0m 00s</h4>
+              <span class="text-[10px] text-stone-400">Preparación a servido</span>
             </div>
             <div class="bg-blue-50/60 border border-blue-200/80 rounded-2xl p-4 text-center">
               <span class="text-lg">🔵 ➔ 🟢</span>
               <p class="text-[11px] font-bold text-stone-600 mt-1">Mesa a Cobro</p>
               <h4 class="text-lg font-black font-mono text-blue-950 mt-0.5" id="slaTableTime">0m 00s</h4>
+              <span class="text-[10px] text-stone-400">Estancia del comensal</span>
             </div>
           </div>
         </div>
 
         <div class="lg:col-span-5 bg-white rounded-3xl p-6 border border-stone-200 shadow-sm space-y-4">
-          <h3 class="font-extrabold text-sm text-stone-900 border-b pb-3">Top 5 Platillos Populares</h3>
+          <div class="flex justify-between items-center border-b pb-3">
+            <div>
+              <h3 class="font-extrabold text-sm text-stone-900">Top 5 Platillos Populares</h3>
+              <p class="text-xs text-stone-400">Platillos con mayor rotación en el periodo.</p>
+            </div>
+          </div>
           <div id="topProductsList" class="space-y-2.5">
             <p class="text-xs text-stone-400 text-center py-6">Sin registros de ventas aún.</p>
           </div>
         </div>
       </div>
 
+      <!-- HISTORIAL DETALLADO -->
       <div class="bg-white rounded-2xl p-6 shadow-sm border border-stone-200 space-y-4">
-        <h3 class="font-extrabold text-base text-stone-900 border-b pb-3">Historial Detallado de Comandas</h3>
+        <div class="flex justify-between items-center border-b pb-3">
+          <h3 class="font-extrabold text-base text-stone-900">Historial Detallado de Comandas</h3>
+          <span id="historyOrdersCount" class="text-xs font-mono font-bold bg-stone-100 text-stone-700 px-2.5 py-1 rounded-xl">0 comandas</span>
+        </div>
         <div class="overflow-x-auto no-scrollbar">
           <table class="w-full text-left text-xs">
             <thead>
               <tr class="border-b text-stone-400 font-bold uppercase tracking-wider text-[10px]">
-                <th class="pb-2.5">Mesa</th>
-                <th class="pb-2.5">Hora</th>
+                <th class="pb-2.5">Mesa / Folio</th>
+                <th class="pb-2.5">Fecha y Hora</th>
                 <th class="pb-2.5">Mesero</th>
                 <th class="pb-2.5">Platillos</th>
                 <th class="pb-2.5">Descuento</th>
@@ -763,11 +797,28 @@
 
       const newStatus = STATUS_FLOW[nextIdx];
       order.status = newStatus;
-      playFlowSound(newStatus);
+      const nowIso = new Date().toISOString();
 
+      const updatePayload = { status: newStatus };
+      if (newStatus === 'preparing' && !order.preparing_at) {
+        order.preparing_at = nowIso;
+        updatePayload.preparing_at = nowIso;
+      } else if (newStatus === 'delivered' && !order.delivered_at) {
+        order.delivered_at = nowIso;
+        updatePayload.delivered_at = nowIso;
+      } else if (newStatus === 'paid' && !order.paid_at) {
+        order.paid_at = nowIso;
+        updatePayload.paid_at = nowIso;
+      }
+
+      playFlowSound(newStatus);
       renderKanbanBoard();
       if (client) {
-        await client.from('orders').update({ status: newStatus }).eq('id', orderId);
+        try {
+          await client.from('orders').update(updatePayload).eq('id', orderId);
+        } catch(e) {
+          console.warn("Error updating order status:", e);
+        }
       }
     }
 
@@ -811,21 +862,30 @@
     // SIMULACIÓN DE COMANDA INMEDIATA
     async function testSimulateOrder() {
       const mockTable = '0' + (Math.floor(Math.random() * 8) + 1);
+      const mockDishes = [
+        { title: 'Tostón de Aguacate Trufado', qty: 1, price: 165.00, modifiers: ['Sin Huevo Poché'] },
+        { title: 'Flat White Oaxaca Pluma', qty: 2, price: 78.00, modifiers: ['Leche de Avena Barista'] },
+        { title: 'Croissant Almendras', qty: 1, price: 85.00, modifiers: [] },
+        { title: 'Bowl de Açai Silvestre', qty: 1, price: 140.00, modifiers: [] }
+      ];
+      // Escoger 2 platillos aleatorios para variedad en el Top 5
+      const randomItems = [mockDishes[Math.floor(Math.random()*mockDishes.length)], mockDishes[Math.floor(Math.random()*mockDishes.length)]];
+      const subtotal = randomItems.reduce((acc, it) => acc + (it.price * it.qty), 0);
+      const discount = 0;
+      const total = subtotal - discount;
+
       const mockOrder = {
         id: 'ord-' + Date.now(),
         restaurant_id: REST_ID,
         table_number: mockTable,
-        waiter_name: 'Carlos M.',
-        items: [
-          { title: 'Tostón de Aguacate Trufado', qty: 1, price: 165.00, modifiers: ['Sin Huevo Poché'] },
-          { title: 'Flat White Oaxaca Pluma', qty: 2, price: 78.00, modifiers: ['Leche de Avena Barista'] }
-        ],
-        subtotal: 321.00,
-        discount: 78.00,
-        total: 243.00,
+        waiter_name: WAITERS_LIST[Math.floor(Math.random() * WAITERS_LIST.length)],
+        items: randomItems,
+        subtotal: subtotal,
+        discount: discount,
+        total: total,
         status: 'pending',
         is_archived: false,
-        customer_notes: 'Mesa con prisa',
+        customer_notes: 'Mesa de prueba',
         created_at: new Date().toISOString()
       };
 
@@ -996,15 +1056,75 @@
       }
     }
 
-    // ANALYTICS
-    function renderAnalyticsDashboard() {
-      const todayStr = new Date().toISOString().split('T')[0];
-      const todayOrders = adminOrders.filter(o => o.created_at && o.created_at.startsWith(todayStr));
+    // =============================================================
+    // ANALYTICS & DASHBOARD: FILTROS DE FECHAS, SLA Y TOP 5
+    // =============================================================
+    let currentAnalyticsFilter = 'today';
+    let customDateFrom = null;
+    let customDateTo = null;
 
-      const paidOrders = todayOrders.filter(o => o.status === 'paid');
+    function setAnalyticsDateFilter(filterType) {
+      currentAnalyticsFilter = filterType;
+      ['today', 'yesterday', 'week', 'all'].forEach(type => {
+        const btn = document.getElementById(`btnDate-${type}`);
+        if (!btn) return;
+        if (type === filterType) {
+          btn.className = 'px-3 py-1.5 rounded-xl text-xs font-bold transition bg-stone-900 text-white shadow-sm';
+        } else {
+          btn.className = 'px-3 py-1.5 rounded-xl text-xs font-bold transition bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-200';
+        }
+      });
+      renderAnalyticsDashboard();
+    }
+
+    function applyCustomDateRange() {
+      const fromVal = document.getElementById('analyticsDateFrom')?.value;
+      const toVal = document.getElementById('analyticsDateTo')?.value;
+      if (!fromVal) return;
+      customDateFrom = fromVal;
+      customDateTo = toVal || fromVal;
+      currentAnalyticsFilter = 'custom';
+
+      ['today', 'yesterday', 'week', 'all'].forEach(type => {
+        const btn = document.getElementById(`btnDate-${type}`);
+        if (btn) btn.className = 'px-3 py-1.5 rounded-xl text-xs font-bold transition bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-200';
+      });
+
+      renderAnalyticsDashboard();
+    }
+
+    function getFilteredOrdersForAnalytics() {
+      const now = new Date();
+      const todayStr = now.toISOString().split('T')[0];
+
+      if (currentAnalyticsFilter === 'today') {
+        return adminOrders.filter(o => o.created_at && o.created_at.startsWith(todayStr));
+      } else if (currentAnalyticsFilter === 'yesterday') {
+        const yDate = new Date(now.getTime() - 86400000);
+        const yStr = yDate.toISOString().split('T')[0];
+        return adminOrders.filter(o => o.created_at && o.created_at.startsWith(yStr));
+      } else if (currentAnalyticsFilter === 'week') {
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000);
+        return adminOrders.filter(o => new Date(o.created_at) >= sevenDaysAgo);
+      } else if (currentAnalyticsFilter === 'custom' && customDateFrom) {
+        const fromDate = new Date(customDateFrom + 'T00:00:00');
+        const toDate = new Date((customDateTo || customDateFrom) + 'T23:59:59');
+        return adminOrders.filter(o => {
+          const d = new Date(o.created_at);
+          return d >= fromDate && d <= toDate;
+        });
+      }
+      return adminOrders; // 'all'
+    }
+
+    function renderAnalyticsDashboard() {
+      const filteredOrders = getFilteredOrdersForAnalytics();
+
+      // 1. KPIs
+      const paidOrders = filteredOrders.filter(o => o.status === 'paid');
       const totalRevenue = paidOrders.reduce((acc, o) => acc + Number(o.total || 0), 0);
       const avgTicket = paidOrders.length > 0 ? (totalRevenue / paidOrders.length) : 0;
-      const activeOrders = todayOrders.filter(o => o.status !== 'paid' && !o.is_archived);
+      const activeOrders = filteredOrders.filter(o => o.status !== 'paid' && !o.is_archived);
       const pendingRevenue = activeOrders.reduce((acc, o) => acc + Number(o.total || 0), 0);
 
       const kpiRev = document.getElementById('kpiRevenue');
@@ -1016,19 +1136,108 @@
       const kpiPend = document.getElementById('kpiPendingRevenue');
       if (kpiPend) kpiPend.innerText = `$${pendingRevenue.toFixed(2)}`;
 
+      const kpiLabel = document.getElementById('kpiRevLabel');
+      if (kpiLabel) {
+        if (currentAnalyticsFilter === 'today') kpiLabel.innerText = 'Venta Total de Hoy';
+        else if (currentAnalyticsFilter === 'yesterday') kpiLabel.innerText = 'Venta de Ayer';
+        else if (currentAnalyticsFilter === 'week') kpiLabel.innerText = 'Venta Últimos 7 Días';
+        else if (currentAnalyticsFilter === 'custom') kpiLabel.innerText = `Venta ${customDateFrom} a ${customDateTo || customDateFrom}`;
+        else kpiLabel.innerText = 'Venta Histórica Total';
+      }
+
+      // 2. EFICIENCIA OPERATIVA: TIEMPOS DE SERVICIO (SLA)
+      let waitTimes = [];
+      let kitchenTimes = [];
+      let tableTimes = [];
+
+      filteredOrders.forEach(o => {
+        const createdMs = new Date(o.created_at).getTime();
+        
+        // Espera a Cocina: Tiempo de creación a inicio de preparación
+        if (o.preparing_at) {
+          const waitSecs = (new Date(o.preparing_at).getTime() - createdMs) / 1000;
+          if (waitSecs >= 0) waitTimes.push(waitSecs);
+        }
+
+        // Tiempo en Cocina: Desde que entra a preparación hasta que se sirve en mesa
+        if (o.preparing_at && o.delivered_at) {
+          const kitchenSecs = (new Date(o.delivered_at).getTime() - new Date(o.preparing_at).getTime()) / 1000;
+          if (kitchenSecs >= 0) kitchenTimes.push(kitchenSecs);
+        }
+
+        // Mesa a Cobro: Estancia del comensal desde que le sirven hasta que paga
+        if (o.delivered_at && o.paid_at) {
+          const tableSecs = (new Date(o.paid_at).getTime() - new Date(o.delivered_at).getTime()) / 1000;
+          if (tableSecs >= 0) tableTimes.push(tableSecs);
+        }
+      });
+
+      const avgWait = waitTimes.length > 0 ? Math.round(waitTimes.reduce((a, b) => a + b, 0) / waitTimes.length) : 0;
+      const avgKitchen = kitchenTimes.length > 0 ? Math.round(kitchenTimes.reduce((a, b) => a + b, 0) / kitchenTimes.length) : 0;
+      const avgTable = tableTimes.length > 0 ? Math.round(tableTimes.reduce((a, b) => a + b, 0) / tableTimes.length) : 0;
+
+      const slaWaitEl = document.getElementById('slaWaitTime');
+      if (slaWaitEl) slaWaitEl.innerText = formatElapsed(avgWait);
+
+      const slaKitchenEl = document.getElementById('slaKitchenTime');
+      if (slaKitchenEl) slaKitchenEl.innerText = formatElapsed(avgKitchen);
+
+      const slaTableEl = document.getElementById('slaTableTime');
+      if (slaTableEl) slaTableEl.innerText = formatElapsed(avgTable);
+
+      // 3. TOP 5 PLATILLOS POPULARES
+      const productSales = {};
+      filteredOrders.forEach(o => {
+        (o.items || []).forEach(it => {
+          const title = it.title || 'Platillo sin nombre';
+          if (!productSales[title]) productSales[title] = { qty: 0, revenue: 0 };
+          productSales[title].qty += Number(it.qty || 1);
+          productSales[title].revenue += Number(it.qty || 1) * Number(it.price || 0);
+        });
+      });
+
+      const sortedProducts = Object.entries(productSales).sort((a, b) => b[1].qty - a[1].qty).slice(0, 5);
+      const topListEl = document.getElementById('topProductsList');
+
+      if (topListEl) {
+        if (sortedProducts.length === 0) {
+          topListEl.innerHTML = '<p class="text-xs text-stone-400 text-center py-6">Sin registros de ventas en este periodo.</p>';
+        } else {
+          topListEl.innerHTML = sortedProducts.map(([title, data], idx) => `
+            <div class="flex items-center justify-between p-2.5 rounded-2xl bg-stone-50 border border-stone-100 text-xs shadow-xs">
+              <div class="flex items-center gap-2.5">
+                <span class="w-5 h-5 rounded-full bg-amber-600 text-white font-black flex items-center justify-center text-[10px] flex-shrink-0">${idx + 1}</span>
+                <span class="font-bold text-stone-800">${title}</span>
+              </div>
+              <div class="text-right font-mono">
+                <span class="font-extrabold text-stone-900">${data.qty} vendidos</span>
+                <span class="text-stone-400 block text-[10px]">($${data.revenue.toFixed(2)})</span>
+              </div>
+            </div>
+          `).join('');
+        }
+      }
+
+      // 4. HISTORIAL DETALLADO DE COMANDAS
+      const countEl = document.getElementById('historyOrdersCount');
+      if (countEl) countEl.innerText = `${filteredOrders.length} comanda(s)`;
+
       const tableBody = document.getElementById('historyTableBody');
       if (tableBody) {
-        if (adminOrders.length === 0) {
-          tableBody.innerHTML = '<tr><td colspan="7" class="py-6 text-center text-stone-400">No hay comandas registradas</td></tr>';
+        if (filteredOrders.length === 0) {
+          tableBody.innerHTML = '<tr><td colspan="7" class="py-8 text-center text-stone-400">No hay comandas registradas en este periodo.</td></tr>';
           return;
         }
 
-        tableBody.innerHTML = adminOrders.map(o => {
+        tableBody.innerHTML = filteredOrders.map(o => {
           const itemsSummary = (o.items || []).map(i => `${i.qty}x ${i.title}`).join(', ');
+          const dateObj = new Date(o.created_at);
+          const dateFormatted = `${dateObj.toLocaleDateString([], { month: 'short', day: 'numeric' })} ${dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+
           return `
             <tr class="hover:bg-stone-50 text-stone-700">
-              <td class="py-2.5 font-bold font-mono">Mesa ${o.table_number}</td>
-              <td class="py-2.5 font-mono text-stone-500">${new Date(o.created_at).toLocaleTimeString().substring(0,5)}</td>
+              <td class="py-2.5 font-bold font-mono">Mesa ${o.table_number} <span class="text-[10px] text-stone-400 font-mono">#${(o.id || '').substring(0,4)}</span></td>
+              <td class="py-2.5 font-mono text-stone-500 text-[11px]">${dateFormatted}</td>
               <td class="py-2.5 font-semibold text-stone-800">${o.waiter_name || 'Sin asignar'}</td>
               <td class="py-2.5 max-w-xs truncate" title="${itemsSummary}">${itemsSummary}</td>
               <td class="py-2.5 font-mono text-emerald-600 font-semibold">${o.discount > 0 ? `-$${Number(o.discount).toFixed(2)}` : '-'}</td>
@@ -1200,21 +1409,40 @@
     // INICIALIZACIÓN INMEDIATA (CARGA LOCAL EN 0ms + SUPABASE EN SEGUNDO PLANO)
     async function init() {
       // 1. Mostrar interfaz de inmediato con defaults para que nunca se quede en blanco
+      const nowMs = Date.now();
       adminOrders = [
         {
           id: 'ord-1',
           table_number: '01',
           waiter_name: 'Carlos M.',
           items: [
-            { title: 'Tostón de Aguacate Trufado', qty: 1, price: 165.00, modifiers: ['Sin Huevo Poché'] },
+            { title: 'Tostón de Aguacate Trufado', qty: 2, price: 165.00, modifiers: ['Sin Huevo Poché'] },
             { title: 'Flat White Oaxaca Pluma', qty: 2, price: 78.00, modifiers: ['Leche de Avena Barista'] }
           ],
-          subtotal: 321.00,
+          subtotal: 486.00,
           discount: 78.00,
-          total: 243.00,
+          total: 408.00,
           status: 'pending',
           is_archived: false,
-          created_at: new Date(Date.now() - 360000).toISOString()
+          created_at: new Date(nowMs - 300000).toISOString()
+        },
+        {
+          id: 'ord-demo-paid',
+          table_number: '04',
+          waiter_name: 'Sofía R.',
+          items: [
+            { title: 'Flat White Oaxaca Pluma', qty: 3, price: 78.00, modifiers: [] },
+            { title: 'Tostón de Aguacate Trufado', qty: 1, price: 165.00, modifiers: [] }
+          ],
+          subtotal: 399.00,
+          discount: 0.00,
+          total: 399.00,
+          status: 'paid',
+          is_archived: false,
+          created_at: new Date(nowMs - 2400000).toISOString(),
+          preparing_at: new Date(nowMs - 2200000).toISOString(),
+          delivered_at: new Date(nowMs - 1400000).toISOString(),
+          paid_at: new Date(nowMs - 200000).toISOString()
         }
       ];
 
