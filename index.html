@@ -3,14 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Menú Interactivo</title>
-  <!-- Tailwind CSS -->
+  <title>Menú Interactivo - Café & Bistro Áurea</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
     .font-serif { font-family: 'Playfair Display', serif; }
@@ -20,17 +18,13 @@
 </head>
 <body class="bg-[#F8F7F4] text-stone-900 pb-28 select-none">
 
-  <!-- CABECERA PRINCIPAL CON IMAGEN DE FONDO, LOGO, NOMBRE Y DESCRIPCIÓN -->
+  <!-- CABECERA -->
   <header class="relative bg-stone-900 text-white overflow-hidden shadow-md">
     <div class="h-52 w-full relative">
-      <img id="restBanner" 
-           src="https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=1200&q=80" 
-           alt="Banner Restaurante" 
-           class="w-full h-full object-cover opacity-60">
+      <img id="restBanner" src="https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=1200&q=80" alt="Banner" class="w-full h-full object-cover opacity-60">
       <div class="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/50 to-stone-900/30"></div>
     </div>
 
-    <!-- Barra de Estado Superior Flotante: Mesa, Wi-Fi y Mesero -->
     <div class="absolute top-0 left-0 right-0 z-20 px-4 py-2.5 flex items-center justify-between gap-2 max-w-lg mx-auto bg-gradient-to-b from-black/70 to-transparent">
       <div class="flex items-center gap-2">
         <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -39,86 +33,115 @@
           <span id="tableBadge" class="font-bold text-amber-400 ml-0.5">Mesa 01</span>
         </div>
       </div>
-
       <div class="flex items-center gap-2">
         <button onclick="connectWifi()" class="bg-black/40 hover:bg-black/60 backdrop-blur-md active:scale-95 text-stone-200 px-2.5 py-1.5 rounded-xl text-xs flex items-center gap-1.5 border border-white/15 transition shadow-sm">
           <span>📶 Wi-Fi</span>
         </button>
-
         <button id="btnCallWaiter" onclick="callWaiter()" class="bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 shadow-md transition">
           <span id="waiterBtnText">🔔 Mesero</span>
         </button>
       </div>
     </div>
 
-    <!-- Información del Negocio y Logotipo Flotante -->
     <div class="px-5 pb-5 -mt-14 relative z-10 max-w-lg mx-auto flex gap-4 items-end">
       <div class="w-20 h-20 rounded-2xl bg-stone-900 p-1 border-2 border-amber-500/60 shadow-xl flex-shrink-0 overflow-hidden backdrop-blur-md">
-        <img id="restLogo" 
-             src="https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=250&q=80" 
-             alt="Logotipo" 
-             class="w-full h-full object-cover rounded-xl bg-stone-800">
+        <img id="restLogo" src="https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=250&q=80" alt="Logo" class="w-full h-full object-cover rounded-xl bg-stone-800">
       </div>
-
       <div class="flex-grow pt-2">
         <div class="flex items-center gap-2 mb-1">
-          <span class="inline-block px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full text-[10px] font-bold tracking-wider uppercase">
-            Abierto Hoy
-          </span>
+          <span class="inline-block px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full text-[10px] font-bold tracking-wider uppercase">Abierto Hoy</span>
           <span class="text-stone-400 text-[11px] font-medium">• Servicio en mesa</span>
         </div>
-        <h1 id="restName" class="font-serif text-2xl sm:text-3xl font-bold tracking-tight text-white leading-tight">
-          Café & Bistro Áurea
-        </h1>
-        <p id="restDesc" class="text-xs text-stone-300 mt-1.5 leading-relaxed line-clamp-2">
-          Cafetería de especialidad, panadería artesanal y cocina de temporada.
-        </p>
+        <h1 id="restName" class="font-serif text-2xl sm:text-3xl font-bold tracking-tight text-white leading-tight">Café & Bistro Áurea</h1>
+        <p id="restDesc" class="text-xs text-stone-300 mt-1.5 leading-relaxed line-clamp-2">Cafetería de especialidad, panadería artesanal y cocina de temporada.</p>
       </div>
     </div>
   </header>
+
+  <!-- TRACKER DE COMANDA EN MESA -->
+  <div id="liveOrderTracker" class="hidden px-4 pt-4 max-w-lg mx-auto">
+    <div class="bg-white border-2 border-amber-500/40 rounded-3xl p-4 shadow-md space-y-3 relative overflow-hidden">
+      <div class="flex justify-between items-start border-b border-stone-100 pb-2.5">
+        <div>
+          <div class="flex items-center gap-1.5">
+            <span class="text-xs font-black text-amber-800 uppercase tracking-wider">Tu Cuenta en Mesa</span>
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          </div>
+          <span class="text-[11px] text-stone-400 font-mono" id="trackerOrderId">#0000</span>
+        </div>
+        <span id="trackerStatusBadge" class="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-200">
+          Recibido en Cocina
+        </span>
+      </div>
+
+      <div id="trackerItemsList" class="space-y-1.5 text-xs divide-y divide-stone-100 max-h-36 overflow-y-auto pr-1"></div>
+
+      <div class="border-t border-stone-100 pt-2 flex justify-between items-center text-xs">
+        <div>
+          <span class="text-[10px] text-stone-400 block">Total consumido:</span>
+          <span class="text-base font-black font-mono text-stone-900" id="trackerTotalAmount">$0.00 MXN</span>
+        </div>
+        <div id="trackerSplitSummaryBadge" class="hidden text-right">
+          <span class="text-[10px] bg-blue-100 text-blue-900 px-2 py-0.5 rounded-md font-bold">Cuenta Dividida</span>
+          <span class="text-[10px] text-stone-500 block mt-0.5" id="trackerSplitSummaryText"></span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 pt-1 text-xs font-bold">
+        <button id="btnClientModifyOrder" onclick="handleClientModifyOrder()" class="p-2.5 rounded-xl border border-stone-300 bg-stone-50 hover:bg-stone-100 text-stone-800 transition flex items-center justify-center gap-1.5">
+          <span>✏️ Modificar</span>
+        </button>
+        <button onclick="openSplitBillModal()" class="p-2.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-950 transition flex items-center justify-center gap-1.5">
+          <span>👥 Dividir Cuenta</span>
+        </button>
+      </div>
+
+      <button onclick="sendTicketToMyWhatsApp()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition active:scale-95">
+        <span>📲 Enviar Recibo a mi WhatsApp</span>
+      </button>
+    </div>
+  </div>
 
   <!-- BUSCADOR -->
   <div class="px-4 pt-4 max-w-lg mx-auto">
     <div class="relative flex items-center bg-white rounded-2xl shadow-sm border border-stone-200/80 px-3.5 py-2.5">
       <span class="text-stone-400 mr-2.5 text-sm">🔍</span>
-      <input type="text" id="searchInput" oninput="handleSearch(this.value)" placeholder="Busca por platillo o ingrediente..." class="w-full text-sm bg-transparent outline-none placeholder-stone-400">
-      <button id="clearSearch" onclick="clearSearchInput()" class="hidden text-stone-400 hover:text-stone-600 font-bold px-1">✕</button>
+      <input type="text" id="searchInput" oninput="handleSearch(this.value)" placeholder="Busca por platillo..." class="w-full text-sm bg-transparent outline-none placeholder-stone-400">
+      <button id="clearSearch" onclick="clearSearchInput()" class="hidden text-stone-400 font-bold px-1">✕</button>
     </div>
-    <div id="predictiveBox" class="hidden mt-1.5 bg-white rounded-xl shadow-lg border border-stone-100 p-2 text-xs divide-y divide-stone-100 z-30 relative"></div>
   </div>
 
-  <!-- FILTROS POR TIPOS -->
+  <!-- FILTROS POR TIPO -->
   <div class="px-4 pt-3 max-w-lg mx-auto">
     <div id="typesFilterContainer" class="flex gap-2 overflow-x-auto no-scrollbar py-1"></div>
   </div>
 
-  <!-- CATEGORÍAS (STICKY) -->
+  <!-- CATEGORÍAS -->
   <nav class="sticky top-0 z-30 bg-[#F8F7F4]/95 backdrop-blur-md border-b border-stone-200/70 py-2.5 px-4 mt-2 shadow-sm">
     <div id="categoryTabs" class="flex gap-2 overflow-x-auto no-scrollbar max-w-lg mx-auto"></div>
   </nav>
 
-  <!-- CONTENIDO: VISTA DE MENÚ -->
+  <!-- CATÁLOGO -->
   <main id="menuContainer" class="px-4 mt-5 space-y-7 max-w-lg mx-auto"></main>
 
-  <!-- VISTA DE PROMOCIONES -->
+  <!-- VISTA PROMOCIONES -->
   <section id="promosView" class="hidden px-4 mt-5 space-y-4 max-w-lg mx-auto">
-    <h2 class="font-bold text-xl text-stone-900">Promociones Activas Hoy</h2>
+    <h2 class="font-bold text-xl text-stone-900">Promociones Activas</h2>
     <div id="promosList" class="space-y-3"></div>
   </section>
 
-  <!-- VISTA DE MI ORDEN (CON CÁLCULO DE DESCUENTOS EN VIVO) -->
+  <!-- VISTA CARRITO -->
   <section id="orderView" class="hidden px-4 mt-5 space-y-4 max-w-lg mx-auto">
-    <h2 class="font-bold text-xl text-stone-900">Mi Orden en Mesa</h2>
-    
+    <div class="flex justify-between items-center">
+      <h2 class="font-bold text-xl text-stone-900">Mi Orden en Mesa</h2>
+      <span class="text-xs bg-amber-100 text-amber-900 px-2.5 py-1 rounded-xl font-bold font-mono" id="orderItemsCountBadge">0 ítems</span>
+    </div>
+
     <div id="orderItemsList" class="bg-white rounded-2xl p-4 shadow-sm border border-stone-100 divide-y divide-stone-100"></div>
 
-    <!-- Desglose de Descuentos Automáticos -->
-    <div id="appliedDiscountsBox" class="hidden bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 space-y-2">
-      <div class="flex items-center gap-1.5 text-xs font-bold text-emerald-900">
-        <span>🎉</span>
-        <span>Promociones Aplicadas Automáticamente:</span>
-      </div>
-      <div id="appliedDiscountsList" class="text-xs text-emerald-800 space-y-1"></div>
+    <div class="bg-white rounded-2xl p-3.5 shadow-sm border border-stone-100 space-y-1.5">
+      <label class="block text-xs font-bold text-stone-700">Notas para Cocina:</label>
+      <input type="text" id="orderCustomerNotes" placeholder="Ej: Sin cebolla, término medio..." class="w-full text-xs border rounded-xl p-2.5 outline-none bg-stone-50">
     </div>
 
     <div class="bg-white rounded-2xl p-4 shadow-sm border border-stone-100 space-y-2.5">
@@ -126,74 +149,81 @@
         <span>Subtotal</span>
         <span id="orderSubtotal">$0.00</span>
       </div>
-      <div id="orderDiscountRow" class="flex justify-between text-sm text-emerald-600 font-bold hidden">
-        <span>Ahorro Promociones</span>
-        <span id="orderDiscountAmount">-$0.00</span>
-      </div>
       <div class="flex justify-between text-base font-extrabold text-stone-900 pt-2 border-t">
         <span>Total a Pagar</span>
         <span id="orderTotal">$0.00 MXN</span>
       </div>
-      <button onclick="sendOrder()" class="w-full mt-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition shadow-md">
-        <span>Confirmar Pedido al Mesero 💬</span>
+      <button onclick="sendOrder()" id="btnSendOrder" class="w-full mt-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 shadow-md transition">
+        <span>Confirmar Pedido al Mesero 🛎️</span>
       </button>
     </div>
   </section>
 
-  <!-- MODAL BOTTOM-SHEET DETALLE DE PRODUCTO MULTIMEDIA -->
-  <div id="productModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-end sm:items-center justify-center">
-    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl max-h-[90vh] overflow-y-auto no-scrollbar flex flex-col relative">
-      <button onclick="closeProductModal()" class="absolute top-4 right-4 z-20 bg-black/50 text-white p-2 rounded-full active:scale-95 w-8 h-8 flex items-center justify-center font-bold">
-        ✕
-      </button>
-
-      <div class="relative h-64 bg-stone-900 w-full overflow-hidden flex-shrink-0">
-        <div id="modalMediaCarousel" class="h-full w-full flex overflow-x-auto snap-x snap-mandatory no-scrollbar"></div>
-      </div>
-
-      <div class="p-5 flex-grow space-y-5">
+  <!-- MODAL DIVIDIR CUENTA (SPLIT BILL) -->
+  <div id="splitBillModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto no-scrollbar">
+      <div class="flex justify-between items-center border-b pb-3">
         <div>
-          <div class="flex items-start justify-between gap-3">
-            <h2 id="modalTitle" class="text-xl font-bold text-stone-900 leading-tight"></h2>
-            <span id="modalPrice" class="text-lg font-bold text-stone-900 font-mono"></span>
+          <h3 class="font-extrabold text-base text-stone-900">👥 Dividir la Cuenta</h3>
+          <p class="text-xs text-stone-500">Mesa <span id="splitModalTableBadge">01</span> • Total: <b id="splitModalTotalBadge" class="text-stone-900 font-mono">$0.00</b></p>
+        </div>
+        <button onclick="closeSplitBillModal()" class="text-stone-400 font-bold text-lg">✕</button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 text-xs font-bold">
+        <button id="btnSplitEqual" onclick="selectSplitMode('equal')" class="p-3 border-2 border-amber-600 bg-amber-50 rounded-2xl text-amber-950 text-center transition font-bold shadow-xs">
+          ⚖️ Partes Iguales
+        </button>
+        <button id="btnSplitItems" onclick="selectSplitMode('by_person')" class="p-3 border-2 border-stone-200 bg-white rounded-2xl text-stone-700 text-center transition font-bold">
+          👤 Por Comensal
+        </button>
+      </div>
+
+      <!-- Partes iguales -->
+      <div id="splitEqualArea" class="space-y-3 pt-1 text-xs">
+        <label class="block font-semibold text-stone-700">¿Entre cuántas personas se divide?</label>
+        <div class="flex items-center gap-3">
+          <input type="number" id="splitCountInput" value="3" min="2" max="30" oninput="calculateEqualSplit()" class="border-2 rounded-2xl p-2.5 text-center font-black text-lg w-24 bg-stone-50 outline-none focus:border-amber-600">
+          <div>
+            <span class="text-stone-400 block text-[11px]">Le toca a cada uno:</span>
+            <span id="equalSplitPerPerson" class="text-xl font-black font-mono text-emerald-700">$0.00 MXN</span>
           </div>
-          <div id="modalTags" class="flex flex-wrap gap-1.5 mt-2"></div>
-          <p id="modalDesc" class="text-sm text-stone-600 mt-3 leading-relaxed"></p>
         </div>
+        <div id="equalPersonsBreakdown" class="space-y-1.5 pt-2 border-t text-[11px] text-stone-600"></div>
+      </div>
 
-        <div id="modalModifiersSection" class="border-t border-stone-100 pt-4 space-y-3">
-          <h4 class="text-xs font-bold uppercase tracking-wider text-stone-400">Personaliza tu plato</h4>
-          <div id="modifiersList" class="space-y-2"></div>
+      <!-- Por comensal -->
+      <div id="splitByPersonArea" class="hidden space-y-3 pt-1 text-xs">
+        <div class="flex gap-2">
+          <input type="text" id="splitPersonNameInput" placeholder="Nombre (ej. Sofía)..." class="border rounded-xl px-3 py-2 text-xs flex-grow outline-none focus:border-amber-600">
+          <button onclick="addSplitPerson()" class="bg-stone-900 text-white font-bold px-3.5 py-2 rounded-xl text-xs">+ Añadir</button>
         </div>
-
-        <div id="modalCrossSellSection" class="border-t border-stone-100 pt-4 space-y-3">
-          <h4 id="crossSellTitle" class="text-xs font-bold uppercase tracking-wider text-amber-800">Frecuentemente pedidos juntos</h4>
-          <div id="crossSellContainer" class="flex gap-3 overflow-x-auto no-scrollbar py-1"></div>
+        <div id="splitPersonsList" class="space-y-2.5 max-h-56 overflow-y-auto pr-1"></div>
+        <div class="border-t pt-2 text-[11px] text-stone-500 space-y-1">
+          <div class="flex justify-between font-mono"><span>Suma asignada:</span><b id="splitAssignedTotal">$0.00</b></div>
+          <div class="flex justify-between font-mono"><span>Restante:</span><b id="splitRemainingTotal" class="text-amber-700">$0.00</b></div>
         </div>
       </div>
 
-      <div class="p-4 border-t border-stone-100 bg-white sticky bottom-0 z-20">
-        <button id="modalAddBtn" class="w-full bg-stone-900 hover:bg-stone-800 active:scale-95 text-white font-bold py-3.5 rounded-2xl flex items-center justify-between px-5 transition shadow-lg">
-          <span>Agregar a la Orden</span>
-          <span id="modalFinalPrice">$0.00</span>
+      <div class="pt-3 border-t flex justify-end gap-2">
+        <button onclick="saveSplitBill()" class="w-full bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-bold py-3.5 rounded-xl text-xs shadow-md transition">
+          Confirmar División de Cuenta ✓
         </button>
       </div>
     </div>
   </div>
 
-  <!-- NAVEGACIÓN INFERIOR (3 SECCIONES) -->
+  <!-- NAVEGACIÓN INFERIOR -->
   <nav class="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-stone-200 max-w-lg mx-auto">
     <div class="grid grid-cols-3 h-16 items-center text-center">
-      <button id="navLeftBtn" onclick="handleNavLeft()" class="flex flex-col items-center justify-center gap-1 text-stone-500 hover:text-amber-600 transition">
+      <button id="navLeftBtn" onclick="switchView('promos')" class="flex flex-col items-center justify-center gap-1 text-stone-500 hover:text-amber-600 transition">
         <span class="text-lg">🏷️</span>
-        <span id="navLeftLabel" class="text-[11px] font-semibold">Promos</span>
+        <span class="text-[11px] font-semibold">Promos</span>
       </button>
-
       <button id="navMenuBtn" onclick="switchView('menu')" class="flex flex-col items-center justify-center gap-1 text-amber-600 font-bold transition">
         <span class="text-lg">📖</span>
         <span class="text-[11px]">Menú</span>
       </button>
-
       <button id="navOrderBtn" onclick="switchView('order')" class="flex flex-col items-center justify-center gap-1 text-stone-500 hover:text-amber-600 transition relative">
         <div class="relative">
           <span class="text-lg">🛍️</span>
@@ -205,84 +235,31 @@
   </nav>
 
   <script>
-    // CONSTANTES Y DATOS DE RESPALDO INICIALES
-    const INITIAL_RESTAURANT = {
-      id: 'b47a9880-9fd3-4c9b-b05b-86ea8f0d014d',
-      name: 'Café & Bistro Áurea',
-      description: 'Cafetería de especialidad, panadería artesanal horneada a diario y cocina de temporada con ingredientes orgánicos.',
-      banner_url: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=1200&q=80',
-      logo_url: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=250&q=80',
-      wifi_ssid: 'Aurea_HighSpeed',
-      wifi_password: 'Brunch2026',
-      whatsapp_number: '523312345678',
-      cross_sell_title: 'Combina perfecto con:',
-      bottom_left_type: 'promo',
-      bottom_left_label: 'Promos'
-    };
-
-    const INITIAL_CATEGORIES = [
-      { id: 'cat-1', name: 'Brunch & Cocina', icon: '🥪', order_index: 1 },
-      { id: 'cat-2', name: 'Cafetería de Especialidad', icon: '☕', order_index: 2 }
-    ];
-
-    const INITIAL_TYPES = [
-      { id: 'typ-1', name: 'Salado / Brunch', icon: '🥪', order_index: 1 },
-      { id: 'typ-2', name: 'Bebida Caliente', icon: '☕', order_index: 2 },
-      { id: 'typ-3', name: 'Bebida Fría', icon: '🧊', order_index: 3 },
-      { id: 'typ-4', name: 'Dulce / Postre', icon: '🥐', order_index: 4 }
-    ];
-
-    const INITIAL_PRODUCTS = [
-      {
-        id: 'p1',
-        category_id: 'cat-1',
-        type_id: 'typ-1',
-        title: 'Tostón de Aguacate Trufado',
-        description: 'Pan de masa madre, láminas de aguacate hass, huevo poché orgánico y aceite de trufa blanca.',
-        price: 165.00,
-        media: [{ type: 'image', url: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=800&q=80' }],
-        recommended_product_ids: ['p2']
-      },
-      {
-        id: 'p2',
-        category_id: 'cat-2',
-        type_id: 'typ-2',
-        title: 'Flat White Oaxaca Pluma',
-        description: 'Extracción doble con leche emulsionada aterciopelada y notas a chocolate y avellana.',
-        price: 78.00,
-        media: [{ type: 'image', url: 'https://images.unsplash.com/photo-1577968897966-3d4325b36b61?auto=format&fit=crop&w=800&q=80' }],
-        recommended_product_ids: ['p1']
-      }
-    ];
-
-    const INITIAL_MODIFIERS = [
-      { id: 'm1', name: 'Sin Huevo Poché', price: 0.00, applies_to_products: ['p1', '33333333-3333-3333-3333-333333333331'] },
-      { id: 'm2', name: 'Salsa de Trufa Extra', price: 35.00, applies_to_products: ['p1', '33333333-3333-3333-3333-333333333331'] },
-      { id: 'm3', name: 'Leche de Avena Barista', price: 15.00, applies_to_products: ['p2', '33333333-3333-3333-3333-333333333332'] }
-    ];
-
-    // Variables de Estado
-    let currentTable = '01';
-    let restaurantConfig = INITIAL_RESTAURANT;
-    let categoriesList = INITIAL_CATEGORIES;
-    let typesList = INITIAL_TYPES;
-    let productsList = INITIAL_PRODUCTS;
-    let modifiersList = INITIAL_MODIFIERS;
-    let promotionsList = [];
-    let activeTypeId = null;
-    let activeCategoryId = null;
-    let order = [];
-    let currentModalProduct = null;
-    let selectedModifiers = [];
-
-    // Supabase
+    const REST_ID = 'b47a9880-9fd3-4c9b-b05b-86ea8f0d014d';
     const SUPABASE_URL = 'https://jmqqkgshwwycercknzgy.supabase.co';
     const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImptcXFrZ3Nod3d5Y2VyY2tuemd5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMzNzYyODUsImV4cCI6MjEwODk1MjI4NX0.tCiRMvl05IXv_IGXIeJ2h9p6AEABRgPofgIRQZMt9UE';
-    let supabaseClient = null;
 
+    let supabaseClient = null;
     try {
       if (window.supabase) supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
     } catch(e) {}
+
+    let currentTable = '01';
+    let restaurantConfig = {};
+    let categoriesList = [];
+    let typesList = [];
+    let productsList = [];
+    let activeTypeId = null;
+    let activeCategoryId = null;
+    let order = [];
+    let currentActiveOrder = null;
+
+    let waiterCallCount = 0;
+    let waiterCooldownTimer = null;
+    let isWaiterBlocked = false;
+
+    let currentSplitMode = 'equal';
+    let splitPersonsList = [];
 
     function setupUI() {
       const urlParams = new URLSearchParams(window.location.search);
@@ -290,523 +267,400 @@
       if (tableParam) currentTable = tableParam.padStart(2, '0');
       document.getElementById('tableBadge').innerText = `Mesa ${currentTable}`;
 
-      if (categoriesList.length > 0) activeCategoryId = categoriesList[0].id;
-
-      renderHeaderData();
-      renderTypesFilters();
-      renderCategoryTabs();
-      renderMenu();
-
       syncWithSupabase();
-    }
-
-    function renderHeaderData() {
-      if (!restaurantConfig) return;
-      document.getElementById('restName').innerText = restaurantConfig.name || 'Café & Bistro Áurea';
-      document.getElementById('restDesc').innerText = restaurantConfig.description || '';
-      if (restaurantConfig.banner_url) document.getElementById('restBanner').src = restaurantConfig.banner_url;
-      if (restaurantConfig.logo_url) document.getElementById('restLogo').src = restaurantConfig.logo_url;
+      checkActiveTableOrder();
     }
 
     async function syncWithSupabase() {
       if (!supabaseClient) return;
       try {
-        const [catsRes, typesRes, prodsRes, modsRes, restRes, promosRes] = await Promise.all([
+        const [catsRes, typesRes, prodsRes, restRes] = await Promise.all([
           supabaseClient.from('categories').select('*').order('order_index', { ascending: true }),
           supabaseClient.from('product_types').select('*').order('order_index', { ascending: true }),
           supabaseClient.from('products').select('*').order('created_at', { ascending: false }),
-          supabaseClient.from('product_modifiers').select('*'),
-          supabaseClient.from('restaurants').select('*').limit(1).single(),
-          supabaseClient.from('promotions').select('*').eq('is_active', true)
+          supabaseClient.from('restaurants').select('*').limit(1).single()
         ]);
+
+        if (catsRes?.data?.length > 0) categoriesList = catsRes.data;
+        if (typesRes?.data?.length > 0) typesList = typesRes.data;
+        if (prodsRes?.data?.length > 0) productsList = prodsRes.data;
 
         if (restRes?.data) {
           restaurantConfig = restRes.data;
-          renderHeaderData();
-          const leftLabel = document.getElementById('navLeftLabel');
-          if (leftLabel) leftLabel.innerText = restaurantConfig.bottom_left_label || 'Promos';
+          document.getElementById('restName').innerText = restaurantConfig.name || 'Café & Bistro Áurea';
+          document.getElementById('restDesc').innerText = restaurantConfig.description || '';
         }
-
-        if (catsRes?.data?.length > 0) {
-          categoriesList = catsRes.data;
-          if (!activeCategoryId || !categoriesList.some(c => c.id === activeCategoryId)) {
-            activeCategoryId = categoriesList[0].id;
-          }
-        }
-        if (typesRes?.data?.length > 0) typesList = typesRes.data;
-        if (prodsRes?.data?.length > 0) productsList = prodsRes.data;
-        if (modsRes?.data?.length > 0) modifiersList = modsRes.data;
-        if (promosRes?.data) promotionsList = promosRes.data;
 
         renderTypesFilters();
         renderCategoryTabs();
         renderMenu();
-        renderPromotionsPage();
 
-        // Realtime
         supabaseClient
-          .channel('public_menu_updates')
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, async () => {
-            const { data } = await supabaseClient.from('products').select('*').order('created_at', { ascending: false });
-            if (data) { productsList = data; renderMenu(); }
-          })
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'categories' }, async () => {
-            const { data } = await supabaseClient.from('categories').select('*').order('order_index', { ascending: true });
-            if (data) { categoriesList = data; renderCategoryTabs(); renderMenu(); }
-          })
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'product_types' }, async () => {
-            const { data } = await supabaseClient.from('product_types').select('*').order('order_index', { ascending: true });
-            if (data) { typesList = data; renderTypesFilters(); renderMenu(); }
-          })
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'promotions' }, async () => {
-            const { data } = await supabaseClient.from('promotions').select('*').eq('is_active', true);
-            if (data) { promotionsList = data; renderPromotionsPage(); renderOrderSummary(); }
+          .channel('public_table_sync_' + currentTable)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, async () => {
+            await checkActiveTableOrder();
           })
           .subscribe();
+      } catch(e) {}
+    }
 
-      } catch (err) {
-        console.warn("Usando datos locales:", err);
+    async function checkActiveTableOrder() {
+      if (!supabaseClient) return;
+      try {
+        const { data } = await supabaseClient
+          .from('orders')
+          .select('*')
+          .eq('table_number', currentTable)
+          .neq('status', 'paid')
+          .neq('status', 'cancelled')
+          .eq('is_archived', false)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (data && data.length > 0) {
+          currentActiveOrder = data[0];
+          renderLiveOrderTracker();
+        } else {
+          currentActiveOrder = null;
+          document.getElementById('liveOrderTracker').classList.add('hidden');
+        }
+      } catch(e) {}
+    }
+
+    function renderLiveOrderTracker() {
+      if (!currentActiveOrder) return;
+      const tracker = document.getElementById('liveOrderTracker');
+      tracker.classList.remove('hidden');
+
+      document.getElementById('trackerOrderId').innerText = `#${(currentActiveOrder.id || '').substring(0,6)}`;
+      document.getElementById('trackerTotalAmount').innerText = `$${Number(currentActiveOrder.total).toFixed(2)} MXN`;
+
+      const statusBadge = document.getElementById('trackerStatusBadge');
+      const btnModify = document.getElementById('btnClientModifyOrder');
+
+      if (currentActiveOrder.status === 'pending') {
+        statusBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300';
+        statusBadge.innerText = '🟡 1. Recibida en Cocina';
+        btnModify.innerText = '✏️ Modificar Pedido';
+      } else if (currentActiveOrder.status === 'preparing') {
+        statusBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-900 border border-orange-300 animate-pulse';
+        statusBadge.innerText = '🟠 2. En Preparación';
+        btnModify.innerText = '🔒 En Cocina (No editable)';
+      } else if (currentActiveOrder.status === 'delivered') {
+        statusBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-900 border border-blue-300';
+        statusBadge.innerText = '🔵 3. Servida en Mesa';
+        btnModify.innerText = '🔒 Servido en Mesa';
       }
+
+      document.getElementById('trackerItemsList').innerHTML = (currentActiveOrder.items || []).map(it => `
+        <div class="flex justify-between items-center py-1.5">
+          <span class="font-bold text-stone-900">${it.qty}x ${it.title}</span>
+          <span class="font-mono font-bold text-stone-700">$${(Number(it.price) * it.qty).toFixed(2)}</span>
+        </div>
+      `).join('');
+    }
+
+    function handleClientModifyOrder() {
+      if (!currentActiveOrder) return;
+      if (currentActiveOrder.status === 'preparing' || currentActiveOrder.status === 'delivered') {
+        alert("Tu orden ya se encuentra en cocina o servida en mesa y no puede ser modificada directamente.\n\nSe ha enviado una llamada al mesero para que asista a tu mesa.");
+        callWaiter();
+        return;
+      }
+      order = (currentActiveOrder.items || []).map(it => ({
+        product: { id: it.id, title: it.title, price: it.price },
+        qty: it.qty,
+        unitPrice: Number(it.price)
+      }));
+      updateOrderUI();
+      switchView('order');
+    }
+
+    function sendTicketToMyWhatsApp() {
+      if (!currentActiveOrder) return;
+      const total = Number(currentActiveOrder.total).toFixed(2);
+      let msg = `*MI RECIBO - CAFÉ & BISTRO ÁUREA*\nMesa ${currentActiveOrder.table_number} | Fecha: ${new Date(currentActiveOrder.created_at).toLocaleDateString()}\n------------------------------------\n`;
+      (currentActiveOrder.items || []).forEach((it, idx) => {
+        msg += `${idx + 1}. *${it.qty}x ${it.title}* - $${(Number(it.price) * it.qty).toFixed(2)}\n`;
+      });
+      msg += `------------------------------------\n*TOTAL A PAGAR: $${total} MXN*\n¡Gracias por visitarnos!`;
+      window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+    }
+
+    // DIVISIÓN DE CUENTA
+    function openSplitBillModal() {
+      if (!currentActiveOrder) return;
+      document.getElementById('splitModalTableBadge').innerText = currentActiveOrder.table_number;
+      document.getElementById('splitModalTotalBadge').innerText = `$${Number(currentActiveOrder.total).toFixed(2)} MXN`;
+      selectSplitMode('equal');
+      document.getElementById('splitBillModal').classList.remove('hidden');
+    }
+
+    function closeSplitBillModal() { document.getElementById('splitBillModal').classList.add('hidden'); }
+
+    function selectSplitMode(mode) {
+      currentSplitMode = mode;
+      document.getElementById('splitEqualArea').classList.toggle('hidden', mode !== 'equal');
+      document.getElementById('splitByPersonArea').classList.toggle('hidden', mode !== 'by_person');
+      if (mode === 'equal') calculateEqualSplit();
+      else renderSplitByPersonSetup();
+    }
+
+    function calculateEqualSplit() {
+      if (!currentActiveOrder) return;
+      const count = Math.max(2, parseInt(document.getElementById('splitCountInput').value) || 2);
+      const perPerson = (Number(currentActiveOrder.total) / count).toFixed(2);
+      document.getElementById('equalSplitPerPerson').innerText = `$${perPerson} MXN`;
+      document.getElementById('equalPersonsBreakdown').innerHTML = Array.from({ length: count }, (_, i) => `
+        <div class="flex justify-between py-1 border-b border-stone-100">
+          <span>Comensal ${i + 1}:</span>
+          <b class="font-mono text-stone-900">$${perPerson}</b>
+        </div>
+      `).join('');
+    }
+
+    function renderSplitByPersonSetup() {
+      if (splitPersonsList.length === 0) {
+        splitPersonsList = [{ name: 'Comensal 1', items: [] }, { name: 'Comensal 2', items: [] }];
+      }
+      renderSplitPersonsCards();
+    }
+
+    function addSplitPerson() {
+      const input = document.getElementById('splitPersonNameInput');
+      splitPersonsList.push({ name: input.value.trim() || `Comensal ${splitPersonsList.length + 1}`, items: [] });
+      input.value = '';
+      renderSplitPersonsCards();
+    }
+
+    function renderSplitPersonsCards() {
+      const cont = document.getElementById('splitPersonsList');
+      const orderItems = currentActiveOrder?.items || [];
+      cont.innerHTML = splitPersonsList.map((person, pIdx) => {
+        const personTotal = person.items.reduce((acc, it) => acc + (it.price * it.qty), 0);
+        return `
+          <div class="border rounded-2xl p-2.5 bg-stone-50 text-xs space-y-1.5">
+            <div class="flex justify-between font-bold">
+              <span>${person.name}</span>
+              <span class="font-mono text-emerald-700">$${personTotal.toFixed(2)}</span>
+            </div>
+            <div class="flex gap-1">
+              <select id="pItem_${pIdx}" class="border rounded p-1 bg-white text-[11px] flex-grow">
+                ${orderItems.map((it, iIdx) => `<option value="${iIdx}">${it.qty}x ${it.title} ($${it.price})</option>`).join('')}
+              </select>
+              <button onclick="assignItem(${pIdx})" class="bg-stone-900 text-white px-2 py-1 rounded text-[10px] font-bold">+ Asignar</button>
+            </div>
+            <div class="space-y-1">
+              ${person.items.map((it, itIdx) => `
+                <div class="flex justify-between bg-white px-2 py-1 rounded border text-[11px]">
+                  <span>${it.qty}x ${it.title}</span>
+                  <button onclick="splitPersonsList[${pIdx}].items.splice(${itIdx},1); renderSplitPersonsCards();" class="text-rose-600 font-bold">×</button>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const totalAssigned = splitPersonsList.reduce((acc, p) => acc + p.items.reduce((iAcc, it) => iAcc + (it.price * it.qty), 0), 0);
+      document.getElementById('splitAssignedTotal').innerText = `$${totalAssigned.toFixed(2)} MXN`;
+      document.getElementById('splitRemainingTotal').innerText = `$${Math.max(0, Number(currentActiveOrder?.total || 0) - totalAssigned).toFixed(2)} MXN`;
+    }
+
+    function assignItem(pIdx) {
+      const itIdx = parseInt(document.getElementById(`pItem_${pIdx}`).value);
+      const orderItem = currentActiveOrder?.items[itIdx];
+      if (!orderItem) return;
+      splitPersonsList[pIdx].items.push({ title: orderItem.title, price: Number(orderItem.price), qty: 1 });
+      renderSplitPersonsCards();
+    }
+
+    async function saveSplitBill() {
+      if (!currentActiveOrder || !supabaseClient) return;
+      let splitDetails = [];
+      const total = Number(currentActiveOrder.total || 0);
+
+      if (currentSplitMode === 'equal') {
+        const count = Math.max(2, parseInt(document.getElementById('splitCountInput').value) || 2);
+        const perPerson = Number((total / count).toFixed(2));
+        for (let i = 1; i <= count; i++) {
+          splitDetails.push({ name: `Comensal ${i}`, amount: perPerson, paid: false });
+        }
+      } else {
+        splitDetails = splitPersonsList.map(p => ({
+          name: p.name,
+          amount: Number(p.items.reduce((acc, it) => acc + (it.price * it.qty), 0).toFixed(2)),
+          paid: false
+        }));
+      }
+
+      await supabaseClient.from('orders').update({
+        split_type: currentSplitMode,
+        split_details: splitDetails
+      }).eq('id', currentActiveOrder.id);
+
+      alert("División de cuenta confirmada y visible para el mesero.");
+      closeSplitBillModal();
+      checkActiveTableOrder();
+    }
+
+    // ENVÍO DE PEDIDO A COCINA (NATIVO SUPABASE)
+    async function sendOrder() {
+      if (order.length === 0) return;
+      const subtotal = order.reduce((acc, it) => acc + it.unitPrice * it.qty, 0);
+      const notes = document.getElementById('orderCustomerNotes')?.value?.trim() || '';
+
+      const itemsPayload = order.map(it => ({
+        id: it.product.id,
+        title: it.product.title,
+        qty: it.qty,
+        price: Number(it.unitPrice)
+      }));
+
+      if (supabaseClient) {
+        if (currentActiveOrder && currentActiveOrder.status === 'pending') {
+          await supabaseClient.from('orders').update({
+            items: itemsPayload,
+            subtotal: subtotal,
+            total: subtotal,
+            customer_notes: notes
+          }).eq('id', currentActiveOrder.id);
+        } else {
+          await supabaseClient.from('orders').insert([{
+            restaurant_id: REST_ID,
+            table_number: currentTable,
+            order_channel: 'dine_in',
+            items: itemsPayload,
+            subtotal: subtotal,
+            total: subtotal,
+            customer_notes: notes,
+            status: 'pending',
+            is_archived: false,
+            created_at: new Date().toISOString()
+          }]);
+        }
+      }
+
+      order = [];
+      updateOrderUI();
+      switchView('menu');
+      await checkActiveTableOrder();
+      alert(`¡Comanda enviada a cocina para la Mesa ${currentTable}!`);
+    }
+
+    // LLAMADA A MESERO
+    async function callWaiter() {
+      const btn = document.getElementById('btnCallWaiter');
+      const text = document.getElementById('waiterBtnText');
+      if (isWaiterBlocked || btn.disabled) return;
+
+      waiterCallCount++;
+      if (supabaseClient) {
+        await supabaseClient.from('waiter_calls').insert([{
+          restaurant_id: REST_ID,
+          table_number: currentTable,
+          status: 'pending'
+        }]);
+      }
+
+      if (waiterCallCount >= 3) {
+        isWaiterBlocked = true;
+        btn.disabled = true;
+        let remaining = 120;
+        waiterCooldownTimer = setInterval(() => {
+          remaining--;
+          text.innerText = `Espera ${remaining}s`;
+          if (remaining <= 0) {
+            clearInterval(waiterCooldownTimer);
+            isWaiterBlocked = false;
+            waiterCallCount = 0;
+            btn.disabled = false;
+            text.innerText = "🔔 Mesero";
+          }
+        }, 1000);
+        return;
+      }
+
+      btn.disabled = true;
+      let remainingSecs = 30;
+      waiterCooldownTimer = setInterval(() => {
+        remainingSecs--;
+        text.innerText = `Llamado (${remainingSecs}s)`;
+        if (remainingSecs <= 0) {
+          clearInterval(waiterCooldownTimer);
+          btn.disabled = false;
+          text.innerText = "🔔 Mesero";
+        }
+      }, 1000);
     }
 
     function renderTypesFilters() {
       const cont = document.getElementById('typesFilterContainer');
-      cont.innerHTML = `
-        <button onclick="filterByType(null)" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition ${
-          activeTypeId === null ? 'bg-stone-900 text-white shadow-sm' : 'bg-white text-stone-600 border border-stone-200'
-        }">Todos</button>
-        ${typesList.map(t => `
-          <button onclick="filterByType('${t.id}')" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 transition ${
-            activeTypeId === t.id ? 'bg-amber-600 text-white shadow-sm' : 'bg-white text-stone-700 border border-stone-200'
-          }">
-            <span>${t.icon || '🏷️'}</span>
-            <span>${t.name}</span>
-          </button>
-        `).join('')}
-      `;
-    }
-
-    function filterByType(typeId) {
-      activeTypeId = typeId;
-      renderTypesFilters();
-      renderMenu();
+      cont.innerHTML = `<button onclick="activeTypeId=null;renderTypesFilters();renderMenu();" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold ${activeTypeId===null?'bg-stone-900 text-white':'bg-white text-stone-600 border'}">Todos</button>` +
+        typesList.map(t => `<button onclick="activeTypeId='${t.id}';renderTypesFilters();renderMenu();" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap ${activeTypeId===t.id?'bg-amber-600 text-white':'bg-white text-stone-700 border'}">${t.name}</button>`).join('');
     }
 
     function renderCategoryTabs() {
-      const tabs = document.getElementById('categoryTabs');
-      tabs.innerHTML = categoriesList.map(cat => {
-        const isActive = activeCategoryId === cat.id;
-        return `
-          <button onclick="selectCategoryTab('${cat.id}')" class="whitespace-nowrap px-4 py-2 rounded-full text-xs font-bold flex items-center gap-1.5 transition ${
-            isActive ? 'bg-stone-900 text-white shadow-sm' : 'bg-white text-stone-600 border border-stone-200'
-          }">
-            <span class="text-sm">${cat.icon || '🍽️'}</span>
-            <span>${cat.name}</span>
-          </button>
-        `;
-      }).join('');
+      document.getElementById('categoryTabs').innerHTML = categoriesList.map(c => `
+        <button onclick="document.getElementById('cat-${c.id}')?.scrollIntoView({behavior:'smooth'});" class="whitespace-nowrap px-4 py-2 rounded-full text-xs font-bold bg-white text-stone-700 border">${c.name}</button>
+      `).join('');
     }
 
-    function selectCategoryTab(catId) {
-      activeCategoryId = catId;
-      renderCategoryTabs();
-
-      const targetSection = document.getElementById(`cat-${catId}`);
-      if (targetSection) {
-        targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } else {
-        renderMenu();
-      }
-    }
-
-    function renderMenu(filterQuery = '') {
-      const container = document.getElementById('menuContainer');
-      const query = filterQuery || (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
-
-      container.innerHTML = categoriesList.map(cat => {
+    function renderMenu() {
+      const cont = document.getElementById('menuContainer');
+      cont.innerHTML = categoriesList.map(cat => {
         let items = productsList.filter(p => p.category_id === cat.id);
-
         if (activeTypeId) items = items.filter(p => p.type_id === activeTypeId);
-
-        if (query) {
-          items = items.filter(p => 
-            p.title.toLowerCase().includes(query) || 
-            (p.description || '').toLowerCase().includes(query)
-          );
-        }
-
         if (items.length === 0) return '';
-
         return `
-          <section id="cat-${cat.id}" class="scroll-mt-20 space-y-3">
-            <div class="flex items-center gap-2 border-b border-stone-200/60 pb-2">
-              <span class="text-xl">${cat.icon || '🍽️'}</span>
-              <h3 class="font-bold text-lg text-stone-900">${cat.name}</h3>
-            </div>
-            <div class="space-y-3">
-              ${items.map(p => {
-                const typObj = typesList.find(t => t.id === p.type_id);
-                const firstMedia = (p.media && p.media[0]) ? p.media[0].url : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=300&q=80';
-                return `
-                  <div class="bg-white rounded-2xl p-3 border border-stone-200/80 shadow-sm flex gap-3.5 relative cursor-pointer active:scale-[0.99] transition ${!p.is_available ? 'opacity-50 grayscale' : ''}" onclick="openProductModal('${p.id}')">
-                    <img src="${firstMedia}" class="w-24 h-24 rounded-xl object-cover flex-shrink-0 bg-stone-100" alt="${p.title}">
-                    <div class="flex flex-col justify-between flex-grow py-0.5">
-                      <div>
-                        <div class="flex items-center justify-between gap-1">
-                          <h4 class="font-bold text-stone-900 text-sm leading-snug">${p.title}</h4>
-                          ${typObj ? `<span class="text-[10px] bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded font-semibold whitespace-nowrap">${typObj.icon || ''} ${typObj.name}</span>` : ''}
-                        </div>
-                        <p class="text-xs text-stone-500 line-clamp-2 mt-1">${p.description || ''}</p>
-                      </div>
-                      <div class="flex items-center justify-between mt-2" onclick="event.stopPropagation()">
-                        <span class="font-bold text-stone-900 text-sm font-mono">$${Number(p.price).toFixed(2)}</span>
-                        ${p.is_available ? `
-                          <button onclick="quickAdd('${p.id}')" class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1 rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm transition active:scale-95">
-                            + Agregar
-                          </button>
-                        ` : '<span class="text-[11px] text-rose-500 font-bold">Agotado</span>'}
-                      </div>
-                    </div>
+          <section id="cat-${cat.id}" class="space-y-3">
+            <h3 class="font-bold text-lg text-stone-900">${cat.name}</h3>
+            <div class="space-y-2.5">
+              ${items.map(p => `
+                <div class="bg-white rounded-2xl p-3 border shadow-sm flex gap-3 items-center">
+                  <div class="flex-grow">
+                    <h4 class="font-bold text-stone-900 text-sm">${p.title}</h4>
+                    <p class="text-xs text-stone-500">${p.description || ''}</p>
+                    <span class="font-bold text-sm font-mono mt-1 block">$${Number(p.price).toFixed(2)}</span>
                   </div>
-                `;
-              }).join('')}
+                  <button onclick="order.push({product:p,qty:1,unitPrice:Number(p.price)});updateOrderUI();" class="bg-amber-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold">+ Agregar</button>
+                </div>
+              `).join('')}
             </div>
           </section>
         `;
       }).join('');
     }
 
-    function renderPromotionsPage() {
-      const cont = document.getElementById('promosList');
-      if (promotionsList.length === 0) {
-        cont.innerHTML = '<p class="text-stone-400 text-xs text-center py-8">No hay promociones activas por el momento.</p>';
-        return;
-      }
-
-      cont.innerHTML = promotionsList.map(p => `
-        <div class="rounded-3xl p-5 shadow-md flex flex-col justify-between text-white relative overflow-hidden min-h-[160px]" style="background-color: ${p.bg_color || '#b45309'}; color: ${p.text_color || '#fff'};">
-          ${p.bg_image_url ? `<div class="absolute inset-0 bg-cover bg-center" style="background-image: url('${p.bg_image_url}')"><div class="absolute inset-0 bg-black/50"></div></div>` : ''}
-          <div class="relative z-10 space-y-2">
-            <span class="bg-white/20 backdrop-blur-md text-[10px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider">${p.promo_value || 'PROMO'}</span>
-            <h3 class="font-bold text-base leading-snug">${p.title}</h3>
-            <p class="text-xs opacity-90">${p.description || ''}</p>
-          </div>
-          <div class="relative z-10 pt-3 border-t border-white/20 text-[10px] font-mono opacity-80 flex justify-between">
-            <span>Horario: ${p.start_time.substring(0,5)} - ${p.end_time.substring(0,5)}</span>
-            <span>✓ Se aplica en tu orden</span>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    function handleSearch(term) {
-      const clearBtn = document.getElementById('clearSearch');
-      const box = document.getElementById('predictiveBox');
-      const q = term.toLowerCase().trim();
-
-      if (!q) {
-        clearBtn.classList.add('hidden');
-        box.classList.add('hidden');
-        renderMenu();
-        return;
-      }
-
-      clearBtn.classList.remove('hidden');
-
-      const matches = productsList.filter(p => 
-        p.title.toLowerCase().includes(q) || 
-        (p.description || '').toLowerCase().includes(q)
-      );
-
-      if (matches.length > 0) {
-        box.classList.remove('hidden');
-        box.innerHTML = matches.slice(0, 4).map(m => `
-          <div onclick="openProductModal('${m.id}')" class="py-2 px-2 flex justify-between items-center cursor-pointer hover:bg-stone-50 rounded-lg">
-            <div>
-              <span class="font-semibold text-stone-900">${m.title}</span>
-              <p class="text-[10px] text-stone-500 truncate">${m.description || ''}</p>
-            </div>
-            <span class="font-bold text-amber-600 font-mono ml-2">$${Number(m.price).toFixed(2)}</span>
-          </div>
-        `).join('');
-      } else {
-        box.classList.add('hidden');
-      }
-
-      renderMenu(q);
-    }
-
-    function clearSearchInput() {
-      const input = document.getElementById('searchInput');
-      input.value = '';
-      handleSearch('');
-    }
-
-    function openProductModal(productId) {
-      const prod = productsList.find(p => p.id === productId);
-      if (!prod) return;
-
-      currentModalProduct = prod;
-      selectedModifiers = [];
-
-      document.getElementById('modalTitle').innerText = prod.title;
-      document.getElementById('modalDesc').innerText = prod.description || '';
-      document.getElementById('modalPrice').innerText = `$${Number(prod.price).toFixed(2)}`;
-
-      const typObj = typesList.find(t => t.id === prod.type_id);
-      document.getElementById('modalTags').innerHTML = typObj ? `
-        <span class="bg-amber-50 text-amber-800 border border-amber-200 text-xs font-semibold px-2 py-0.5 rounded-lg">${typObj.icon || '🏷️'} ${typObj.name}</span>
-      ` : '';
-
-      const mediaList = prod.media && prod.media.length > 0 ? prod.media : [{ type: 'image', url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80' }];
-      document.getElementById('modalMediaCarousel').innerHTML = mediaList.map(m => `
-        <div class="w-full h-full flex-shrink-0 snap-center">
-          ${m.type === 'video'
-            ? `<video src="${m.url}" controls autoplay muted loop class="w-full h-full object-cover"></video>`
-            : `<img src="${m.url}" class="w-full h-full object-cover">`
-          }
-        </div>
-      `).join('');
-
-      const applicableMods = modifiersList.filter(m => (m.applies_to_products || []).includes(prod.id));
-      const modsCont = document.getElementById('modifiersList');
-      if (applicableMods.length > 0) {
-        document.getElementById('modalModifiersSection').classList.remove('hidden');
-        modsCont.innerHTML = applicableMods.map(mod => `
-          <label class="flex items-center justify-between p-2.5 rounded-xl border border-stone-200 bg-stone-50 text-xs cursor-pointer">
-            <div class="flex items-center gap-2">
-              <input type="checkbox" onchange="toggleModifier('${mod.id}', ${mod.price})" class="rounded text-amber-600">
-              <span class="font-medium text-stone-800">${mod.name}</span>
-            </div>
-            <span class="font-mono text-stone-600">${mod.price > 0 ? `+$${mod.price}` : 'Sin costo'}</span>
-          </label>
-        `).join('');
-      } else {
-        document.getElementById('modalModifiersSection').classList.add('hidden');
-      }
-
-      const crossCont = document.getElementById('crossSellContainer');
-      const recIds = prod.recommended_product_ids || [];
-      const recProducts = productsList.filter(p => recIds.includes(p.id));
-
-      if (recProducts.length > 0) {
-        document.getElementById('modalCrossSellSection').classList.remove('hidden');
-        crossCont.innerHTML = recProducts.map(rp => `
-          <div onclick="openProductModal('${rp.id}')" class="flex-shrink-0 w-32 border border-stone-200 rounded-xl p-2 bg-stone-50 cursor-pointer">
-            <img src="${(rp.media && rp.media[0]) ? rp.media[0].url : ''}" class="w-full h-20 object-cover rounded-lg">
-            <p class="font-bold text-xs truncate mt-1.5 text-stone-800">${rp.title}</p>
-            <span class="text-xs font-mono font-bold text-amber-700">$${rp.price}</span>
-          </div>
-        `).join('');
-      } else {
-        document.getElementById('modalCrossSellSection').classList.add('hidden');
-      }
-
-      updateModalTotal();
-      document.getElementById('productModal').classList.remove('hidden');
-    }
-
-    function toggleModifier(modId, price) {
-      const idx = selectedModifiers.findIndex(m => m.id === modId);
-      if (idx > -1) {
-        selectedModifiers.splice(idx, 1);
-      } else {
-        const modObj = modifiersList.find(m => m.id === modId);
-        selectedModifiers.push(modObj);
-      }
-      updateModalTotal();
-    }
-
-    function updateModalTotal() {
-      const extrasTotal = selectedModifiers.reduce((acc, m) => acc + Number(m.price), 0);
-      const total = Number(currentModalProduct.price) + extrasTotal;
-      document.getElementById('modalFinalPrice').innerText = `$${total.toFixed(2)}`;
-      document.getElementById('modalAddBtn').onclick = () => {
-        addItemToOrder(currentModalProduct, selectedModifiers);
-        closeProductModal();
-      };
-    }
-
-    function closeProductModal() {
-      document.getElementById('productModal').classList.add('hidden');
-      currentModalProduct = null;
-    }
-
-    // -------------------------------------------------------------
-    // MOTOR DE CÁLCULO DE ORDEN Y DESCUENTOS
-    // -------------------------------------------------------------
-
-    function quickAdd(productId) {
-      const prod = productsList.find(p => p.id === productId);
-      if (prod) addItemToOrder(prod, []);
-    }
-
-    function addItemToOrder(product, mods = []) {
-      const existing = order.find(item => item.product.id === product.id && JSON.stringify(item.modifiers) === JSON.stringify(mods));
-      if (existing) {
-        existing.qty += 1;
-      } else {
-        const modsTotal = mods.reduce((acc, m) => acc + Number(m.price), 0);
-        order.push({
-          instanceId: Date.now() + Math.random(),
-          product: product,
-          qty: 1,
-          modifiers: [...mods],
-          unitPrice: Number(product.price) + modsTotal
-        });
-      }
-      updateOrderUI();
-    }
-
     function updateOrderUI() {
       const badge = document.getElementById('navOrderBadge');
-      const totalQty = order.reduce((acc, it) => acc + it.qty, 0);
-      if (totalQty > 0) {
-        badge.innerText = totalQty;
-        badge.classList.remove('hidden');
-      } else {
-        badge.classList.add('hidden');
-      }
+      const count = order.reduce((acc, it) => acc + it.qty, 0);
+      badge.classList.toggle('hidden', count === 0);
+      badge.innerText = count;
+      document.getElementById('orderItemsCountBadge').innerText = `${count} ítems`;
       renderOrderSummary();
-    }
-
-    function isPromoValidNow(p) {
-      if (!p.is_active) return false;
-      const now = new Date();
-      const currentDay = now.getDay();
-      const currentTimeStr = now.toTimeString().substring(0, 8);
-
-      if (p.days_of_week && p.days_of_week.length > 0 && !p.days_of_week.includes(currentDay)) return false;
-      if (p.start_time && currentTimeStr < p.start_time) return false;
-      if (p.end_time && currentTimeStr > p.end_time) return false;
-
-      const todayDateStr = now.toISOString().split('T')[0];
-      if (p.start_date && todayDateStr < p.start_date) return false;
-      if (p.end_date && todayDateStr > p.end_date) return false;
-
-      return true;
-    }
-
-    function calculateOrderTotals() {
-      let subtotal = 0;
-      order.forEach(item => { subtotal += item.unitPrice * item.qty; });
-
-      let totalDiscount = 0;
-      let appliedMessages = [];
-
-      promotionsList.forEach(p => {
-        if (!isPromoValidNow(p)) return;
-
-        // 1. REGLA 2x1 (O Multi-pack X por Y)
-        if (p.promo_type === '2x1') {
-          const buy = p.buy_qty || 1;
-          const get = p.get_qty || 2;
-          const freePerBundle = get - buy;
-
-          order.forEach(item => {
-            const applies = p.scope_type === 'all' || 
-              (p.scope_type === 'categories' && (p.applied_category_ids || []).includes(item.product.category_id)) ||
-              (p.scope_type === 'types' && (p.applied_type_ids || []).includes(item.product.type_id)) ||
-              (p.scope_type === 'products' && (p.applied_product_ids || []).includes(item.product.id));
-
-            if (applies && item.qty >= get) {
-              const bundles = Math.floor(item.qty / get);
-              const freeUnits = bundles * freePerBundle;
-              const discountAmount = freeUnits * Number(item.product.price);
-              totalDiscount += discountAmount;
-              appliedMessages.push(`Promo ${get}x${buy}: ${freeUnits}x ${item.product.title} GRATIS (-$${discountAmount.toFixed(2)})`);
-            }
-          });
-        }
-        // 2. REGLA COMBO X -> Y
-        else if (p.promo_type === 'gift_item' && p.trigger_product_id && p.reward_product_id) {
-          const triggerItem = order.find(i => i.product.id === p.trigger_product_id);
-          const rewardItem = order.find(i => i.product.id === p.reward_product_id);
-
-          if (triggerItem && rewardItem) {
-            const applicableCombos = Math.min(triggerItem.qty, rewardItem.qty);
-            if (applicableCombos > 0) {
-              const pct = (p.reward_discount_percentage || 100) / 100;
-              const discountAmount = applicableCombos * (Number(rewardItem.product.price) * pct);
-              totalDiscount += discountAmount;
-              appliedMessages.push(`Combo ${p.title}: ${applicableCombos}x ${rewardItem.product.title} (-$${discountAmount.toFixed(2)})`);
-            }
-          }
-        }
-        // 3. REGLA PORCENTAJE DIRECTO
-        else if (p.promo_type === 'percentage') {
-          const pct = (p.discount_percentage || 20) / 100;
-          order.forEach(item => {
-            const applies = p.scope_type === 'all' || 
-              (p.scope_type === 'categories' && (p.applied_category_ids || []).includes(item.product.category_id)) ||
-              (p.scope_type === 'types' && (p.applied_type_ids || []).includes(item.product.type_id)) ||
-              (p.scope_type === 'products' && (p.applied_product_ids || []).includes(item.product.id));
-
-            if (applies) {
-              const disc = (item.unitPrice * item.qty) * pct;
-              totalDiscount += disc;
-              appliedMessages.push(`${p.title} (${p.discount_percentage}% OFF): -$${disc.toFixed(2)}`);
-            }
-          });
-        }
-      });
-
-      const finalTotal = Math.max(0, subtotal - totalDiscount);
-      return { subtotal, totalDiscount, finalTotal, appliedMessages };
     }
 
     function renderOrderSummary() {
       const cont = document.getElementById('orderItemsList');
       if (order.length === 0) {
-        cont.innerHTML = '<p class="text-sm text-stone-400 py-6 text-center">Tu orden está vacía.</p>';
+        cont.innerHTML = '<p class="text-xs text-stone-400 py-4 text-center">Tu orden está vacía.</p>';
         document.getElementById('orderSubtotal').innerText = '$0.00';
         document.getElementById('orderTotal').innerText = '$0.00 MXN';
-        document.getElementById('appliedDiscountsBox').classList.add('hidden');
-        document.getElementById('orderDiscountRow').classList.add('hidden');
         return;
       }
-
-      cont.innerHTML = order.map((item, idx) => `
-        <div class="py-3 flex justify-between items-center text-xs">
-          <div>
-            <h4 class="font-bold text-stone-900 text-sm">${item.product.title}</h4>
-            ${item.modifiers.length > 0 ? `<p class="text-[11px] text-amber-700 font-medium">↳ ${item.modifiers.map(m => m.name).join(', ')}</p>` : ''}
-            <span class="font-mono text-stone-500 font-bold">$${item.unitPrice.toFixed(2)} c/u</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <div class="flex items-center gap-1.5 bg-stone-100 rounded-lg p-1">
-              <button onclick="changeQty(${idx}, -1)" class="w-6 h-6 flex items-center justify-center font-bold text-stone-600 bg-white rounded shadow-sm">-</button>
-              <span class="font-bold px-1">${item.qty}</span>
-              <button onclick="changeQty(${idx}, 1)" class="w-6 h-6 flex items-center justify-center font-bold text-stone-600 bg-white rounded shadow-sm">+</button>
-            </div>
-            <span class="font-mono font-bold text-stone-900 w-16 text-right">$${(item.unitPrice * item.qty).toFixed(2)}</span>
+      cont.innerHTML = order.map((it, idx) => `
+        <div class="py-2 flex justify-between items-center text-xs">
+          <span><b>${it.qty}x</b> ${it.product.title}</span>
+          <div class="flex items-center gap-2">
+            <span class="font-bold font-mono">$${(it.unitPrice * it.qty).toFixed(2)}</span>
+            <button onclick="order.splice(${idx},1);updateOrderUI();" class="text-rose-600 font-bold">✕</button>
           </div>
         </div>
       `).join('');
-
-      const { subtotal, totalDiscount, finalTotal, appliedMessages } = calculateOrderTotals();
-      document.getElementById('orderSubtotal').innerText = `$${subtotal.toFixed(2)}`;
-      document.getElementById('orderTotal').innerText = `$${finalTotal.toFixed(2)} MXN`;
-
-      const discBox = document.getElementById('appliedDiscountsBox');
-      const discList = document.getElementById('appliedDiscountsList');
-      const discRow = document.getElementById('orderDiscountRow');
-
-      if (totalDiscount > 0) {
-        discBox.classList.remove('hidden');
-        discRow.classList.remove('hidden');
-        document.getElementById('orderDiscountAmount').innerText = `-$${totalDiscount.toFixed(2)}`;
-        discList.innerHTML = appliedMessages.map(m => `<div>• ${m}</div>`).join('');
-      } else {
-        discBox.classList.add('hidden');
-        discRow.classList.add('hidden');
-      }
-    }
-
-    function changeQty(idx, delta) {
-      order[idx].qty += delta;
-      if (order[idx].qty <= 0) order.splice(idx, 1);
-      updateOrderUI();
+      const tot = order.reduce((acc, it) => acc + it.unitPrice * it.qty, 0);
+      document.getElementById('orderSubtotal').innerText = `$${tot.toFixed(2)}`;
+      document.getElementById('orderTotal').innerText = `$${tot.toFixed(2)} MXN`;
     }
 
     function switchView(view) {
@@ -818,90 +672,24 @@
       if (view === 'order') renderOrderSummary();
     }
 
-    function handleNavLeft() {
-      if (restaurantConfig.bottom_left_type === 'custom_link' && restaurantConfig.bottom_left_url) {
-        window.open(restaurantConfig.bottom_left_url, '_blank');
-      } else {
-        switchView('promos');
-      }
+    function handleSearch(q) {
+      const term = q.toLowerCase().trim();
+      document.getElementById('clearSearch').classList.toggle('hidden', !term);
+      const items = document.querySelectorAll('#menuContainer section');
+      items.forEach(sec => {
+        const text = sec.innerText.toLowerCase();
+        sec.style.display = text.includes(term) ? 'block' : 'none';
+      });
     }
 
-    async function sendOrder() {
-      if (order.length === 0) return;
-      const { subtotal, totalDiscount, finalTotal, appliedMessages } = calculateOrderTotals();
-
-      const orderItemsPayload = order.map(it => ({
-        id: it.product.id,
-        title: it.product.title,
-        qty: it.qty,
-        price: Number(it.unitPrice),
-        modifiers: (it.modifiers || []).map(m => m.name)
-      }));
-
-      // 1. Guardar en Supabase para cocina / KDS
-      if (supabaseClient) {
-        try {
-          await supabaseClient.from('orders').insert([{
-            restaurant_id: restaurantConfig.id,
-            table_number: currentTable,
-            items: orderItemsPayload,
-            subtotal: subtotal,
-            discount: totalDiscount,
-            total: finalTotal,
-            applied_promotions: appliedMessages,
-            status: 'pending',
-            is_archived: false
-          }]);
-        } catch (e) {
-          console.warn("Error guardando orden:", e);
-        }
-      }
-
-      // 2. WhatsApp
-      let msg = `*ORDEN DE MESA ${currentTable}*\n\n`;
-      order.forEach((item, idx) => {
-        msg += `${idx + 1}. *${item.qty}x ${item.product.title}* - $${(item.unitPrice * item.qty).toFixed(2)}\n`;
-        if (item.modifiers && item.modifiers.length > 0) {
-          msg += `   └ Extras: ${item.modifiers.map(m => m.name).join(', ')}\n`;
-        }
-      });
-
-      if (totalDiscount > 0) {
-        msg += `\n*Subtotal:* $${subtotal.toFixed(2)}\n`;
-        msg += `*Ahorro Promos:* -$${totalDiscount.toFixed(2)}\n`;
-        appliedMessages.forEach(m => msg += `  └ ${m}\n`);
-      }
-
-      msg += `\n*TOTAL FINAL: $${finalTotal.toFixed(2)} MXN*`;
-
-      const phone = restaurantConfig.whatsapp_number || '523312345678';
-      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
-
-      order = [];
-      updateOrderUI();
-      alert(`¡Comanda enviada a cocina para la Mesa ${currentTable}!`);
+    function clearSearchInput() {
+      document.getElementById('searchInput').value = '';
+      handleSearch('');
     }
 
     function connectWifi() {
-      const pass = restaurantConfig.wifi_password || 'Brunch2026';
-      navigator.clipboard.writeText(pass);
-      alert(`Wi-Fi: ${restaurantConfig.wifi_ssid || 'Invitados'}\nClave copiada: ${pass}`);
-    }
-
-    async function callWaiter() {
-      const btn = document.getElementById('btnCallWaiter');
-      btn.innerText = "Llamando...";
-      if (supabaseClient) {
-        await supabaseClient.from('waiter_calls').insert([{
-          restaurant_id: restaurantConfig.id,
-          table_number: currentTable,
-          status: 'pending'
-        }]);
-      }
-      setTimeout(() => {
-        btn.innerText = "Mesero en camino ✓";
-        alert(`Mesero llamado para la Mesa ${currentTable}.`);
-      }, 400);
+      navigator.clipboard.writeText('Brunch2026');
+      alert("Contraseña Wi-Fi copiada: Brunch2026");
     }
 
     window.onload = setupUI;
