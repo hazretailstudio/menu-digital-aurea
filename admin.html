@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin - Tablero Kanban KDS & Gestión Gastronómica</title>
+  <title>Admin POS & KDS - Café & Bistro Áurea</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,689 +18,718 @@
       0%, 100% { border-color: #ef4444; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
       50% { border-color: #b91c1c; box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
     }
+    /* Estilos Modo Focus */
+    body.focus-mode #appSidebar,
+    body.focus-mode #appHeader,
+    body.focus-mode #kdsFilterBar {
+      display: none !important;
+    }
+    body.focus-mode #mainContentArea {
+      margin-left: 0 !important;
+      padding: 1rem !important;
+      max-width: 100% !important;
+    }
+    body.focus-mode #exitFocusBtn {
+      display: flex !important;
+    }
   </style>
 </head>
-<body class="bg-stone-100 text-stone-900 min-h-screen pb-20">
+<body class="bg-stone-100 text-stone-900 min-h-screen flex antialiased">
 
-  <!-- CABECERA -->
-  <header class="bg-stone-900 text-white px-6 py-4 flex flex-wrap justify-between items-center gap-4 shadow-md sticky top-0 z-30">
-    <div class="flex items-center gap-3">
-      <div class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></div>
-      <div>
-        <h1 class="text-base font-bold leading-tight">Estación de Servicio & Gestión Gastronómica</h1>
-        <p class="text-[11px] text-stone-400" id="connStatus">Conectando a base de datos...</p>
-      </div>
-    </div>
+  <!-- BOTÓN FLOTANTE PARA SALIR DEL MODO FOCUS -->
+  <button id="exitFocusBtn" onclick="toggleFocusMode()" class="hidden fixed bottom-5 right-5 z-50 bg-stone-900/90 text-white border border-stone-700 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-2xl font-bold text-xs items-center gap-2 hover:bg-stone-800 transition active:scale-95">
+    <span>✕ Salir de Pantalla Completa</span>
+  </button>
 
-    <!-- SELECTOR DE SONIDOS & ACCESOS -->
-    <div class="flex flex-wrap items-center gap-3 text-xs">
-      <div class="flex items-center gap-1.5 bg-stone-800 border border-stone-700 px-2.5 py-1.5 rounded-xl">
-        <span class="text-amber-400">🎵</span>
-        <label class="text-[11px] font-bold text-stone-300">Timbre:</label>
-        <select id="soundPresetSelect" onchange="changeSoundPreset(this.value)" class="bg-transparent font-semibold text-amber-300 focus:outline-none cursor-pointer text-xs">
-          <option value="bell" class="bg-stone-900 text-white">1. 🔔 Campana Bistro</option>
-          <option value="chime" class="bg-stone-900 text-white">2. ✨ Chime Mágico</option>
-          <option value="dingdong" class="bg-stone-900 text-white">3. 🛎️ Timbre de Hotel</option>
-          <option value="arcade" class="bg-stone-900 text-white">4. 🚀 Pop Arcade</option>
-        </select>
-        <button onclick="previewCurrentSound()" class="hover:scale-110 active:scale-95 transition text-stone-400 hover:text-white px-1" title="Escuchar">▶</button>
-      </div>
-
-      <span id="kdsActiveCount" class="bg-amber-500/20 text-amber-300 border border-amber-500/30 px-3 py-1.5 rounded-xl font-bold font-mono">
-        0 comandas activas
-      </span>
-      <a href="index.html?mesa=01" target="_blank" class="bg-amber-600 hover:bg-amber-500 text-white font-bold px-3.5 py-1.5 rounded-xl transition shadow-sm">
-        Abrir Menú QR ↗
-      </a>
-    </div>
-  </header>
-
-  <!-- PESTAÑAS (TABS) -->
-  <div class="bg-white border-b border-stone-200 sticky top-[65px] z-20 shadow-sm">
-    <div class="max-w-[1600px] mx-auto px-4 flex gap-1 sm:gap-2 overflow-x-auto no-scrollbar">
-      <button onclick="switchTab('orders')" id="tabBtn-orders" class="tab-btn px-4 py-3 text-xs sm:text-sm font-bold border-b-2 border-stone-900 text-stone-900 flex items-center gap-2 whitespace-nowrap">
-        <span>📋 Tablero Kanban</span>
-        <span id="badgeLiveOrders" class="bg-amber-600 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">0</span>
-      </button>
-
-      <button onclick="switchTab('analytics')" id="tabBtn-analytics" class="tab-btn px-4 py-3 text-xs sm:text-sm font-medium border-b-2 border-transparent text-stone-500 hover:text-stone-900 flex items-center gap-2 whitespace-nowrap">
-        <span>📊 Métricas & Histórico</span>
-      </button>
-
-      <button onclick="switchTab('inventory')" id="tabBtn-inventory" class="tab-btn px-4 py-3 text-xs sm:text-sm font-medium border-b-2 border-transparent text-stone-500 hover:text-stone-900 flex items-center gap-2 whitespace-nowrap">
-        <span>📦 Almacén, Escandallos & Mermas</span>
-      </button>
-
-      <button onclick="switchTab('reservations')" id="tabBtn-reservations" class="tab-btn px-4 py-3 text-xs sm:text-sm font-medium border-b-2 border-transparent text-stone-500 hover:text-stone-900 flex items-center gap-2 whitespace-nowrap">
-        <span>📅 Reservas</span>
-        <span id="badgeReservationsCount" class="bg-stone-200 text-stone-800 text-[10px] px-2 py-0.5 rounded-full font-bold">0</span>
-      </button>
-
-      <button onclick="switchTab('calls')" id="tabBtn-calls" class="tab-btn px-4 py-3 text-xs sm:text-sm font-medium border-b-2 border-transparent text-stone-500 hover:text-stone-900 flex items-center gap-2 whitespace-nowrap">
-        <span>🔔 Mesero en Vivo</span>
-        <span id="pendingCallsBadge" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold">0</span>
-      </button>
-
-      <button onclick="switchTab('taxonomies')" id="tabBtn-taxonomies" class="tab-btn px-4 py-3 text-xs sm:text-sm font-medium border-b-2 border-transparent text-stone-500 hover:text-stone-900 flex items-center gap-2 whitespace-nowrap">
-        <span>📑 Categorías & Tipos</span>
-      </button>
-
-      <button onclick="switchTab('products')" id="tabBtn-products" class="tab-btn px-4 py-3 text-xs sm:text-sm font-medium border-b-2 border-transparent text-stone-500 hover:text-stone-900 flex items-center gap-2 whitespace-nowrap">
-        <span>🍽️ Carta y Platillos</span>
-      </button>
-
-      <button onclick="switchTab('marketing')" id="tabBtn-marketing" class="tab-btn px-4 py-3 text-xs sm:text-sm font-medium border-b-2 border-transparent text-stone-500 hover:text-stone-900 flex items-center gap-2 whitespace-nowrap">
-        <span>⭐ Clientes, Maps & Fidelidad</span>
-      </button>
-    </div>
-  </div>
-
-  <!-- CONTENEDOR PRINCIPAL -->
-  <main class="max-w-[1600px] mx-auto p-4 sm:p-6">
-
-    <!-- 1. TABLERO KANBAN CON CANALES Y RETROCESO INTELIGENTE -->
-    <section id="tab-orders" class="tab-panel space-y-5">
-      <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-stone-200 flex flex-wrap justify-between items-center gap-4">
-        <div class="flex flex-wrap items-center gap-3">
-          <!-- Canales de Origen -->
-          <div class="flex items-center gap-1.5 bg-stone-100 p-1 rounded-2xl border border-stone-200 text-xs font-bold">
-            <button onclick="filterByChannel('all')" id="btnChannel-all" class="px-3 py-1.5 rounded-xl bg-stone-900 text-white shadow-sm transition">Todos</button>
-            <button onclick="filterByChannel('dine_in')" id="btnChannel-dine_in" class="px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 transition">🍽️ En Mesa</button>
-            <button onclick="filterByChannel('takeout')" id="btnChannel-takeout" class="px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 transition">🛍️ Para Llevar</button>
-            <button onclick="filterByChannel('delivery')" id="btnChannel-delivery" class="px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 transition">🛵 Delivery (Rappi/Didi/Uber)</button>
+  <!-- ========================================================================= -->
+  <!-- BARRA LATERAL (SIDEBAR) CON MODOS Y NAVEGACIÓN PROFESIONAL -->
+  <!-- ========================================================================= -->
+  <aside id="appSidebar" class="w-64 bg-stone-900 text-stone-300 flex-shrink-0 flex flex-col justify-between fixed top-0 bottom-0 left-0 z-40 transition-all duration-300 border-r border-stone-800 shadow-xl">
+    
+    <!-- PARTE SUPERIOR: MARCA & SELECTOR DE MODO -->
+    <div class="flex flex-col h-full">
+      <!-- Identidad -->
+      <div class="p-5 border-b border-stone-800 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-600 to-amber-400 text-white font-black flex items-center justify-center text-sm shadow-md">
+            ☕
           </div>
-
-          <!-- Modos de vista Kanban -->
-          <div class="inline-flex p-1 bg-stone-100 rounded-2xl border border-stone-200 text-xs font-bold">
-            <button onclick="setKanbanDisplayMode('all')" id="btnViewMode-all" class="px-3 py-1.5 rounded-xl transition bg-stone-900 text-white shadow-sm">🗂️ Todas las Columnas</button>
-            <button onclick="setKanbanDisplayMode('single')" id="btnViewMode-single" class="px-3 py-1.5 rounded-xl transition text-stone-600 hover:text-stone-900">🎯 Columna Única</button>
-          </div>
-
-          <div id="singleStatusSelectorWrapper" class="hidden flex items-center gap-1.5 pl-2 border-l border-stone-200">
-            <button onclick="changeSingleStatusView('pending')" id="chipStatus-pending" class="px-3 py-1.5 rounded-xl text-xs font-bold transition border border-stone-200 bg-white text-stone-700">🟡 1. Recibida</button>
-            <button onclick="changeSingleStatusView('preparing')" id="chipStatus-preparing" class="px-3 py-1.5 rounded-xl text-xs font-bold transition border border-stone-200 bg-white text-stone-700">🟠 2. En Prep.</button>
-            <button onclick="changeSingleStatusView('delivered')" id="chipStatus-delivered" class="px-3 py-1.5 rounded-xl text-xs font-bold transition border border-stone-200 bg-white text-stone-700">🔵 3. En Mesa</button>
-            <button onclick="changeSingleStatusView('paid')" id="chipStatus-paid" class="px-3 py-1.5 rounded-xl text-xs font-bold transition border border-stone-200 bg-white text-stone-700">🟢 4. Cobrada</button>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-2">
-          <button onclick="testSimulateOrder('dine_in')" class="bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold px-3 py-2 rounded-xl border border-stone-300 transition shadow-sm">
-            + Simular Mesa
-          </button>
-          <button onclick="testSimulateOrder('takeout')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-bold px-3 py-2 rounded-xl border border-amber-300 transition shadow-sm">
-            + Para Llevar
-          </button>
-          <button onclick="testSimulateOrder('rappi')" class="bg-orange-100 hover:bg-orange-200 text-orange-900 text-xs font-bold px-3 py-2 rounded-xl border border-orange-300 transition shadow-sm">
-            + Delivery
-          </button>
-        </div>
-      </div>
-
-      <div id="kanbanBoardContainer" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start">
-        <div id="column-pending" class="kanban-col bg-stone-200/70 rounded-3xl p-3.5 space-y-3 border border-stone-300/80">
-          <div class="flex justify-between items-center px-2 py-1">
-            <div class="flex items-center gap-2">
-              <span class="w-3 h-3 rounded-full bg-amber-500"></span>
-              <h3 class="font-extrabold text-xs uppercase tracking-wider text-stone-800">1. Recibida en Cocina</h3>
-            </div>
-            <span id="colCount-pending" class="text-xs font-mono font-bold bg-white text-stone-700 px-2.5 py-0.5 rounded-full shadow-sm">0</span>
-          </div>
-          <div id="cards-pending" class="space-y-3 min-h-[300px]"></div>
-        </div>
-
-        <div id="column-preparing" class="kanban-col bg-orange-100/60 rounded-3xl p-3.5 space-y-3 border border-orange-200/80">
-          <div class="flex justify-between items-center px-2 py-1">
-            <div class="flex items-center gap-2">
-              <span class="w-3 h-3 rounded-full bg-orange-500 animate-pulse"></span>
-              <h3 class="font-extrabold text-xs uppercase tracking-wider text-orange-950">2. En Preparación (Insumos deducidos)</h3>
-            </div>
-            <span id="colCount-preparing" class="text-xs font-mono font-bold bg-white text-orange-900 px-2.5 py-0.5 rounded-full shadow-sm">0</span>
-          </div>
-          <div id="cards-preparing" class="space-y-3 min-h-[300px]"></div>
-        </div>
-
-        <div id="column-delivered" class="kanban-col bg-blue-100/50 rounded-3xl p-3.5 space-y-3 border border-blue-200/80">
-          <div class="flex justify-between items-center px-2 py-1">
-            <div class="flex items-center gap-2">
-              <span class="w-3 h-3 rounded-full bg-blue-500"></span>
-              <h3 class="font-extrabold text-xs uppercase tracking-wider text-blue-950">3. Servida en Mesa</h3>
-            </div>
-            <span id="colCount-delivered" class="text-xs font-mono font-bold bg-white text-blue-900 px-2.5 py-0.5 rounded-full shadow-sm">0</span>
-          </div>
-          <div id="cards-delivered" class="space-y-3 min-h-[300px]"></div>
-        </div>
-
-        <div id="column-paid" class="kanban-col bg-emerald-100/40 rounded-3xl p-3.5 space-y-3 border border-emerald-200/80">
-          <div class="flex justify-between items-center px-2 py-1">
-            <div class="flex items-center gap-2">
-              <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
-              <h3 class="font-extrabold text-xs uppercase tracking-wider text-emerald-950">4. Cobrada / Finalizada</h3>
-            </div>
-            <span id="colCount-paid" class="text-xs font-mono font-bold bg-white text-emerald-900 px-2.5 py-0.5 rounded-full shadow-sm">0</span>
-          </div>
-          <div id="cards-paid" class="space-y-3 min-h-[300px]"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 2. MÉTRICAS, HISTÓRICO & KPIS -->
-    <section id="tab-analytics" class="tab-panel hidden space-y-6">
-      <!-- CONTROL DE FECHAS Y EXPORTACIÓN -->
-      <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-stone-200 flex flex-wrap justify-between items-center gap-4">
-        <div class="flex flex-wrap items-center gap-2">
-          <span class="text-xs font-bold text-stone-500 uppercase tracking-wider mr-1">Periodo:</span>
-          <button onclick="setAnalyticsDateFilter('today')" id="btnDate-today" class="px-3 py-1.5 rounded-xl text-xs font-bold transition bg-stone-900 text-white shadow-sm">Hoy</button>
-          <button onclick="setAnalyticsDateFilter('yesterday')" id="btnDate-yesterday" class="px-3 py-1.5 rounded-xl text-xs font-bold transition bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-200">Ayer</button>
-          <button onclick="setAnalyticsDateFilter('week')" id="btnDate-week" class="px-3 py-1.5 rounded-xl text-xs font-bold transition bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-200">Últimos 7 días</button>
-          <button onclick="setAnalyticsDateFilter('all')" id="btnDate-all" class="px-3 py-1.5 rounded-xl text-xs font-bold transition bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-200">Todo el Histórico</button>
-        </div>
-
-        <div class="flex flex-wrap items-center gap-2 text-xs">
-          <span class="text-stone-400 font-semibold">Rango:</span>
-          <input type="date" id="analyticsDateFrom" onchange="applyCustomDateRange()" class="border border-stone-200 rounded-xl px-2.5 py-1.5 bg-stone-50 text-stone-800 font-medium outline-none focus:border-amber-600">
-          <span class="text-stone-400">a</span>
-          <input type="date" id="analyticsDateTo" onchange="applyCustomDateRange()" class="border border-stone-200 rounded-xl px-2.5 py-1.5 bg-stone-50 text-stone-800 font-medium outline-none focus:border-amber-600">
-          <button onclick="applyCustomDateRange()" class="bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-xl font-bold shadow-sm transition">Filtrar</button>
-          <button onclick="exportHistoryToCSV()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3.5 py-1.5 rounded-xl transition shadow-sm flex items-center gap-1.5 ml-2">
-            <span>📥 Exportar CSV</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- KPIS GENERALES: VENTAS, FOOD COST, TICKET PROMEDIO -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm">
-          <span class="text-xs font-bold text-stone-400 uppercase tracking-wider" id="kpiRevLabel">Venta Neta del Periodo</span>
-          <h3 class="text-2xl font-black font-mono text-stone-900 mt-1" id="kpiRevenue">$0.00 MXN</h3>
-          <p class="text-[11px] text-emerald-600 font-semibold mt-1">✓ Cobrado y liquidado</p>
-        </div>
-        <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm">
-          <div class="flex justify-between items-start">
-            <span class="text-xs font-bold text-stone-400 uppercase tracking-wider">Food Cost Teórico</span>
-            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800" id="badgeFoodCostStatus">Óptimo</span>
-          </div>
-          <h3 class="text-2xl font-black font-mono text-stone-900 mt-1" id="kpiFoodCostPct">0.0%</h3>
-          <p class="text-[11px] text-stone-500 mt-1" id="kpiFoodCostAmount">Costo insumos: $0.00</p>
-        </div>
-        <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm">
-          <span class="text-xs font-bold text-stone-400 uppercase tracking-wider">Ticket Promedio</span>
-          <h3 class="text-2xl font-black font-mono text-amber-700 mt-1" id="kpiAvgTicket">$0.00</h3>
-          <p class="text-[11px] text-stone-500 mt-1">Consumo medio por comanda</p>
-        </div>
-        <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm">
-          <span class="text-xs font-bold text-stone-400 uppercase tracking-wider">Ventas por Canal</span>
-          <div class="text-[11px] font-mono mt-1.5 space-y-0.5">
-            <div class="flex justify-between"><span>Mesa:</span><b id="kpiChanDine">$0.00</b></div>
-            <div class="flex justify-between"><span>Takeout:</span><b id="kpiChanTakeout">$0.00</b></div>
-            <div class="flex justify-between"><span>Delivery:</span><b id="kpiChanDelivery">$0.00</b></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- INGENIERÍA DE MENÚS (MATRIZ BOSTON / MILLER) & TOP PLATILLOS -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div class="lg:col-span-7 bg-white rounded-3xl p-6 border border-stone-200 shadow-sm space-y-4">
-          <div class="flex justify-between items-center border-b pb-3">
-            <div>
-              <h3 class="font-extrabold text-sm text-stone-900">Ingeniería de Menús (Matriz Rentabilidad vs. Popularidad)</h3>
-              <p class="text-xs text-stone-400">Clasificación estratégica para optimizar tu carta.</p>
-            </div>
-            <span class="text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-1 rounded-xl">Rentabilidad</span>
-          </div>
-
-          <div class="grid grid-cols-2 gap-3 pt-1">
-            <!-- Estrella -->
-            <div class="bg-amber-50/70 border border-amber-200 rounded-2xl p-3.5 space-y-1.5">
-              <div class="flex items-center justify-between">
-                <span class="text-xs font-extrabold text-amber-900">⭐ Estrella</span>
-                <span class="text-[10px] text-amber-700 font-semibold">Alta rotación / Alto margen</span>
-              </div>
-              <p class="text-[11px] text-stone-600">Mantener calidad intacta y máxima visibilidad.</p>
-              <div id="matrixStarItems" class="text-xs font-bold text-stone-900 font-mono space-y-0.5"></div>
-            </div>
-            <!-- Rompecabezas / Rentable -->
-            <div class="bg-blue-50/70 border border-blue-200 rounded-2xl p-3.5 space-y-1.5">
-              <div class="flex items-center justify-between">
-                <span class="text-xs font-extrabold text-blue-900">🧩 Rentable / Puzzle</span>
-                <span class="text-[10px] text-blue-700 font-semibold">Baja rotación / Alto margen</span>
-              </div>
-              <p class="text-[11px] text-stone-600">Impulsar con fotos atractivas y recomendación verbal.</p>
-              <div id="matrixPuzzleItems" class="text-xs font-bold text-stone-900 font-mono space-y-0.5"></div>
-            </div>
-            <!-- Vaca lechera / Popular de bajo margen -->
-            <div class="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-3.5 space-y-1.5">
-              <div class="flex items-center justify-between">
-                <span class="text-xs font-extrabold text-emerald-900">🐄 Caballo de Batalla</span>
-                <span class="text-[10px] text-emerald-700 font-semibold">Alta rotación / Bajo margen</span>
-              </div>
-              <p class="text-[11px] text-stone-600">Ajustar porciones o renegociar costos de insumos.</p>
-              <div id="matrixPlowItems" class="text-xs font-bold text-stone-900 font-mono space-y-0.5"></div>
-            </div>
-            <!-- Perro / Para revisar -->
-            <div class="bg-rose-50/70 border border-rose-200 rounded-2xl p-3.5 space-y-1.5">
-              <div class="flex items-center justify-between">
-                <span class="text-xs font-extrabold text-rose-900">⚠️ Para Revisar</span>
-                <span class="text-[10px] text-rose-700 font-semibold">Baja rotación / Bajo margen</span>
-              </div>
-              <p class="text-[11px] text-stone-600">Reformular receta o sustituir en el próximo menú.</p>
-              <div id="matrixDogItems" class="text-xs font-bold text-stone-900 font-mono space-y-0.5"></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="lg:col-span-5 bg-white rounded-3xl p-6 border border-stone-200 shadow-sm space-y-4">
-          <div class="flex justify-between items-center border-b pb-3">
-            <div>
-              <h3 class="font-extrabold text-sm text-stone-900">Top 5 Platillos Más Vendidos</h3>
-              <p class="text-xs text-stone-400">Rotación por volumen e ingreso.</p>
-            </div>
-          </div>
-          <div id="topProductsList" class="space-y-2.5">
-            <p class="text-xs text-stone-400 text-center py-6">Sin registros de ventas en este periodo.</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- EFICIENCIA OPERATIVA & RENDIMIENTO DE MESEROS -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div class="lg:col-span-5 bg-white rounded-3xl p-6 border border-stone-200 shadow-sm space-y-4">
-          <h3 class="font-extrabold text-sm text-stone-900 border-b pb-3">Eficiencia Operativa: Tiempos SLA</h3>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
-            <div class="bg-amber-50/60 border border-amber-200/80 rounded-2xl p-3 text-center">
-              <span class="text-sm">🟡 ➔ 🟠</span>
-              <p class="text-[10px] font-bold text-stone-600 mt-1">Espera Cocina</p>
-              <h4 class="text-base font-black font-mono text-amber-950 mt-0.5" id="slaWaitTime">0m 00s</h4>
-            </div>
-            <div class="bg-orange-50/60 border border-orange-200/80 rounded-2xl p-3 text-center">
-              <span class="text-sm">🟠 ➔ 🔵</span>
-              <p class="text-[10px] font-bold text-stone-600 mt-1">En Cocina</p>
-              <h4 class="text-base font-black font-mono text-orange-950 mt-0.5" id="slaKitchenTime">0m 00s</h4>
-            </div>
-            <div class="bg-blue-50/60 border border-blue-200/80 rounded-2xl p-3 text-center">
-              <span class="text-sm">🔵 ➔ 🟢</span>
-              <p class="text-[10px] font-bold text-stone-600 mt-1">Mesa a Cobro</p>
-              <h4 class="text-base font-black font-mono text-blue-950 mt-0.5" id="slaTableTime">0m 00s</h4>
-            </div>
-          </div>
-        </div>
-
-        <div class="lg:col-span-7 bg-white rounded-3xl p-6 border border-stone-200 shadow-sm space-y-4">
-          <div class="flex justify-between items-center border-b pb-3">
-            <div>
-              <h3 class="font-extrabold text-sm text-stone-900">Rendimiento por Mesero</h3>
-              <p class="text-xs text-stone-400">Comandas atendidas, ventas recaudadas y tiempo promedio de respuesta a llamadas.</p>
-            </div>
-            <span class="text-[10px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-lg">Staff KPI</span>
-          </div>
-          <div class="overflow-x-auto no-scrollbar">
-            <table class="w-full text-left text-xs">
-              <thead>
-                <tr class="border-b text-stone-400 font-bold uppercase tracking-wider text-[10px]">
-                  <th class="pb-2">Mesero</th>
-                  <th class="pb-2">Comandas</th>
-                  <th class="pb-2">Total Cobrado</th>
-                  <th class="pb-2">Ticket Promedio</th>
-                  <th class="pb-2">Tiempo Respuesta</th>
-                </tr>
-              </thead>
-              <tbody id="waitersPerformanceBody" class="divide-y divide-stone-100"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- HISTORIAL DETALLADO DE COMANDAS (CLICK PARA VER DETALLE / IMPRIMIR / PDF) -->
-      <div class="bg-white rounded-2xl p-6 shadow-sm border border-stone-200 space-y-4">
-        <div class="flex justify-between items-center border-b pb-3">
           <div>
-            <h3 class="font-extrabold text-base text-stone-900">Historial Detallado de Comandas</h3>
-            <p class="text-xs text-stone-400">Haz clic en cualquier comanda para ver detalle, imprimir ticket o descargar PDF.</p>
+            <h2 class="text-sm font-extrabold text-white leading-tight">Áurea Bistro</h2>
+            <p class="text-[10px] text-amber-400 font-mono font-semibold" id="connStatus">Sincronizando...</p>
           </div>
-          <span id="historyOrdersCount" class="text-xs font-mono font-bold bg-stone-100 text-stone-700 px-2.5 py-1 rounded-xl">0 comandas</span>
-        </div>
-        <div class="overflow-x-auto no-scrollbar">
-          <table class="w-full text-left text-xs">
-            <thead>
-              <tr class="border-b text-stone-400 font-bold uppercase tracking-wider text-[10px]">
-                <th class="pb-2.5">Mesa / Canal</th>
-                <th class="pb-2.5">Fecha y Hora</th>
-                <th class="pb-2.5">Mesero</th>
-                <th class="pb-2.5">Platillos</th>
-                <th class="pb-2.5">Descuento</th>
-                <th class="pb-2.5">Total</th>
-                <th class="pb-2.5">Estatus</th>
-              </tr>
-            </thead>
-            <tbody id="historyTableBody" class="divide-y divide-stone-100"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- 3. ALMACÉN, ESCANDALLOS & MERMAS -->
-    <section id="tab-inventory" class="tab-panel hidden space-y-6">
-      <!-- KPIS DE ALMACÉN -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm">
-          <span class="text-xs font-bold text-stone-400 uppercase tracking-wider">Valor Monetario en Stock</span>
-          <h3 class="text-2xl font-black font-mono text-stone-900 mt-1" id="kpiInventoryValue">$0.00 MXN</h3>
-          <p class="text-[11px] text-stone-500 mt-1">Valorización de materias primas</p>
-        </div>
-        <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm">
-          <span class="text-xs font-bold text-stone-400 uppercase tracking-wider">Insumos en Alerta Mínima</span>
-          <h3 class="text-2xl font-black font-mono text-rose-600 mt-1" id="kpiLowStockCount">0</h3>
-          <p class="text-[11px] text-rose-500 mt-1">Requieren reabastecimiento urgente</p>
-        </div>
-        <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm">
-          <span class="text-xs font-bold text-stone-400 uppercase tracking-wider">Pérdida por Mermas (Mes)</span>
-          <h3 class="text-2xl font-black font-mono text-amber-800 mt-1" id="kpiWasteLossTotal">$0.00 MXN</h3>
-          <p class="text-[11px] text-stone-500 mt-1">Platillos descartados en cocina</p>
         </div>
       </div>
 
-      <!-- INVENTARIO & ESCANDALLOS -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        <!-- Catálogo de Insumos -->
-        <div class="lg:col-span-7 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-4">
+      <!-- SELECTOR DE MODO DE ESTACIÓN / ROL -->
+      <div class="px-4 py-3 bg-stone-950/60 border-b border-stone-800/80">
+        <label class="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">Estación Operativa:</label>
+        <select id="roleModeSelector" onchange="switchStationRole(this.value)" class="w-full bg-stone-800 border border-stone-700 text-amber-300 font-bold text-xs rounded-xl p-2 outline-none cursor-pointer focus:border-amber-500">
+          <option value="all">👑 Administrador (Todo)</option>
+          <option value="kitchen">🍳 Modo Cocina / KDS</option>
+          <option value="waiter">🛎️ Modo Meseros & Sala</option>
+          <option value="management">📊 Modo Gerencia & Costes</option>
+        </select>
+      </div>
+
+      <!-- NAVEGACIÓN AGRUPADA POR MODOS -->
+      <nav class="flex-grow p-3 space-y-6 overflow-y-auto no-scrollbar text-xs">
+        
+        <!-- GRUPO 1: OPERACIÓN EN VIVO (COCINA Y SALA) -->
+        <div id="navGroup-live" class="space-y-1">
+          <div class="px-3 py-1 text-[10px] font-extrabold text-stone-500 uppercase tracking-wider flex justify-between items-center">
+            <span>⚡ Operación en Vivo</span>
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          </div>
+          <button onclick="switchTab('orders')" id="tabBtn-orders" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold bg-amber-600 text-white shadow-sm transition">
+            <span class="flex items-center gap-2.5">📋 Tablero Kanban</span>
+            <span id="badgeLiveOrders" class="bg-black/30 text-white text-[10px] px-2 py-0.5 rounded-full font-mono font-bold">0</span>
+          </button>
+          <button onclick="switchTab('calls')" id="tabBtn-calls" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
+            <span class="flex items-center gap-2.5">🔔 Llamadas Mesero</span>
+            <span id="pendingCallsBadge" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">0</span>
+          </button>
+          <button onclick="switchTab('reservations')" id="tabBtn-reservations" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
+            <span class="flex items-center gap-2.5">📅 Agenda Reservas</span>
+            <span id="badgeReservationsCount" class="bg-stone-800 text-stone-300 text-[10px] px-2 py-0.5 rounded-full font-mono">0</span>
+          </button>
+        </div>
+
+        <!-- GRUPO 2: GESTIÓN, ALMACÉN Y CARTA (BACKOFFICE) -->
+        <div id="navGroup-management" class="space-y-1">
+          <div class="px-3 py-1 text-[10px] font-extrabold text-stone-500 uppercase tracking-wider">
+            📦 Gestión & Almacén
+          </div>
+          <button onclick="switchTab('inventory')" id="tabBtn-inventory" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
+            <span class="flex items-center gap-2.5">🥫 Stock & Escandallos</span>
+          </button>
+          <button onclick="switchTab('products')" id="tabBtn-products" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
+            <span class="flex items-center gap-2.5">🍽️ Carta y Platillos</span>
+          </button>
+          <button onclick="switchTab('taxonomies')" id="tabBtn-taxonomies" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
+            <span class="flex items-center gap-2.5">📑 Categorías & Tipos</span>
+          </button>
+        </div>
+
+        <!-- GRUPO 3: GERENCIA, ANALÍTICA Y MARKETING -->
+        <div id="navGroup-analytics" class="space-y-1">
+          <div class="px-3 py-1 text-[10px] font-extrabold text-stone-500 uppercase tracking-wider">
+            📊 Gerencia & Dirección
+          </div>
+          <button onclick="switchTab('analytics')" id="tabBtn-analytics" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
+            <span class="flex items-center gap-2.5">📈 Métricas, Ventas & Boston</span>
+          </button>
+          <button onclick="switchTab('marketing')" id="tabBtn-marketing" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
+            <span class="flex items-center gap-2.5">⭐ Google Maps & Lealtad</span>
+          </button>
+        </div>
+
+      </nav>
+
+      <!-- PIE DEL SIDEBAR: MODO FOCUS & MENÚ QR -->
+      <div class="p-4 border-t border-stone-800 bg-stone-950/80 space-y-2">
+        <button onclick="toggleFocusMode()" class="w-full bg-stone-800 hover:bg-stone-700 text-amber-300 font-bold text-xs py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-2 border border-stone-700 shadow-sm">
+          <span>🖥️ Modo Pantalla Completa</span>
+        </button>
+        <a href="index.html?mesa=01" target="_blank" class="w-full bg-stone-900 hover:bg-stone-800 text-stone-300 hover:text-white text-[11px] font-semibold py-2 px-3 rounded-xl transition flex items-center justify-center gap-1.5 border border-stone-800">
+          <span>Abrir Menú QR Móvil ↗</span>
+        </a>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- ========================================================================= -->
+  <!-- ÁREA DE CONTENIDO PRINCIPAL (DESPLAZADA POR EL SIDEBAR) -->
+  <!-- ========================================================================= -->
+  <div id="mainContentArea" class="flex-grow ml-64 flex flex-col min-h-screen transition-all duration-300">
+    
+    <!-- BARRA SUPERIOR DE ESTADO (TOPBAR) -->
+    <header id="appHeader" class="bg-white border-b border-stone-200 px-6 py-3.5 flex flex-wrap justify-between items-center gap-4 sticky top-0 z-30 shadow-xs">
+      <div class="flex items-center gap-3">
+        <h2 id="topbarTitle" class="text-base font-extrabold text-stone-900">Tablero Kanban KDS</h2>
+        <span id="topbarRoleBadge" class="bg-stone-100 text-stone-700 border border-stone-200 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase font-mono">
+          👑 Todo Administrador
+        </span>
+      </div>
+
+      <div class="flex items-center gap-3 text-xs">
+        <!-- Timbre de sonido -->
+        <div class="flex items-center gap-1.5 bg-stone-50 border border-stone-200 px-2.5 py-1.5 rounded-xl">
+          <span class="text-amber-600">🎵</span>
+          <select id="soundPresetSelect" onchange="changeSoundPreset(this.value)" class="bg-transparent font-semibold text-stone-700 focus:outline-none cursor-pointer text-xs">
+            <option value="bell">1. 🔔 Campana Bistro</option>
+            <option value="chime">2. ✨ Chime Mágico</option>
+            <option value="dingdong">3. 🛎️ Timbre de Hotel</option>
+            <option value="arcade">4. 🚀 Pop Arcade</option>
+          </select>
+          <button onclick="previewCurrentSound()" class="text-stone-400 hover:text-stone-800 font-bold px-1" title="Escuchar">▶</button>
+        </div>
+
+        <span id="kdsActiveCount" class="bg-amber-100 text-amber-900 border border-amber-200 px-3 py-1.5 rounded-xl font-bold font-mono">
+          0 activas
+        </span>
+      </div>
+    </header>
+
+    <!-- CUERPO DE PESTAÑAS -->
+    <main class="p-6 max-w-[1600px] w-full mx-auto space-y-6 flex-grow">
+
+      <!-- 1. TABLERO KANBAN -->
+      <section id="tab-orders" class="tab-panel space-y-5">
+        <div id="kdsFilterBar" class="bg-white rounded-2xl p-4 shadow-sm border border-stone-200 flex flex-wrap justify-between items-center gap-4">
+          <div class="flex flex-wrap items-center gap-3">
+            <!-- Canales -->
+            <div class="flex items-center gap-1.5 bg-stone-100 p-1 rounded-2xl border border-stone-200 text-xs font-bold">
+              <button onclick="filterByChannel('all')" id="btnChannel-all" class="px-3 py-1.5 rounded-xl bg-stone-900 text-white shadow-sm transition">Todos</button>
+              <button onclick="filterByChannel('dine_in')" id="btnChannel-dine_in" class="px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 transition">🍽️ En Mesa</button>
+              <button onclick="filterByChannel('takeout')" id="btnChannel-takeout" class="px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 transition">🛍️ Para Llevar</button>
+              <button onclick="filterByChannel('delivery')" id="btnChannel-delivery" class="px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 transition">🛵 Delivery (Rappi/Didi/Uber)</button>
+            </div>
+
+            <!-- Modos Kanban -->
+            <div class="inline-flex p-1 bg-stone-100 rounded-2xl border border-stone-200 text-xs font-bold">
+              <button onclick="setKanbanDisplayMode('all')" id="btnViewMode-all" class="px-3.5 py-1.5 rounded-xl transition bg-stone-900 text-white shadow-sm">🗂️ 4 Columnas</button>
+              <button onclick="setKanbanDisplayMode('single')" id="btnViewMode-single" class="px-3.5 py-1.5 rounded-xl transition text-stone-600 hover:text-stone-900">🎯 Columna Única</button>
+            </div>
+
+            <div id="singleStatusSelectorWrapper" class="hidden flex items-center gap-1.5 pl-2 border-l border-stone-200">
+              <button onclick="changeSingleStatusView('pending')" id="chipStatus-pending" class="px-3 py-1.5 rounded-xl text-xs font-bold transition border border-stone-200 bg-white text-stone-700">🟡 1. Recibida</button>
+              <button onclick="changeSingleStatusView('preparing')" id="chipStatus-preparing" class="px-3 py-1.5 rounded-xl text-xs font-bold transition border border-stone-200 bg-white text-stone-700">🟠 2. En Prep.</button>
+              <button onclick="changeSingleStatusView('delivered')" id="chipStatus-delivered" class="px-3 py-1.5 rounded-xl text-xs font-bold transition border border-stone-200 bg-white text-stone-700">🔵 3. En Mesa</button>
+              <button onclick="changeSingleStatusView('paid')" id="chipStatus-paid" class="px-3 py-1.5 rounded-xl text-xs font-bold transition border border-stone-200 bg-white text-stone-700">🟢 4. Cobrada</button>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button onclick="testSimulateOrder('dine_in')" class="bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold px-3 py-2 rounded-xl border border-stone-300 transition shadow-sm">
+              + Simular Mesa
+            </button>
+            <button onclick="testSimulateOrder('takeout')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-bold px-3 py-2 rounded-xl border border-amber-300 transition shadow-sm">
+              + Para Llevar
+            </button>
+          </div>
+        </div>
+
+        <div id="kanbanBoardContainer" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start">
+          <div id="column-pending" class="kanban-col bg-stone-200/70 rounded-3xl p-3.5 space-y-3 border border-stone-300/80">
+            <div class="flex justify-between items-center px-2 py-1">
+              <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+                <h3 class="font-extrabold text-xs uppercase tracking-wider text-stone-800">1. Recibida en Cocina</h3>
+              </div>
+              <span id="colCount-pending" class="text-xs font-mono font-bold bg-white text-stone-700 px-2.5 py-0.5 rounded-full shadow-sm">0</span>
+            </div>
+            <div id="cards-pending" class="space-y-3 min-h-[300px]"></div>
+          </div>
+
+          <div id="column-preparing" class="kanban-col bg-orange-100/60 rounded-3xl p-3.5 space-y-3 border border-orange-200/80">
+            <div class="flex justify-between items-center px-2 py-1">
+              <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-orange-500 animate-pulse"></span>
+                <h3 class="font-extrabold text-xs uppercase tracking-wider text-orange-950">2. En Preparación</h3>
+              </div>
+              <span id="colCount-preparing" class="text-xs font-mono font-bold bg-white text-orange-900 px-2.5 py-0.5 rounded-full shadow-sm">0</span>
+            </div>
+            <div id="cards-preparing" class="space-y-3 min-h-[300px]"></div>
+          </div>
+
+          <div id="column-delivered" class="kanban-col bg-blue-100/50 rounded-3xl p-3.5 space-y-3 border border-blue-200/80">
+            <div class="flex justify-between items-center px-2 py-1">
+              <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+                <h3 class="font-extrabold text-xs uppercase tracking-wider text-blue-950">3. Servida en Mesa</h3>
+              </div>
+              <span id="colCount-delivered" class="text-xs font-mono font-bold bg-white text-blue-900 px-2.5 py-0.5 rounded-full shadow-sm">0</span>
+            </div>
+            <div id="cards-delivered" class="space-y-3 min-h-[300px]"></div>
+          </div>
+
+          <div id="column-paid" class="kanban-col bg-emerald-100/40 rounded-3xl p-3.5 space-y-3 border border-emerald-200/80">
+            <div class="flex justify-between items-center px-2 py-1">
+              <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                <h3 class="font-extrabold text-xs uppercase tracking-wider text-emerald-950">4. Cobrada / Finalizada</h3>
+              </div>
+              <span id="colCount-paid" class="text-xs font-mono font-bold bg-white text-emerald-900 px-2.5 py-0.5 rounded-full shadow-sm">0</span>
+            </div>
+            <div id="cards-paid" class="space-y-3 min-h-[300px]"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. MÉTRICAS, HISTÓRICO & KPIS -->
+      <section id="tab-analytics" class="tab-panel hidden space-y-6">
+        <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-stone-200 flex flex-wrap justify-between items-center gap-4">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-xs font-bold text-stone-500 uppercase tracking-wider mr-1">Periodo:</span>
+            <button onclick="setAnalyticsDateFilter('today')" id="btnDate-today" class="px-3 py-1.5 rounded-xl text-xs font-bold transition bg-stone-900 text-white shadow-sm">Hoy</button>
+            <button onclick="setAnalyticsDateFilter('yesterday')" id="btnDate-yesterday" class="px-3 py-1.5 rounded-xl text-xs font-bold transition bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-200">Ayer</button>
+            <button onclick="setAnalyticsDateFilter('week')" id="btnDate-week" class="px-3 py-1.5 rounded-xl text-xs font-bold transition bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-200">Últimos 7 días</button>
+            <button onclick="setAnalyticsDateFilter('all')" id="btnDate-all" class="px-3 py-1.5 rounded-xl text-xs font-bold transition bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-200">Todo el Histórico</button>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2 text-xs">
+            <span class="text-stone-400 font-semibold">Rango:</span>
+            <input type="date" id="analyticsDateFrom" onchange="applyCustomDateRange()" class="border border-stone-200 rounded-xl px-2.5 py-1.5 bg-stone-50 text-stone-800 font-medium outline-none focus:border-amber-600">
+            <span class="text-stone-400">a</span>
+            <input type="date" id="analyticsDateTo" onchange="applyCustomDateRange()" class="border border-stone-200 rounded-xl px-2.5 py-1.5 bg-stone-50 text-stone-800 font-medium outline-none focus:border-amber-600">
+            <button onclick="applyCustomDateRange()" class="bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-xl font-bold shadow-sm transition">Filtrar</button>
+            <button onclick="exportHistoryToCSV()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3.5 py-1.5 rounded-xl transition shadow-sm flex items-center gap-1.5 ml-2">
+              <span>📥 Exportar CSV</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm">
+            <span class="text-xs font-bold text-stone-400 uppercase tracking-wider" id="kpiRevLabel">Venta Neta del Periodo</span>
+            <h3 class="text-2xl font-black font-mono text-stone-900 mt-1" id="kpiRevenue">$0.00 MXN</h3>
+            <p class="text-[11px] text-emerald-600 font-semibold mt-1">✓ Cobrado y liquidado</p>
+          </div>
+          <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm">
+            <div class="flex justify-between items-start">
+              <span class="text-xs font-bold text-stone-400 uppercase tracking-wider">Food Cost Teórico</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800" id="badgeFoodCostStatus">Óptimo</span>
+            </div>
+            <h3 class="text-2xl font-black font-mono text-stone-900 mt-1" id="kpiFoodCostPct">0.0%</h3>
+            <p class="text-[11px] text-stone-500 mt-1" id="kpiFoodCostAmount">Costo insumos: $0.00</p>
+          </div>
+          <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm">
+            <span class="text-xs font-bold text-stone-400 uppercase tracking-wider">Ticket Promedio</span>
+            <h3 class="text-2xl font-black font-mono text-amber-700 mt-1" id="kpiAvgTicket">$0.00</h3>
+            <p class="text-[11px] text-stone-500 mt-1">Consumo medio por comanda</p>
+          </div>
+          <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm">
+            <span class="text-xs font-bold text-stone-400 uppercase tracking-wider">Ventas por Canal</span>
+            <div class="text-[11px] font-mono mt-1.5 space-y-0.5">
+              <div class="flex justify-between"><span>Mesa:</span><b id="kpiChanDine">$0.00</b></div>
+              <div class="flex justify-between"><span>Takeout:</span><b id="kpiChanTakeout">$0.00</b></div>
+              <div class="flex justify-between"><span>Delivery:</span><b id="kpiChanDelivery">$0.00</b></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Matriz Boston & Top 5 -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-7 bg-white rounded-3xl p-6 border border-stone-200 shadow-sm space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+              <div>
+                <h3 class="font-extrabold text-sm text-stone-900">Ingeniería de Menús (Matriz Boston / Miller)</h3>
+                <p class="text-xs text-stone-400">Clasificación estratégica para optimizar tu carta.</p>
+              </div>
+              <span class="text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-1 rounded-xl">Rentabilidad</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 pt-1">
+              <div class="bg-amber-50/70 border border-amber-200 rounded-2xl p-3.5 space-y-1.5">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-extrabold text-amber-900">⭐ Estrella</span>
+                  <span class="text-[10px] text-amber-700 font-semibold">Alto Margen / Alta Venta</span>
+                </div>
+                <div id="matrixStarItems" class="text-xs font-bold text-stone-900 font-mono space-y-0.5"></div>
+              </div>
+              <div class="bg-blue-50/70 border border-blue-200 rounded-2xl p-3.5 space-y-1.5">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-extrabold text-blue-900">🧩 Rompecabezas</span>
+                  <span class="text-[10px] text-blue-700 font-semibold">Alto Margen / Baja Venta</span>
+                </div>
+                <div id="matrixPuzzleItems" class="text-xs font-bold text-stone-900 font-mono space-y-0.5"></div>
+              </div>
+              <div class="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-3.5 space-y-1.5">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-extrabold text-emerald-900">🐄 Caballo de Batalla</span>
+                  <span class="text-[10px] text-emerald-700 font-semibold">Bajo Margen / Alta Venta</span>
+                </div>
+                <div id="matrixPlowItems" class="text-xs font-bold text-stone-900 font-mono space-y-0.5"></div>
+              </div>
+              <div class="bg-rose-50/70 border border-rose-200 rounded-2xl p-3.5 space-y-1.5">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-extrabold text-rose-900">⚠️ Para Revisar</span>
+                  <span class="text-[10px] text-rose-700 font-semibold">Bajo Margen / Baja Venta</span>
+                </div>
+                <div id="matrixDogItems" class="text-xs font-bold text-stone-900 font-mono space-y-0.5"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="lg:col-span-5 bg-white rounded-3xl p-6 border border-stone-200 shadow-sm space-y-4">
+            <h3 class="font-extrabold text-sm text-stone-900 border-b pb-3">Top 5 Platillos Populares</h3>
+            <div id="topProductsList" class="space-y-2.5">
+              <p class="text-xs text-stone-400 text-center py-6">Sin registros de ventas.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rendimiento Mesero & SLA -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-5 bg-white rounded-3xl p-6 border border-stone-200 shadow-sm space-y-4">
+            <h3 class="font-extrabold text-sm text-stone-900 border-b pb-3">Eficiencia Operativa: Tiempos SLA</h3>
+            <div class="grid grid-cols-3 gap-2 pt-1 text-center">
+              <div class="bg-amber-50 border border-amber-200 rounded-2xl p-3">
+                <span class="text-xs">🟡➔🟠</span>
+                <p class="text-[10px] text-stone-600 font-bold mt-1">Espera Cocina</p>
+                <h4 class="text-sm font-black font-mono text-amber-950" id="slaWaitTime">0m 00s</h4>
+              </div>
+              <div class="bg-orange-50 border border-orange-200 rounded-2xl p-3">
+                <span class="text-xs">🟠➔🔵</span>
+                <p class="text-[10px] text-stone-600 font-bold mt-1">En Cocina</p>
+                <h4 class="text-sm font-black font-mono text-orange-950" id="slaKitchenTime">0m 00s</h4>
+              </div>
+              <div class="bg-blue-50 border border-blue-200 rounded-2xl p-3">
+                <span class="text-xs">🔵➔🟢</span>
+                <p class="text-[10px] text-stone-600 font-bold mt-1">Mesa a Pago</p>
+                <h4 class="text-sm font-black font-mono text-blue-950" id="slaTableTime">0m 00s</h4>
+              </div>
+            </div>
+          </div>
+
+          <div class="lg:col-span-7 bg-white rounded-3xl p-6 border border-stone-200 shadow-sm space-y-4">
+            <h3 class="font-extrabold text-sm text-stone-900 border-b pb-3">Rendimiento por Mesero</h3>
+            <div class="overflow-x-auto no-scrollbar">
+              <table class="w-full text-left text-xs">
+                <thead>
+                  <tr class="border-b text-stone-400 font-bold uppercase text-[10px]">
+                    <th class="pb-2">Mesero</th>
+                    <th class="pb-2">Comandas</th>
+                    <th class="pb-2">Total Cobrado</th>
+                    <th class="pb-2">Ticket Promedio</th>
+                    <th class="pb-2">Tiempo Respuesta</th>
+                  </tr>
+                </thead>
+                <tbody id="waitersPerformanceBody" class="divide-y divide-stone-100"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Historial Comandas -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-stone-200 space-y-4">
           <div class="flex justify-between items-center border-b pb-3">
             <div>
-              <h3 class="font-bold text-sm text-stone-900">Catálogo de Insumos y Materias Primas</h3>
-              <p class="text-xs text-stone-500">Unidades: Gramos (g), Mililitros (ml), Onzas (oz), Piezas (pza).</p>
+              <h3 class="font-extrabold text-base text-stone-900">Historial Detallado de Comandas</h3>
+              <p class="text-xs text-stone-400">Haz clic en cualquier comanda para consultar recibo, imprimir ticket térmico o PDF.</p>
             </div>
-            <button onclick="openNewSupplyModal()" class="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl transition">
-              + Nuevo Insumo
-            </button>
+            <span id="historyOrdersCount" class="text-xs font-mono font-bold bg-stone-100 text-stone-700 px-2.5 py-1 rounded-xl">0 comandas</span>
           </div>
           <div class="overflow-x-auto no-scrollbar">
             <table class="w-full text-left text-xs">
               <thead>
                 <tr class="border-b text-stone-400 font-bold uppercase text-[10px]">
-                  <th class="pb-2">Insumo</th>
-                  <th class="pb-2">Stock Actual</th>
-                  <th class="pb-2">Alerta Mín.</th>
-                  <th class="pb-2">Costo Unitario</th>
-                  <th class="pb-2">Valor Total</th>
-                  <th class="pb-2">Ajuste</th>
+                  <th class="pb-2.5">Mesa / Canal</th>
+                  <th class="pb-2.5">Fecha y Hora</th>
+                  <th class="pb-2.5">Mesero</th>
+                  <th class="pb-2.5">Platillos</th>
+                  <th class="pb-2.5">Descuento</th>
+                  <th class="pb-2.5">Total</th>
+                  <th class="pb-2.5">Estatus</th>
                 </tr>
               </thead>
-              <tbody id="suppliesTableBody" class="divide-y divide-stone-100"></tbody>
+              <tbody id="historyTableBody" class="divide-y divide-stone-100"></tbody>
             </table>
           </div>
         </div>
+      </section>
 
-        <!-- Escandallos (Recetas por Platillo) -->
-        <div class="lg:col-span-5 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-4">
-          <div class="border-b pb-3">
-            <h3 class="font-bold text-sm text-stone-900">Escandallo por Platillo (Receta)</h3>
-            <p class="text-xs text-stone-500">Selecciona un platillo para ver o editar sus ingredientes por porción.</p>
+      <!-- 3. ALMACÉN, ESCANDALLOS & MERMAS -->
+      <section id="tab-inventory" class="tab-panel hidden space-y-6">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm">
+            <span class="text-xs font-bold text-stone-400 uppercase tracking-wider">Valor en Stock</span>
+            <h3 class="text-2xl font-black font-mono text-stone-900 mt-1" id="kpiInventoryValue">$0.00 MXN</h3>
+            <p class="text-[11px] text-stone-500 mt-1">Materias primas disponibles</p>
           </div>
-          <div>
+          <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm">
+            <span class="text-xs font-bold text-stone-400 uppercase tracking-wider">Insumos Críticos</span>
+            <h3 class="text-2xl font-black font-mono text-rose-600 mt-1" id="kpiLowStockCount">0</h3>
+            <p class="text-[11px] text-rose-500 mt-1">Bajo la alerta mínima</p>
+          </div>
+          <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm">
+            <span class="text-xs font-bold text-stone-400 uppercase tracking-wider">Pérdida por Merma</span>
+            <h3 class="text-2xl font-black font-mono text-amber-800 mt-1" id="kpiWasteLossTotal">$0.00 MXN</h3>
+            <p class="text-[11px] text-stone-500 mt-1">Comandas descartadas</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <div class="lg:col-span-7 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+              <div>
+                <h3 class="font-bold text-sm text-stone-900">Catálogo de Insumos</h3>
+                <p class="text-xs text-stone-500">Unidades: Gramos (g), Mililitros (ml), Onzas (oz), Piezas (pza).</p>
+              </div>
+              <button onclick="openNewSupplyModal()" class="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl transition">
+                + Nuevo Insumo
+              </button>
+            </div>
+            <div class="overflow-x-auto no-scrollbar">
+              <table class="w-full text-left text-xs">
+                <thead>
+                  <tr class="border-b text-stone-400 font-bold uppercase text-[10px]">
+                    <th class="pb-2">Insumo</th>
+                    <th class="pb-2">Stock</th>
+                    <th class="pb-2">Mínimo</th>
+                    <th class="pb-2">Costo Unit.</th>
+                    <th class="pb-2">Total</th>
+                    <th class="pb-2">Acción</th>
+                  </tr>
+                </thead>
+                <tbody id="suppliesTableBody" class="divide-y divide-stone-100"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="lg:col-span-5 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-4">
+            <div class="border-b pb-3">
+              <h3 class="font-bold text-sm text-stone-900">Escandallo por Platillo (Receta)</h3>
+              <p class="text-xs text-stone-500">Insumos descontados al cocinar cada porción.</p>
+            </div>
             <select id="recipeProductSelect" onchange="loadProductRecipe(this.value)" class="w-full border rounded-xl p-2.5 text-xs bg-stone-50 font-semibold"></select>
-          </div>
-          <div id="recipeIngredientsList" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
-          <div class="border-t pt-3 space-y-2">
-            <label class="block text-[11px] font-bold text-stone-700">+ Añadir insumo a la porción:</label>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <select id="newRecipeSupplySelect" class="border rounded-xl p-2 text-xs bg-white col-span-2"></select>
-              <input type="number" step="0.01" id="newRecipeQty" placeholder="Cant." class="border rounded-xl p-2 text-xs font-mono">
+            <div id="recipeIngredientsList" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
+            <div class="border-t pt-3 space-y-2">
+              <div class="grid grid-cols-3 gap-2">
+                <select id="newRecipeSupplySelect" class="border rounded-xl p-2 text-xs bg-white col-span-2"></select>
+                <input type="number" step="0.01" id="newRecipeQty" placeholder="Cant." class="border rounded-xl p-2 text-xs font-mono">
+              </div>
+              <button onclick="addIngredientToRecipe()" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs py-2 rounded-xl transition">
+                Vincular Insumo a Platillo
+              </button>
             </div>
-            <button onclick="addIngredientToRecipe()" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs py-2 rounded-xl transition">
-              Vincular Insumo a Platillo
-            </button>
           </div>
         </div>
-      </div>
 
-      <!-- MERMAS Y BUFFER DE PREPARADOS POR VENDER -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Buffer de Preparados por Vender -->
-        <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-3">
-          <div class="flex justify-between items-center border-b pb-3">
-            <div>
-              <h3 class="font-bold text-sm text-stone-900">🥪 Preparados por Vender (Buffer)</h3>
-              <p class="text-xs text-stone-500">Platillos listos para reasignar al próximo pedido sin volver a gastar insumos.</p>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-3">
+            <div class="flex justify-between items-center border-b pb-3">
+              <h3 class="font-bold text-sm text-stone-900">🥪 Preparados por Vender (Buffer Reventa)</h3>
+              <span id="bufferCountBadge" class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-lg">0</span>
             </div>
-            <span id="bufferCountBadge" class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-lg">0 listos</span>
+            <div id="preparedBufferList" class="space-y-2"></div>
           </div>
-          <div id="preparedBufferList" class="space-y-2"></div>
-        </div>
 
-        <!-- Registro de Mermas de Cocina -->
-        <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-3">
-          <div class="flex justify-between items-center border-b pb-3">
-            <div>
-              <h3 class="font-bold text-sm text-stone-900">🗑️ Registro de Mermas</h3>
-              <p class="text-xs text-stone-500">Historial de platillos descartados y costo de pérdida.</p>
+          <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-3">
+            <div class="flex justify-between items-center border-b pb-3">
+              <h3 class="font-bold text-sm text-stone-900">🗑️ Registro de Mermas de Cocina</h3>
+              <span id="wasteCountBadge" class="text-xs bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-lg">0</span>
             </div>
-            <span id="wasteCountBadge" class="text-xs bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-lg">0 registros</span>
+            <div id="kitchenWasteList" class="space-y-2 max-h-64 overflow-y-auto pr-1"></div>
           </div>
-          <div id="kitchenWasteList" class="space-y-2 max-h-64 overflow-y-auto pr-1"></div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- 4. RESERVAS -->
-    <section id="tab-reservations" class="tab-panel hidden space-y-6">
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        <!-- Formulario Crear Reserva -->
-        <div class="lg:col-span-4 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-3">
-          <h3 class="font-bold text-sm text-stone-900 border-b pb-2">+ Nueva Reserva</h3>
-          <div class="space-y-2 text-xs">
-            <div>
-              <label class="block font-semibold mb-1 text-stone-700">Nombre del Cliente *</label>
-              <input type="text" id="resClientName" placeholder="Ej: Marcela Guerra" class="w-full border rounded-xl p-2 outline-none">
-            </div>
-            <div>
-              <label class="block font-semibold mb-1 text-stone-700">Teléfono *</label>
-              <input type="tel" id="resClientPhone" placeholder="3312345678" class="w-full border rounded-xl p-2 outline-none">
-            </div>
-            <div class="grid grid-cols-2 gap-2">
+      <!-- 4. RESERVAS -->
+      <section id="tab-reservations" class="tab-panel hidden space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <div class="lg:col-span-4 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-3">
+            <h3 class="font-bold text-sm text-stone-900 border-b pb-2">+ Nueva Reserva</h3>
+            <div class="space-y-2 text-xs">
               <div>
-                <label class="block font-semibold mb-1 text-stone-700">Comensales</label>
-                <input type="number" id="resPartySize" value="2" min="1" class="w-full border rounded-xl p-2 font-mono">
+                <label class="block font-semibold mb-1 text-stone-700">Nombre del Cliente *</label>
+                <input type="text" id="resClientName" placeholder="Ej: Marcela Guerra" class="w-full border rounded-xl p-2 outline-none">
               </div>
               <div>
-                <label class="block font-semibold mb-1 text-stone-700">Mesa</label>
-                <input type="text" id="resTableNum" placeholder="01" class="w-full border rounded-xl p-2 font-mono">
+                <label class="block font-semibold mb-1 text-stone-700">Teléfono *</label>
+                <input type="tel" id="resClientPhone" placeholder="3312345678" class="w-full border rounded-xl p-2 outline-none">
               </div>
-            </div>
-            <div class="grid grid-cols-2 gap-2">
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block font-semibold mb-1 text-stone-700">Comensales</label>
+                  <input type="number" id="resPartySize" value="2" min="1" class="w-full border rounded-xl p-2 font-mono">
+                </div>
+                <div>
+                  <label class="block font-semibold mb-1 text-stone-700">Mesa</label>
+                  <input type="text" id="resTableNum" placeholder="01" class="w-full border rounded-xl p-2 font-mono">
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="block font-semibold mb-1 text-stone-700">Fecha</label>
+                  <input type="date" id="resDate" class="w-full border rounded-xl p-2">
+                </div>
+                <div>
+                  <label class="block font-semibold mb-1 text-stone-700">Hora</label>
+                  <input type="time" id="resTime" value="14:00" class="w-full border rounded-xl p-2">
+                </div>
+              </div>
               <div>
-                <label class="block font-semibold mb-1 text-stone-700">Fecha</label>
-                <input type="date" id="resDate" class="w-full border rounded-xl p-2">
+                <label class="block font-semibold mb-1 text-stone-700">Notas</label>
+                <textarea id="resNotes" rows="2" placeholder="Terraza, cumpleaños..." class="w-full border rounded-xl p-2"></textarea>
               </div>
-              <div>
-                <label class="block font-semibold mb-1 text-stone-700">Hora</label>
-                <input type="time" id="resTime" value="14:00" class="w-full border rounded-xl p-2">
-              </div>
-            </div>
-            <div>
-              <label class="block font-semibold mb-1 text-stone-700">Notas especiales</label>
-              <textarea id="resNotes" rows="2" placeholder="Aniversario, terraza, silla de bebé..." class="w-full border rounded-xl p-2"></textarea>
-            </div>
-            <button onclick="createReservation()" class="w-full bg-stone-900 hover:bg-stone-800 text-white font-bold py-2.5 rounded-xl transition shadow-sm mt-2">
-              Registrar Reserva
-            </button>
-          </div>
-        </div>
-
-        <!-- Listado de Reservas -->
-        <div class="lg:col-span-8 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-4">
-          <div class="flex justify-between items-center border-b pb-3">
-            <div>
-              <h3 class="font-bold text-sm text-stone-900">Agenda de Reservas</h3>
-              <p class="text-xs text-stone-500">Control de asistencia y asignación de mesas.</p>
-            </div>
-            <div class="flex items-center gap-2">
-              <input type="date" id="resFilterDate" onchange="renderReservationsList()" class="border rounded-xl px-2.5 py-1 text-xs">
-            </div>
-          </div>
-          <div id="reservationsListContainer" class="space-y-2.5"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 5. MESERO EN VIVO -->
-    <section id="tab-calls" class="tab-panel hidden space-y-4">
-      <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200 flex justify-between items-center">
-        <div>
-          <h2 class="font-bold text-base text-stone-900">Llamadas Activas de Mesa</h2>
-          <p class="text-xs text-stone-500">Temporizador en tiempo real desde la llamada del comensal hasta la resolución.</p>
-        </div>
-        <button onclick="testSimulateCall()" class="text-xs bg-stone-100 hover:bg-stone-200 text-stone-700 px-3 py-1.5 rounded-xl border border-stone-300 font-semibold transition">
-          + Simular llamada
-        </button>
-      </div>
-      <div id="waiterCallsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-    </section>
-
-    <!-- 6. CATEGORÍAS & TIPOS -->
-    <section id="tab-taxonomies" class="tab-panel hidden space-y-5">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="bg-white rounded-2xl p-4 shadow-sm border border-stone-200 space-y-2">
-          <h3 class="font-bold text-xs uppercase tracking-wider text-stone-700">+ Nueva Categoría Principal</h3>
-          <div class="flex gap-2">
-            <input type="text" id="newCatIcon" value="🍽️" class="w-12 text-center border rounded-xl p-2 text-sm">
-            <input type="text" id="newCategoryInput" placeholder="Nombre (ej: Cafetería de Especialidad)" class="border rounded-xl px-3 py-2 text-xs flex-grow outline-none focus:border-amber-600">
-            <button onclick="createCategory()" class="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs px-4 py-2 rounded-xl transition">Crear</button>
-          </div>
-        </div>
-
-        <div class="bg-white rounded-2xl p-4 shadow-sm border border-stone-200 space-y-2">
-          <h3 class="font-bold text-xs uppercase tracking-wider text-amber-800">+ Nuevo Tipo de Platillo</h3>
-          <div class="flex gap-2">
-            <input type="text" id="newTypeIcon" value="☕" class="w-12 text-center border rounded-xl p-2 text-sm">
-            <input type="text" id="newTypeInput" placeholder="Nombre (ej: Bebida Caliente, Postre)" class="border rounded-xl px-3 py-2 text-xs flex-grow outline-none focus:border-amber-600">
-            <button onclick="createType()" class="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-4 py-2 rounded-xl transition">Crear Tipo</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
-        <div class="bg-white rounded-2xl shadow-sm border border-stone-200 p-4 space-y-3">
-          <h4 class="font-bold text-xs uppercase text-stone-600">Categorías de la Carta</h4>
-          <div id="categoriesListAdmin" class="space-y-2"></div>
-        </div>
-        <div class="bg-white rounded-2xl shadow-sm border border-stone-200 p-4 space-y-3">
-          <h4 class="font-bold text-xs uppercase text-amber-900">Tipos de Platillo</h4>
-          <div id="typesListAdmin" class="space-y-2"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 7. CARTA Y PLATILLOS -->
-    <section id="tab-products" class="tab-panel hidden space-y-5">
-      <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-4">
-        <h3 class="font-bold text-sm text-stone-900 border-b pb-3">Crear Nuevo Producto</h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-          <div>
-            <label class="block font-semibold mb-1 text-stone-700">Título</label>
-            <input type="text" id="newProdTitle" placeholder="Ej: Toast de Salmón" class="w-full border rounded-xl p-2.5 outline-none focus:border-amber-600">
-          </div>
-          <div>
-            <label class="block font-semibold mb-1 text-stone-700">Precio ($ MXN)</label>
-            <input type="number" step="0.5" placeholder="165.00" id="newProdPrice" class="w-full border rounded-xl p-2.5 outline-none focus:border-amber-600 font-mono">
-          </div>
-          <div>
-            <label class="block font-semibold mb-1 text-stone-700">Categoría</label>
-            <select id="newProdCategory" class="w-full border rounded-xl p-2.5 outline-none focus:border-amber-600 bg-white"></select>
-          </div>
-          <div>
-            <label class="block font-semibold mb-1 text-stone-700">Tipo de Platillo</label>
-            <select id="newProdType" class="w-full border rounded-xl p-2.5 outline-none focus:border-amber-600 bg-white"></select>
-          </div>
-        </div>
-        <div>
-          <label class="block font-semibold mb-1 text-xs text-stone-700">Descripción o Ingredientes</label>
-          <textarea id="newProdDesc" rows="2" placeholder="Detalles de preparación..." class="w-full text-xs border rounded-xl p-2.5 outline-none focus:border-amber-600"></textarea>
-        </div>
-        <div class="border-t border-stone-100 pt-3 flex justify-end">
-          <button onclick="createProduct()" class="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs px-6 py-2.5 rounded-xl transition active:scale-95 shadow-sm">
-            Guardar Platillo
-          </button>
-        </div>
-      </div>
-
-      <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-3">
-        <div class="flex justify-between items-center mb-2">
-          <h3 class="font-bold text-base text-stone-900">Carta Activa</h3>
-          <span class="text-xs text-stone-400" id="prodCount">0 platillos</span>
-        </div>
-        <div id="adminProductsList" class="space-y-3"></div>
-      </div>
-    </section>
-
-    <!-- 8. MARKETING, RESEÑAS GOOGLE MAPS & FIDELIDAD -->
-    <section id="tab-marketing" class="tab-panel hidden space-y-6">
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        <!-- Google Maps Embed -->
-        <div class="lg:col-span-7 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-4">
-          <div class="border-b pb-3">
-            <h3 class="font-bold text-base text-stone-900 flex items-center gap-2">
-              <span>📍 Perfil de Google Maps & Reseñas</span>
-            </h3>
-            <p class="text-xs text-stone-500">Pega el código HTML de inserción (&lt;iframe&gt;) de tu perfil en Google Maps para consultar calificaciones y ubicación en vivo.</p>
-          </div>
-
-          <div class="space-y-2">
-            <label class="block text-xs font-semibold text-stone-700">Código &lt;iframe&gt; de Google Maps:</label>
-            <div class="flex gap-2">
-              <input type="text" id="gmapsEmbedInput" placeholder='<iframe src="https://www.google.com/maps/embed?..." width="600" height="450"...></iframe>' class="flex-grow border rounded-xl px-3 py-2 text-xs font-mono">
-              <button onclick="saveGoogleMapsEmbed()" class="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs px-4 py-2 rounded-xl transition">
-                Actualizar Ficha
+              <button onclick="createReservation()" class="w-full bg-stone-900 hover:bg-stone-800 text-white font-bold py-2.5 rounded-xl transition shadow-sm mt-2">
+                Registrar Reserva
               </button>
             </div>
           </div>
 
-          <div id="gmapsPreviewContainer" class="rounded-2xl overflow-hidden border border-stone-200 shadow-inner min-h-[250px] bg-stone-50 flex items-center justify-center text-stone-400 text-xs">
-            Sin mapa configurado aún
+          <div class="lg:col-span-8 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+              <h3 class="font-bold text-sm text-stone-900">Agenda de Reservas</h3>
+              <input type="date" id="resFilterDate" onchange="renderReservationsList()" class="border rounded-xl px-2.5 py-1 text-xs">
+            </div>
+            <div id="reservationsListContainer" class="space-y-2.5"></div>
           </div>
         </div>
+      </section>
 
-        <!-- Programa de Fidelidad / Lealtad (Contenedor de Integración) -->
-        <div class="lg:col-span-5 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-4">
-          <div class="border-b pb-3">
-            <h3 class="font-bold text-base text-stone-900 flex items-center gap-2">
-              <span>💎 Programa de Lealtad & Visitas</span>
-            </h3>
-            <p class="text-xs text-stone-500">Módulo listo para vincular con tu PWA de tarjetas de sellos y fidelidad.</p>
+      <!-- 5. MESERO EN VIVO -->
+      <section id="tab-calls" class="tab-panel hidden space-y-4">
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200 flex justify-between items-center">
+          <div>
+            <h2 class="font-bold text-base text-stone-900">Llamadas Activas de Mesa</h2>
+            <p class="text-xs text-stone-500">Alertas de atención solicitadas por comensales desde el menú QR.</p>
           </div>
+          <button onclick="testSimulateCall()" class="text-xs bg-stone-100 hover:bg-stone-200 text-stone-700 px-3 py-1.5 rounded-xl border border-stone-300 font-semibold transition">
+            + Simular llamada
+          </button>
+        </div>
+        <div id="waiterCallsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      </section>
 
-          <div class="bg-gradient-to-br from-amber-900 to-stone-900 text-white rounded-2xl p-5 space-y-4 shadow-md">
-            <div class="flex justify-between items-start">
-              <div>
-                <span class="text-[10px] uppercase tracking-wider text-amber-300 font-bold">Tarjeta Digital VIP</span>
-                <h4 class="font-extrabold text-lg mt-0.5">Café Áurea Rewards</h4>
-              </div>
-              <span class="bg-white/20 text-white text-[10px] font-bold px-2 py-1 rounded-lg">PWA Link</span>
-            </div>
-
-            <div class="grid grid-cols-3 gap-2 text-center pt-1 border-t border-white/10 text-xs">
-              <div>
-                <span class="text-[10px] text-stone-300 block">Miembros</span>
-                <span class="font-mono font-bold text-sm">342</span>
-              </div>
-              <div>
-                <span class="text-[10px] text-stone-300 block">Tasa Retorno</span>
-                <span class="font-mono font-bold text-sm text-emerald-400">41%</span>
-              </div>
-              <div>
-                <span class="text-[10px] text-stone-300 block">Recompensas</span>
-                <span class="font-mono font-bold text-sm text-amber-300">89</span>
-              </div>
+      <!-- 6. CATEGORÍAS & TIPOS -->
+      <section id="tab-taxonomies" class="tab-panel hidden space-y-5">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-white rounded-2xl p-4 shadow-sm border border-stone-200 space-y-2">
+            <h3 class="font-bold text-xs uppercase tracking-wider text-stone-700">+ Nueva Categoría Principal</h3>
+            <div class="flex gap-2">
+              <input type="text" id="newCatIcon" value="🍽️" class="w-12 text-center border rounded-xl p-2 text-sm">
+              <input type="text" id="newCategoryInput" placeholder="Nombre (ej: Cafetería de Especialidad)" class="border rounded-xl px-3 py-2 text-xs flex-grow outline-none focus:border-amber-600">
+              <button onclick="createCategory()" class="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs px-4 py-2 rounded-xl transition">Crear</button>
             </div>
           </div>
 
-          <div class="p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs space-y-1">
-            <span class="font-bold text-stone-800">Conexión con PWA existente:</span>
-            <p class="text-[11px] text-stone-500">Este contenedor está preparado para recibir el webhook de sellos de tu aplicación en Vercel/Supabase.</p>
+          <div class="bg-white rounded-2xl p-4 shadow-sm border border-stone-200 space-y-2">
+            <h3 class="font-bold text-xs uppercase tracking-wider text-amber-800">+ Nuevo Tipo de Platillo</h3>
+            <div class="flex gap-2">
+              <input type="text" id="newTypeIcon" value="☕" class="w-12 text-center border rounded-xl p-2 text-sm">
+              <input type="text" id="newTypeInput" placeholder="Nombre (ej: Bebida Caliente, Postre)" class="border rounded-xl px-3 py-2 text-xs flex-grow outline-none focus:border-amber-600">
+              <button onclick="createType()" class="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-4 py-2 rounded-xl transition">Crear Tipo</button>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
 
-  </main>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+          <div class="bg-white rounded-2xl shadow-sm border border-stone-200 p-4 space-y-3">
+            <h4 class="font-bold text-xs uppercase text-stone-600">Categorías de la Carta</h4>
+            <div id="categoriesListAdmin" class="space-y-2"></div>
+          </div>
+          <div class="bg-white rounded-2xl shadow-sm border border-stone-200 p-4 space-y-3">
+            <h4 class="font-bold text-xs uppercase text-amber-900">Tipos de Platillo</h4>
+            <div id="typesListAdmin" class="space-y-2"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7. CARTA Y PLATILLOS -->
+      <section id="tab-products" class="tab-panel hidden space-y-5">
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-4">
+          <h3 class="font-bold text-sm text-stone-900 border-b pb-3">Crear Nuevo Producto</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+            <div>
+              <label class="block font-semibold mb-1 text-stone-700">Título</label>
+              <input type="text" id="newProdTitle" placeholder="Ej: Toast de Salmón" class="w-full border rounded-xl p-2.5 outline-none focus:border-amber-600">
+            </div>
+            <div>
+              <label class="block font-semibold mb-1 text-stone-700">Precio ($ MXN)</label>
+              <input type="number" step="0.5" placeholder="165.00" id="newProdPrice" class="w-full border rounded-xl p-2.5 outline-none focus:border-amber-600 font-mono">
+            </div>
+            <div>
+              <label class="block font-semibold mb-1 text-stone-700">Categoría</label>
+              <select id="newProdCategory" class="w-full border rounded-xl p-2.5 outline-none focus:border-amber-600 bg-white"></select>
+            </div>
+            <div>
+              <label class="block font-semibold mb-1 text-stone-700">Tipo de Platillo</label>
+              <select id="newProdType" class="w-full border rounded-xl p-2.5 outline-none focus:border-amber-600 bg-white"></select>
+            </div>
+          </div>
+          <div>
+            <label class="block font-semibold mb-1 text-xs text-stone-700">Descripción o Ingredientes</label>
+            <textarea id="newProdDesc" rows="2" placeholder="Detalles de preparación..." class="w-full text-xs border rounded-xl p-2.5 outline-none focus:border-amber-600"></textarea>
+          </div>
+          <div class="border-t border-stone-100 pt-3 flex justify-end">
+            <button onclick="createProduct()" class="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs px-6 py-2.5 rounded-xl transition active:scale-95 shadow-sm">
+              Guardar Platillo
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-3">
+          <div class="flex justify-between items-center mb-2">
+            <h3 class="font-bold text-base text-stone-900">Carta Activa</h3>
+            <span class="text-xs text-stone-400" id="prodCount">0 platillos</span>
+          </div>
+          <div id="adminProductsList" class="space-y-3"></div>
+        </div>
+      </section>
+
+      <!-- 8. MARKETING, RESEÑAS GOOGLE MAPS & FIDELIDAD -->
+      <section id="tab-marketing" class="tab-panel hidden space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <div class="lg:col-span-7 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-4">
+            <div class="border-b pb-3">
+              <h3 class="font-bold text-base text-stone-900 flex items-center gap-2">
+                <span>📍 Perfil de Google Maps & Reseñas</span>
+              </h3>
+              <p class="text-xs text-stone-500">Pega el código HTML de inserción (&lt;iframe&gt;) de tu perfil en Google Maps para consultar calificaciones y ubicación en vivo.</p>
+            </div>
+
+            <div class="space-y-2">
+              <label class="block text-xs font-semibold text-stone-700">Código &lt;iframe&gt; de Google Maps:</label>
+              <div class="flex gap-2">
+                <input type="text" id="gmapsEmbedInput" placeholder='<iframe src="https://www.google.com/maps/embed?..." width="600" height="450"...></iframe>' class="flex-grow border rounded-xl px-3 py-2 text-xs font-mono">
+                <button onclick="saveGoogleMapsEmbed()" class="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs px-4 py-2 rounded-xl transition">
+                  Actualizar Ficha
+                </button>
+              </div>
+            </div>
+
+            <div id="gmapsPreviewContainer" class="rounded-2xl overflow-hidden border border-stone-200 shadow-inner min-h-[250px] bg-stone-50 flex items-center justify-center text-stone-400 text-xs">
+              Sin mapa configurado aún
+            </div>
+          </div>
+
+          <div class="lg:col-span-5 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-4">
+            <div class="border-b pb-3">
+              <h3 class="font-bold text-base text-stone-900 flex items-center gap-2">
+                <span>💎 Programa de Lealtad & Visitas</span>
+              </h3>
+              <p class="text-xs text-stone-500">Módulo listo para vincular con tu PWA de tarjetas de sellos y fidelidad.</p>
+            </div>
+
+            <div class="bg-gradient-to-br from-amber-900 to-stone-900 text-white rounded-2xl p-5 space-y-4 shadow-md">
+              <div class="flex justify-between items-start">
+                <div>
+                  <span class="text-[10px] uppercase tracking-wider text-amber-300 font-bold">Tarjeta Digital VIP</span>
+                  <h4 class="font-extrabold text-lg mt-0.5">Café Áurea Rewards</h4>
+                </div>
+                <span class="bg-white/20 text-white text-[10px] font-bold px-2 py-1 rounded-lg">PWA Link</span>
+              </div>
+
+              <div class="grid grid-cols-3 gap-2 text-center pt-1 border-t border-white/10 text-xs">
+                <div>
+                  <span class="text-[10px] text-stone-300 block">Miembros</span>
+                  <span class="font-mono font-bold text-sm">342</span>
+                </div>
+                <div>
+                  <span class="text-[10px] text-stone-300 block">Tasa Retorno</span>
+                  <span class="font-mono font-bold text-sm text-emerald-400">41%</span>
+                </div>
+                <div>
+                  <span class="text-[10px] text-stone-300 block">Recompensas</span>
+                  <span class="font-mono font-bold text-sm text-amber-300">89</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs space-y-1">
+              <span class="font-bold text-stone-800">Conexión con PWA existente:</span>
+              <p class="text-[11px] text-stone-500">Este contenedor está preparado para recibir el webhook de sellos de tu aplicación en Vercel/Supabase.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
 
   <!-- MODAL RETROCESO INTELIGENTE (PREPARADO / MERMA / REINCORPORACIÓN) -->
   <div id="retrocesoModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
@@ -764,7 +793,6 @@
         <button onclick="closeOrderDetailModal()" class="text-stone-400 hover:text-stone-700 font-bold text-lg p-1">✕</button>
       </div>
 
-      <!-- Ticket térmico imprimible -->
       <div id="printableTicketArea" class="bg-stone-50 border border-stone-200 rounded-2xl p-4 font-mono text-xs space-y-3">
         <div class="text-center pb-2 border-b border-dashed border-stone-300">
           <h4 class="font-extrabold text-sm text-stone-900 uppercase">Café & Bistro Áurea</h4>
@@ -850,7 +878,7 @@
     </div>
   </div>
 
-  <!-- SCRIPT INTEGRAL (CERO DEPENDENCIAS EXTERNAS ROTAS) -->
+  <!-- JAVASCRIPT AUTÓNOMO Y CONTROLADOR DE ROLES / FOCUS -->
   <script>
     const REST_ID = 'b47a9880-9fd3-4c9b-b05b-86ea8f0d014d';
     const SUPABASE_URL = 'https://jmqqkgshwwycercknzgy.supabase.co';
@@ -927,7 +955,6 @@
       localStorage.setItem('kds_sound_preset', presetKey);
       playSoundByName(presetKey);
     }
-
     function previewCurrentSound() { playSoundByName(currentSoundPreset); }
     function playFlowSound(eventType) {
       if (eventType === 'new_order') playSoundByName(currentSoundPreset);
@@ -935,21 +962,87 @@
       else if (eventType === 'delivered') playSoundByName('dingdong');
     }
 
+    // =========================================================================
+    // CONTROL DE MODO DE ESTACIÓN (ROL) Y FOCUS FULLSCREEN
+    // =========================================================================
+    function switchStationRole(role) {
+      const gLive = document.getElementById('navGroup-live');
+      const gMgmt = document.getElementById('navGroup-management');
+      const gAnal = document.getElementById('navGroup-analytics');
+      const roleBadge = document.getElementById('topbarRoleBadge');
+
+      if (role === 'kitchen') {
+        gLive.classList.remove('hidden');
+        gMgmt.classList.add('hidden');
+        gAnal.classList.add('hidden');
+        roleBadge.innerText = '🍳 Modo Cocina / KDS';
+        switchTab('orders');
+      } else if (role === 'waiter') {
+        gLive.classList.remove('hidden');
+        gMgmt.classList.add('hidden');
+        gAnal.classList.add('hidden');
+        roleBadge.innerText = '🛎️ Modo Meseros & Sala';
+        switchTab('calls');
+      } else if (role === 'management') {
+        gLive.classList.add('hidden');
+        gMgmt.classList.remove('hidden');
+        gAnal.classList.remove('hidden');
+        roleBadge.innerText = '📊 Modo Gerencia & Costes';
+        switchTab('analytics');
+      } else {
+        // Todo Administrador
+        gLive.classList.remove('hidden');
+        gMgmt.classList.remove('hidden');
+        gAnal.classList.remove('hidden');
+        roleBadge.innerText = '👑 Todo Administrador';
+      }
+    }
+
+    function toggleFocusMode() {
+      document.body.classList.toggle('focus-mode');
+      if (document.body.classList.contains('focus-mode')) {
+        // Intentar Fullscreen del navegador si está soportado
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(()=>{});
+        }
+      } else {
+        if (document.exitFullscreen && document.fullscreenElement) {
+          document.exitFullscreen().catch(()=>{});
+        }
+      }
+    }
+
+    // =========================================================================
     // NAVEGACIÓN ENTRE PESTAÑAS
+    // =========================================================================
+    const TAB_TITLES = {
+      orders: 'Tablero Kanban KDS',
+      calls: 'Llamadas de Mesero en Vivo',
+      reservations: 'Agenda de Reservas',
+      inventory: 'Almacén, Escandallos & Mermas',
+      products: 'Gestión de Platillos y Carta',
+      taxonomies: 'Categorías y Tipos de Menú',
+      analytics: 'Métricas, Food Cost & Ingeniería de Menús',
+      marketing: 'Google Maps Reviews & Lealtad'
+    };
+
     function switchTab(tabId) {
       document.querySelectorAll('.tab-panel').forEach(el => el.classList.add('hidden'));
       document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('border-stone-900', 'text-stone-900', 'font-bold');
-        btn.classList.add('border-transparent', 'text-stone-500', 'font-medium');
+        btn.classList.remove('bg-amber-600', 'text-white', 'shadow-sm', 'font-bold');
+        btn.classList.add('text-stone-400', 'font-medium');
       });
 
       const targetPanel = document.getElementById(`tab-${tabId}`);
       const targetBtn = document.getElementById(`tabBtn-${tabId}`);
       if (targetPanel && targetBtn) {
         targetPanel.classList.remove('hidden');
-        targetBtn.classList.remove('border-transparent', 'text-stone-500', 'font-medium');
-        targetBtn.classList.add('border-stone-900', 'text-stone-900', 'font-bold');
+        targetBtn.classList.remove('text-stone-400', 'font-medium');
+        targetBtn.classList.add('bg-amber-600', 'text-white', 'shadow-sm', 'font-bold');
       }
+
+      const topTitle = document.getElementById('topbarTitle');
+      if (topTitle) topTitle.innerText = TAB_TITLES[tabId] || 'Estación de Trabajo';
 
       if (tabId === 'analytics') renderAnalyticsDashboard();
       if (tabId === 'inventory') renderInventoryTab();
@@ -978,12 +1071,12 @@
       const singleWrapper = document.getElementById('singleStatusSelectorWrapper');
 
       if (mode === 'all') {
-        if (btnAll) btnAll.className = 'px-3 py-1.5 rounded-xl transition bg-stone-900 text-white shadow-sm';
-        if (btnSingle) btnSingle.className = 'px-3 py-1.5 rounded-xl transition text-stone-600 hover:text-stone-900';
+        if (btnAll) btnAll.className = 'px-3.5 py-1.5 rounded-xl transition bg-stone-900 text-white shadow-sm';
+        if (btnSingle) btnSingle.className = 'px-3.5 py-1.5 rounded-xl transition text-stone-600 hover:text-stone-900';
         if (singleWrapper) singleWrapper.classList.add('hidden');
       } else {
-        if (btnSingle) btnSingle.className = 'px-3 py-1.5 rounded-xl transition bg-stone-900 text-white shadow-sm';
-        if (btnAll) btnAll.className = 'px-3 py-1.5 rounded-xl transition text-stone-600 hover:text-stone-900';
+        if (btnSingle) btnSingle.className = 'px-3.5 py-1.5 rounded-xl transition bg-stone-900 text-white shadow-sm';
+        if (btnAll) btnAll.className = 'px-3.5 py-1.5 rounded-xl transition text-stone-600 hover:text-stone-900';
         if (singleWrapper) singleWrapper.classList.remove('hidden');
       }
       renderKanbanBoard();
@@ -1002,7 +1095,7 @@
       renderKanbanBoard();
     }
 
-    // RENDERIZADO DEL TABLERO KANBAN
+    // TABLERO KANBAN
     function renderKanbanBoard() {
       const container = document.getElementById('kanbanBoardContainer');
       if (!container) return;
@@ -1014,7 +1107,7 @@
 
       const activeCount = filtered.filter(o => o.status !== 'paid').length;
       const kdsActive = document.getElementById('kdsActiveCount');
-      if (kdsActive) kdsActive.innerText = `${activeCount} comandas activas`;
+      if (kdsActive) kdsActive.innerText = `${activeCount} activas`;
       const badgeLive = document.getElementById('badgeLiveOrders');
       if (badgeLive) badgeLive.innerText = activeCount;
 
@@ -1044,7 +1137,6 @@
           const currentIdx = STATUS_FLOW.indexOf(order.status);
           const items = Array.isArray(order.items) ? order.items : [];
 
-          // Badge Canal
           let channelBadge = '<span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-1.5 py-0.5 rounded">🍽️ Mesa ' + order.table_number + '</span>';
           if (order.order_channel === 'takeout') {
             channelBadge = '<span class="bg-amber-100 text-amber-900 text-[10px] font-bold px-1.5 py-0.5 rounded">🛍️ Para Llevar</span>';
@@ -1116,7 +1208,6 @@
       });
     }
 
-    // FLUJO AVANCE KANBAN Y DEDUCCIÓN DE INSUMOS
     async function advanceOrderStatus(orderId) {
       const order = adminOrders.find(o => o.id === orderId);
       if (!order) return;
@@ -1127,7 +1218,6 @@
       const nowIso = new Date().toISOString();
       order.status = nextStatus;
 
-      // 1. Si entra a Preparación -> Deducir insumos automáticamente del almacén
       if (nextStatus === 'preparing') {
         order.preparing_at = nowIso;
         deductSuppliesForOrder(order);
@@ -1149,18 +1239,15 @@
       }
     }
 
-    // DEDUCCIÓN DE STOCK
     function deductSuppliesForOrder(order) {
       (order.items || []).forEach(item => {
-        // Revisar si existe en buffer de preparados para reutilizar
         const bufferIdx = adminBuffer.findIndex(b => b.product_title === item.title && b.status === 'available');
         if (bufferIdx > -1) {
           adminBuffer[bufferIdx].status = 'resold';
           if (client) client.from('prepared_items_buffer').update({ status: 'resold' }).eq('id', adminBuffer[bufferIdx].id);
-          return; // No se gasta insumo porque ya estaba preparado
+          return;
         }
 
-        // Deducir según receta
         const recipes = adminRecipes.filter(r => r.product_id === item.id || r.product_title === item.title);
         recipes.forEach(rcp => {
           const sup = adminSupplies.find(s => s.id === rcp.supply_id);
@@ -1173,19 +1260,16 @@
       });
     }
 
-    // CONTROL DE RETROCESO (DESHACER PREPARACIÓN / REINCORPORAR / MERMA)
     function requestRetrocesoOrder(orderId) {
       const order = adminOrders.find(o => o.id === orderId);
       if (!order) return;
 
-      // Si está en 'preparing', preguntar destino de insumos
       if (order.status === 'preparing') {
         pendingRetrocesoOrderId = orderId;
         document.getElementById('retrocesoModalDesc').innerText = `Vas a regresar el pedido de la Mesa ${order.table_number}. Los insumos ya habían sido deducidos.`;
         document.getElementById('retrocesoStep2').classList.add('hidden');
         document.getElementById('retrocesoModal').classList.remove('hidden');
       } else {
-        // Retroceso estándar
         const currentIdx = STATUS_FLOW.indexOf(order.status);
         order.status = STATUS_FLOW[currentIdx - 1];
         renderKanbanBoard();
@@ -1193,21 +1277,14 @@
       }
     }
 
-    function showRetrocesoStep2() {
-      document.getElementById('retrocesoStep2').classList.remove('hidden');
-    }
-
-    function closeRetrocesoModal() {
-      document.getElementById('retrocesoModal').classList.add('hidden');
-      pendingRetrocesoOrderId = null;
-    }
+    function showRetrocesoStep2() { document.getElementById('retrocesoStep2').classList.remove('hidden'); }
+    function closeRetrocesoModal() { document.getElementById('retrocesoModal').classList.add('hidden'); pendingRetrocesoOrderId = null; }
 
     async function handleRetrocesoDecision(decision) {
       const order = adminOrders.find(o => o.id === pendingRetrocesoOrderId);
       if (!order) return;
 
       if (decision === 'no_prepared') {
-        // Reincorporar 100% de insumos
         (order.items || []).forEach(item => {
           const recipes = adminRecipes.filter(r => r.product_id === item.id || r.product_title === item.title);
           recipes.forEach(rcp => {
@@ -1220,7 +1297,6 @@
         });
         alert("Insumos reincorporados al inventario.");
       } else if (decision === 'buffer_resell') {
-        // Agregar a buffer de preparados por vender
         (order.items || []).forEach(item => {
           const buff = { id: 'buf-' + Date.now(), restaurant_id: REST_ID, order_id: order.id, product_title: item.title, qty: item.qty, status: 'available' };
           adminBuffer.push(buff);
@@ -1228,7 +1304,6 @@
         });
         alert("Platillo guardado en la lista de preparados por vender.");
       } else if (decision === 'waste_loss') {
-        // Registrar en Merma de cocina
         (order.items || []).forEach(item => {
           const wasteEntry = {
             id: 'wst-' + Date.now(),
@@ -1236,7 +1311,7 @@
             order_id: order.id,
             product_title: item.title,
             reason: 'Cancelado durante preparación',
-            cost_loss: Number(item.price) * 0.35, // Costo estimado de insumo
+            cost_loss: Number(item.price) * 0.35,
             ingredients_summary: [{ item: item.title, qty: item.qty }]
           };
           adminWaste.push(wasteEntry);
@@ -1260,7 +1335,6 @@
       if (client) await client.from('orders').update({ is_archived: true }).eq('id', orderId);
     }
 
-    // SIMULACIÓN DE COMANDAS CON CANALES
     async function testSimulateOrder(channel = 'dine_in') {
       const mockTable = channel === 'dine_in' ? '0' + (Math.floor(Math.random() * 8) + 1) : (channel === 'takeout' ? 'Takeout' : 'App-Delivery');
       const mockOrder = {
@@ -1289,9 +1363,15 @@
       }
     }
 
-    // =============================================================
+    async function updateOrderWaiter(orderId, waiterName) {
+      const order = adminOrders.find(o => o.id === orderId);
+      if (order) order.waiter_name = waiterName;
+      if (client) await client.from('orders').update({ waiter_name: waiterName }).eq('id', orderId);
+    }
+
+    // =========================================================================
     // ANALYTICS, FECHAS, FOOD COST, MATRIZ BOSTON & STAFF
-    // =============================================================
+    // =========================================================================
     function setAnalyticsDateFilter(type) {
       currentAnalyticsFilter = type;
       ['today', 'yesterday', 'week', 'all'].forEach(t => {
@@ -1349,7 +1429,6 @@
       const kpiAvg = document.getElementById('kpiAvgTicket');
       if (kpiAvg) kpiAvg.innerText = `$${avgTicket.toFixed(2)}`;
 
-      // Ventas por canal
       let dineRev = 0, takeRev = 0, delivRev = 0;
       paidOrders.forEach(o => {
         const tot = Number(o.total || 0);
@@ -1361,7 +1440,7 @@
       document.getElementById('kpiChanTakeout').innerText = `$${takeRev.toFixed(2)}`;
       document.getElementById('kpiChanDelivery').innerText = `$${delivRev.toFixed(2)}`;
 
-      // 2. FOOD COST TEÓRICO
+      // FOOD COST
       let theoreticalCost = 0;
       paidOrders.forEach(o => {
         (o.items || []).forEach(it => {
@@ -1376,19 +1455,10 @@
       document.getElementById('kpiFoodCostPct').innerText = `${foodCostPct.toFixed(1)}%`;
       document.getElementById('kpiFoodCostAmount').innerText = `Costo insumos: $${theoreticalCost.toFixed(2)}`;
 
-      // 3. MATRIZ BOSTON / MILLER (INGENIERÍA DE MENÚS)
       calculateMenuEngineering(paidOrders);
-
-      // 4. TOP PLATILLOS
       renderTopProducts(filtered);
-
-      // 5. RENDIMIENTO POR MESERO
       renderWaitersPerformance(filtered);
-
-      // 6. TIEMPOS SLA
       calculateSlaTimes(filtered);
-
-      // 7. TABLA HISTORIAL DETALLADO
       renderHistoryTable(filtered);
     }
 
@@ -1396,20 +1466,14 @@
       const itemStats = {};
       paidOrders.forEach(o => {
         (o.items || []).forEach(it => {
-          if (!itemStats[it.title]) {
-            itemStats[it.title] = { qty: 0, revenue: 0, cost: 0 };
-          }
+          if (!itemStats[it.title]) { itemStats[it.title] = { qty: 0, revenue: 0, cost: 0 }; }
           itemStats[it.title].qty += Number(it.qty || 1);
           itemStats[it.title].revenue += Number(it.qty || 1) * Number(it.price || 0);
           itemStats[it.title].cost += Number(it.qty || 1) * (Number(it.price || 0) * 0.32);
         });
       });
 
-      const list = Object.entries(itemStats).map(([title, st]) => {
-        const margin = st.revenue - st.cost;
-        return { title, qty: st.qty, margin };
-      });
-
+      const list = Object.entries(itemStats).map(([title, st]) => ({ title, qty: st.qty, margin: st.revenue - st.cost }));
       if (list.length === 0) {
         document.getElementById('matrixStarItems').innerText = 'Tostón de Aguacate Trufado';
         document.getElementById('matrixPuzzleItems').innerText = 'Flat White Pluma';
@@ -1421,15 +1485,10 @@
       const avgQty = list.reduce((acc, i) => acc + i.qty, 0) / list.length;
       const avgMargin = list.reduce((acc, i) => acc + i.margin, 0) / list.length;
 
-      const stars = list.filter(i => i.qty >= avgQty && i.margin >= avgMargin).map(i => i.title);
-      const puzzles = list.filter(i => i.qty < avgQty && i.margin >= avgMargin).map(i => i.title);
-      const plows = list.filter(i => i.qty >= avgQty && i.margin < avgMargin).map(i => i.title);
-      const dogs = list.filter(i => i.qty < avgQty && i.margin < avgMargin).map(i => i.title);
-
-      document.getElementById('matrixStarItems').innerText = stars.join(', ') || 'Sin clasificar';
-      document.getElementById('matrixPuzzleItems').innerText = puzzles.join(', ') || 'Sin clasificar';
-      document.getElementById('matrixPlowItems').innerText = plows.join(', ') || 'Sin clasificar';
-      document.getElementById('matrixDogItems').innerText = dogs.join(', ') || 'Sin clasificar';
+      document.getElementById('matrixStarItems').innerText = list.filter(i => i.qty >= avgQty && i.margin >= avgMargin).map(i => i.title).join(', ') || 'Sin clasificar';
+      document.getElementById('matrixPuzzleItems').innerText = list.filter(i => i.qty < avgQty && i.margin >= avgMargin).map(i => i.title).join(', ') || 'Sin clasificar';
+      document.getElementById('matrixPlowItems').innerText = list.filter(i => i.qty >= avgQty && i.margin < avgMargin).map(i => i.title).join(', ') || 'Sin clasificar';
+      document.getElementById('matrixDogItems').innerText = list.filter(i => i.qty < avgQty && i.margin < avgMargin).map(i => i.title).join(', ') || 'Sin clasificar';
     }
 
     function renderTopProducts(filteredOrders) {
@@ -1552,7 +1611,6 @@
       }).join('');
     }
 
-    // EXPORTACIÓN A CSV
     function exportHistoryToCSV() {
       const filtered = getFilteredOrdersForAnalytics();
       if (filtered.length === 0) { alert("No hay pedidos en el rango de fechas seleccionado."); return; }
@@ -1572,7 +1630,6 @@
       document.body.removeChild(link);
     }
 
-    // MODAL DETALLE / IMPRIMIR / PDF
     function openOrderDetailModal(orderId) {
       const order = adminOrders.find(o => o.id === orderId);
       if (!order) return;
@@ -1616,9 +1673,9 @@
       printWindow.close();
     }
 
-    // =============================================================
+    // =========================================================================
     // INVENTARIO, ESCANDALLOS, MERMAS & BUFFER
-    // =============================================================
+    // =========================================================================
     function renderInventoryTab() {
       renderSuppliesTable();
       renderProductRecipeSelect();
@@ -1767,9 +1824,9 @@
       if (client) await client.from('supplies').insert([newSup]);
     }
 
-    // =============================================================
+    // =========================================================================
     // RESERVAS
-    // =============================================================
+    // =========================================================================
     function renderReservationsList() {
       const cont = document.getElementById('reservationsListContainer');
       const badge = document.getElementById('badgeReservationsCount');
@@ -1819,9 +1876,136 @@
       if (client) await client.from('reservations').update({ status: newStatus }).eq('id', id);
     }
 
-    // =============================================================
+    // =========================================================================
+    // MESERO EN VIVO
+    // =========================================================================
+    function renderCalls() {
+      const grid = document.getElementById('waiterCallsGrid');
+      const badge = document.getElementById('pendingCallsBadge');
+      if (badge) badge.innerText = adminCalls.length;
+      if (!grid) return;
+
+      if (adminCalls.length === 0) {
+        grid.innerHTML = '<div class="col-span-full bg-white rounded-2xl p-8 text-center text-stone-400 text-xs">No hay mesas solicitando atención.</div>';
+        return;
+      }
+      grid.innerHTML = adminCalls.map(c => `
+        <div class="bg-white rounded-2xl p-4 border border-rose-200 shadow-sm flex items-center justify-between">
+          <span class="font-black text-sm text-stone-900">Mesa ${c.table_number}</span>
+          <button onclick="resolveCall('${c.id}')" class="bg-emerald-600 text-white font-bold text-xs px-3 py-1.5 rounded-xl">Atendida ✓</button>
+        </div>
+      `).join('');
+    }
+
+    async function resolveCall(id) {
+      adminCalls = adminCalls.filter(c => c.id !== id);
+      renderCalls();
+      if (client) await client.from('waiter_calls').update({ status: 'resolved' }).eq('id', id);
+    }
+
+    async function testSimulateCall() {
+      const mockTable = '0' + (Math.floor(Math.random() * 8) + 1);
+      const newCall = { id: 'call-' + Date.now(), restaurant_id: REST_ID, table_number: mockTable, status: 'pending' };
+      adminCalls.unshift(newCall);
+      renderCalls();
+      if (client) await client.from('waiter_calls').insert([newCall]);
+    }
+
+    // =========================================================================
+    // TAXONOMÍAS & PRODUCTOS
+    // =========================================================================
+    function renderTaxonomies() {
+      const catCont = document.getElementById('categoriesListAdmin');
+      if (catCont) {
+        catCont.innerHTML = adminCategories.map(c => `
+          <div class="border rounded-xl p-2.5 bg-stone-50 flex items-center justify-between text-xs">
+            <span class="font-bold text-stone-900">${c.icon || '🍽️'} ${c.name}</span>
+          </div>
+        `).join('');
+      }
+
+      const typCont = document.getElementById('typesListAdmin');
+      if (typCont) {
+        typCont.innerHTML = adminTypes.map(t => `
+          <div class="border rounded-xl p-2.5 bg-amber-50/50 flex items-center justify-between text-xs">
+            <span class="font-bold text-amber-950">${t.icon || '🏷️'} ${t.name}</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    async function createCategory() {
+      const nameInput = document.getElementById('newCategoryInput');
+      const name = nameInput?.value?.trim();
+      if (!name) return;
+      const newCat = { id: 'cat-' + Date.now(), restaurant_id: REST_ID, name, icon: '🍽️', order_index: adminCategories.length + 1 };
+      adminCategories.push(newCat);
+      if (nameInput) nameInput.value = '';
+      renderTaxonomies();
+      if (client) await client.from('categories').insert([{ restaurant_id: REST_ID, name, icon: '🍽️', order_index: newCat.order_index }]);
+    }
+
+    async function createType() {
+      const nameInput = document.getElementById('newTypeInput');
+      const name = nameInput?.value?.trim();
+      if (!name) return;
+      const newTyp = { id: 'typ-' + Date.now(), restaurant_id: REST_ID, name, icon: '☕', order_index: adminTypes.length + 1 };
+      adminTypes.push(newTyp);
+      if (nameInput) nameInput.value = '';
+      renderTaxonomies();
+      if (client) await client.from('product_types').insert([{ restaurant_id: REST_ID, name, icon: '☕', order_index: newTyp.order_index }]);
+    }
+
+    function renderProducts() {
+      const cont = document.getElementById('adminProductsList');
+      const selectCat = document.getElementById('newProdCategory');
+      const selectType = document.getElementById('newProdType');
+      const countEl = document.getElementById('prodCount');
+
+      if (countEl) countEl.innerText = `${adminProducts.length} platillos`;
+      if (selectCat) selectCat.innerHTML = adminCategories.map(c => `<option value="${c.id}">${c.icon || ''} ${c.name}</option>`).join('');
+      if (selectType) selectType.innerHTML = `<option value="">-- Sin tipo --</option>` + adminTypes.map(t => `<option value="${t.id}">${t.icon || ''} ${t.name}</option>`).join('');
+      if (!cont) return;
+
+      cont.innerHTML = adminProducts.map(p => `
+        <div class="p-3 border rounded-xl bg-stone-50 flex items-center justify-between gap-3 text-xs">
+          <div class="flex items-center gap-3">
+            <div>
+              <h4 class="font-bold text-sm text-stone-900">${p.title}</h4>
+              <span class="font-mono font-bold text-stone-700">$${Number(p.price).toFixed(2)}</span>
+            </div>
+          </div>
+          <span class="px-2.5 py-1 rounded-lg font-bold bg-emerald-100 text-emerald-800">Disponible</span>
+        </div>
+      `).join('');
+    }
+
+    async function createProduct() {
+      const title = document.getElementById('newProdTitle')?.value?.trim();
+      const price = parseFloat(document.getElementById('newProdPrice')?.value) || 0;
+      const catId = document.getElementById('newProdCategory')?.value;
+      const typeId = document.getElementById('newProdType')?.value || null;
+      const desc = document.getElementById('newProdDesc')?.value?.trim();
+
+      if (!title || price <= 0) { alert("Ingresa título y precio válidos."); return; }
+
+      const newProd = {
+        id: 'prod-' + Date.now(), restaurant_id: REST_ID, category_id: catId, type_id: typeId, title, description: desc, price,
+        media: [{ type: 'image', url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80' }],
+        is_available: true
+      };
+
+      adminProducts.unshift(newProd);
+      renderProducts();
+      document.getElementById('newProdTitle').value = '';
+      document.getElementById('newProdPrice').value = '';
+      document.getElementById('newProdDesc').value = '';
+      if (client) await client.from('products').insert([newProd]);
+    }
+
+    // =========================================================================
     // GOOGLE MAPS EMBED
-    // =============================================================
+    // =========================================================================
     function saveGoogleMapsEmbed() {
       const val = document.getElementById('gmapsEmbedInput')?.value?.trim();
       if (!val) return;
@@ -1830,9 +2014,11 @@
       alert("Ficha de Google Maps vinculada correctamente.");
     }
 
+    // =========================================================================
     // INICIALIZACIÓN
+    // =========================================================================
     async function init() {
-      // Defaults locales en 0ms
+      // Defaults locales instantáneos
       adminOrders = [
         {
           id: 'ord-1',
@@ -1871,11 +2057,13 @@
       renderAnalyticsDashboard();
       renderInventoryTab();
       renderReservationsList();
+      renderCalls();
+      renderTaxonomies();
+      renderProducts();
 
       const statusEl = document.getElementById('connStatus');
       if (statusEl) statusEl.innerText = 'Sincronizado en tiempo real ✓';
 
-      // Consulta Supabase en segundo plano
       if (client) {
         try {
           const [ordersRes, prodsRes, catsRes, typesRes, supsRes, rcpsRes, resRes, restRes] = await Promise.all([
@@ -1905,8 +2093,7 @@
           renderInventoryTab();
           renderReservationsList();
 
-          // Realtime
-          client.channel('kds_v5_realtime')
+          client.channel('kds_hybrid_realtime')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, async () => {
               const { data } = await client.from('orders').select('*').order('created_at', { ascending: false });
               if (data) { adminOrders = data; renderKanbanBoard(); renderAnalyticsDashboard(); }
