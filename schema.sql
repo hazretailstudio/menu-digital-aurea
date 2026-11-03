@@ -297,3 +297,20 @@ BEGIN
         (r_id, 'Valeria Méndez', '3318902345', 4, '05', CURRENT_DATE, '14:30:00', 'Celebración de aniversario', 'confirmed'),
         (r_id, 'Héctor Salgado', '3398765432', 2, '02', CURRENT_DATE, '16:00:00', 'Preferencia terraza', 'confirmed');
 END $$;
+
+
+-- AJUSTES ADICIONALES PARA DIVISIÓN DE CUENTA Y TRAZABILIDAD
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS has_new_additions BOOLEAN DEFAULT FALSE;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS notes_updated BOOLEAN DEFAULT FALSE;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS kitchen_cycle_started_at TIMESTAMPTZ;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS split_type TEXT DEFAULT 'single';
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS split_details JSONB DEFAULT '[]'::jsonb;
+
+ALTER TABLE waiter_calls ADD COLUMN IF NOT EXISTS waiter_name TEXT DEFAULT 'Sin asignar';
+ALTER TABLE waiter_calls ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMPTZ;
+ALTER TABLE waiter_calls ADD COLUMN IF NOT EXISTS response_time_seconds INT;
+
+ALTER TABLE kitchen_waste ADD COLUMN IF NOT EXISTS table_number TEXT;
+ALTER TABLE kitchen_waste ADD COLUMN IF NOT EXISTS waiter_name TEXT;
+ALTER TABLE prepared_items_buffer ADD COLUMN IF NOT EXISTS table_number TEXT;
+ALTER TABLE prepared_items_buffer ADD COLUMN IF NOT EXISTS waiter_name TEXT;
