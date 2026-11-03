@@ -30,7 +30,7 @@
       <div class="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/50 to-stone-900/30"></div>
     </div>
 
-    <!-- Barra de Estado Superior: Mesa, Wi-Fi y Llamar Mesero -->
+    <!-- Barra de Estado Superior Flotante: Mesa, Wi-Fi y Mesero -->
     <div class="absolute top-0 left-0 right-0 z-20 px-4 py-2.5 flex items-center justify-between gap-2 max-w-lg mx-auto bg-gradient-to-b from-black/70 to-transparent">
       <div class="flex items-center gap-2">
         <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -87,17 +87,17 @@
     <div id="predictiveBox" class="hidden mt-1.5 bg-white rounded-xl shadow-lg border border-stone-100 p-2 text-xs divide-y divide-stone-100 z-30 relative"></div>
   </div>
 
-  <!-- FILTROS POR TIPO -->
+  <!-- FILTROS POR TIPOS -->
   <div class="px-4 pt-3 max-w-lg mx-auto">
     <div id="typesFilterContainer" class="flex gap-2 overflow-x-auto no-scrollbar py-1"></div>
   </div>
 
-  <!-- CATEGORÍAS -->
+  <!-- CATEGORÍAS (STICKY) -->
   <nav class="sticky top-0 z-30 bg-[#F8F7F4]/95 backdrop-blur-md border-b border-stone-200/70 py-2.5 px-4 mt-2 shadow-sm">
     <div id="categoryTabs" class="flex gap-2 overflow-x-auto no-scrollbar max-w-lg mx-auto"></div>
   </nav>
 
-  <!-- CATÁLOGO DE MENÚ -->
+  <!-- CONTENIDO: VISTA DE MENÚ -->
   <main id="menuContainer" class="px-4 mt-5 space-y-7 max-w-lg mx-auto"></main>
 
   <!-- VISTA DE PROMOCIONES -->
@@ -106,23 +106,19 @@
     <div id="promosList" class="space-y-3"></div>
   </section>
 
-  <!-- VISTA DE MI ORDEN -->
+  <!-- VISTA DE MI ORDEN (CON CÁLCULO DE DESCUENTOS EN VIVO) -->
   <section id="orderView" class="hidden px-4 mt-5 space-y-4 max-w-lg mx-auto">
     <h2 class="font-bold text-xl text-stone-900">Mi Orden en Mesa</h2>
+    
     <div id="orderItemsList" class="bg-white rounded-2xl p-4 shadow-sm border border-stone-100 divide-y divide-stone-100"></div>
 
+    <!-- Desglose de Descuentos Automáticos -->
     <div id="appliedDiscountsBox" class="hidden bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 space-y-2">
       <div class="flex items-center gap-1.5 text-xs font-bold text-emerald-900">
         <span>🎉</span>
         <span>Promociones Aplicadas Automáticamente:</span>
       </div>
       <div id="appliedDiscountsList" class="text-xs text-emerald-800 space-y-1"></div>
-    </div>
-
-    <!-- Notas para la comanda -->
-    <div class="bg-white rounded-2xl p-3.5 shadow-sm border border-stone-100 space-y-1.5">
-      <label class="block text-xs font-bold text-stone-700">Notas para Cocina / Servicio (Opcional):</label>
-      <input type="text" id="orderCustomerNotes" placeholder="Ej: Sin sal, término medio, mesa con prisa..." class="w-full text-xs border rounded-xl p-2.5 outline-none focus:border-amber-600 bg-stone-50">
     </div>
 
     <div class="bg-white rounded-2xl p-4 shadow-sm border border-stone-100 space-y-2.5">
@@ -138,10 +134,8 @@
         <span>Total a Pagar</span>
         <span id="orderTotal">$0.00 MXN</span>
       </div>
-      
-      <!-- BOTÓN DIRECTO AL PANEL KDS DE COCINA (SIN WHATSAPP) -->
-      <button onclick="sendOrder()" id="btnSendOrder" class="w-full mt-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition shadow-md">
-        <span>Confirmar Pedido al Mesero 🛎️</span>
+      <button onclick="sendOrder()" class="w-full mt-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition shadow-md">
+        <span>Confirmar Pedido al Mesero 💬</span>
       </button>
     </div>
   </section>
@@ -211,23 +205,69 @@
   </nav>
 
   <script>
-    const REST_ID = 'b47a9880-9fd3-4c9b-b05b-86ea8f0d014d';
-    const SUPABASE_URL = 'https://jmqqkgshwwycercknzgy.supabase.co';
-    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImptcXFrZ3Nod3d5Y2VyY2tuemd5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMzNzYyODUsImV4cCI6MjEwODk1MjI4NX0.tCiRMvl05IXv_IGXIeJ2h9p6AEABRgPofgIRQZMt9UE';
-    
-    let supabaseClient = null;
-    try {
-      if (window.supabase) supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-    } catch(e) {
-      console.warn("Supabase no disponible:", e);
-    }
+    // CONSTANTES Y DATOS DE RESPALDO INICIALES
+    const INITIAL_RESTAURANT = {
+      id: 'b47a9880-9fd3-4c9b-b05b-86ea8f0d014d',
+      name: 'Café & Bistro Áurea',
+      description: 'Cafetería de especialidad, panadería artesanal horneada a diario y cocina de temporada con ingredientes orgánicos.',
+      banner_url: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=1200&q=80',
+      logo_url: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=250&q=80',
+      wifi_ssid: 'Aurea_HighSpeed',
+      wifi_password: 'Brunch2026',
+      whatsapp_number: '523312345678',
+      cross_sell_title: 'Combina perfecto con:',
+      bottom_left_type: 'promo',
+      bottom_left_label: 'Promos'
+    };
 
+    const INITIAL_CATEGORIES = [
+      { id: 'cat-1', name: 'Brunch & Cocina', icon: '🥪', order_index: 1 },
+      { id: 'cat-2', name: 'Cafetería de Especialidad', icon: '☕', order_index: 2 }
+    ];
+
+    const INITIAL_TYPES = [
+      { id: 'typ-1', name: 'Salado / Brunch', icon: '🥪', order_index: 1 },
+      { id: 'typ-2', name: 'Bebida Caliente', icon: '☕', order_index: 2 },
+      { id: 'typ-3', name: 'Bebida Fría', icon: '🧊', order_index: 3 },
+      { id: 'typ-4', name: 'Dulce / Postre', icon: '🥐', order_index: 4 }
+    ];
+
+    const INITIAL_PRODUCTS = [
+      {
+        id: 'p1',
+        category_id: 'cat-1',
+        type_id: 'typ-1',
+        title: 'Tostón de Aguacate Trufado',
+        description: 'Pan de masa madre, láminas de aguacate hass, huevo poché orgánico y aceite de trufa blanca.',
+        price: 165.00,
+        media: [{ type: 'image', url: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=800&q=80' }],
+        recommended_product_ids: ['p2']
+      },
+      {
+        id: 'p2',
+        category_id: 'cat-2',
+        type_id: 'typ-2',
+        title: 'Flat White Oaxaca Pluma',
+        description: 'Extracción doble con leche emulsionada aterciopelada y notas a chocolate y avellana.',
+        price: 78.00,
+        media: [{ type: 'image', url: 'https://images.unsplash.com/photo-1577968897966-3d4325b36b61?auto=format&fit=crop&w=800&q=80' }],
+        recommended_product_ids: ['p1']
+      }
+    ];
+
+    const INITIAL_MODIFIERS = [
+      { id: 'm1', name: 'Sin Huevo Poché', price: 0.00, applies_to_products: ['p1', '33333333-3333-3333-3333-333333333331'] },
+      { id: 'm2', name: 'Salsa de Trufa Extra', price: 35.00, applies_to_products: ['p1', '33333333-3333-3333-3333-333333333331'] },
+      { id: 'm3', name: 'Leche de Avena Barista', price: 15.00, applies_to_products: ['p2', '33333333-3333-3333-3333-333333333332'] }
+    ];
+
+    // Variables de Estado
     let currentTable = '01';
-    let restaurantConfig = {};
-    let categoriesList = [];
-    let typesList = [];
-    let productsList = [];
-    let modifiersList = [];
+    let restaurantConfig = INITIAL_RESTAURANT;
+    let categoriesList = INITIAL_CATEGORIES;
+    let typesList = INITIAL_TYPES;
+    let productsList = INITIAL_PRODUCTS;
+    let modifiersList = INITIAL_MODIFIERS;
     let promotionsList = [];
     let activeTypeId = null;
     let activeCategoryId = null;
@@ -235,24 +275,14 @@
     let currentModalProduct = null;
     let selectedModifiers = [];
 
-    // CONTROL DEL BOTÓN MESERO (30s REINTENTO / 3 LLAMADAS = 2m BLOQUEO)
-    let waiterCallCount = 0;
-    let waiterCooldownTimer = null;
-    let isWaiterBlocked = false;
+    // Supabase
+    const SUPABASE_URL = 'https://jmqqkgshwwycercknzgy.supabase.co';
+    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImptcXFrZ3Nod3d5Y2VyY2tuemd5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMzNzYyODUsImV4cCI6MjEwODk1MjI4NX0.tCiRMvl05IXv_IGXIeJ2h9p6AEABRgPofgIRQZMt9UE';
+    let supabaseClient = null;
 
-    // Respaldo local
-    const DEFAULT_CATS = [
-      { id: 'c1', name: 'Brunch & Cocina', icon: '🥪', order_index: 1 },
-      { id: 'c2', name: 'Cafetería de Especialidad', icon: '☕', order_index: 2 }
-    ];
-    const DEFAULT_TYPES = [
-      { id: 't1', name: 'Salado / Brunch', icon: '🥪', order_index: 1 },
-      { id: 't2', name: 'Bebida Caliente', icon: '☕', order_index: 2 }
-    ];
-    const DEFAULT_PRODS = [
-      { id: 'p1', category_id: 'c1', type_id: 't1', title: 'Tostón de Aguacate Trufado', description: 'Pan de masa madre, aguacate hass y huevo poché orgánico.', price: 165.00, media: [{ type: 'image', url: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=800&q=80' }] },
-      { id: 'p2', category_id: 'c2', type_id: 't2', title: 'Flat White Oaxaca Pluma', description: 'Extracción doble con leche emulsionada y notas a avellana.', price: 78.00, media: [{ type: 'image', url: 'https://images.unsplash.com/photo-1577968897966-3d4325b36b61?auto=format&fit=crop&w=800&q=80' }] }
-    ];
+    try {
+      if (window.supabase) supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    } catch(e) {}
 
     function setupUI() {
       const urlParams = new URLSearchParams(window.location.search);
@@ -260,11 +290,9 @@
       if (tableParam) currentTable = tableParam.padStart(2, '0');
       document.getElementById('tableBadge').innerText = `Mesa ${currentTable}`;
 
-      categoriesList = DEFAULT_CATS;
-      typesList = DEFAULT_TYPES;
-      productsList = DEFAULT_PRODS;
-      activeCategoryId = categoriesList[0].id;
+      if (categoriesList.length > 0) activeCategoryId = categoriesList[0].id;
 
+      renderHeaderData();
       renderTypesFilters();
       renderCategoryTabs();
       renderMenu();
@@ -272,31 +300,43 @@
       syncWithSupabase();
     }
 
+    function renderHeaderData() {
+      if (!restaurantConfig) return;
+      document.getElementById('restName').innerText = restaurantConfig.name || 'Café & Bistro Áurea';
+      document.getElementById('restDesc').innerText = restaurantConfig.description || '';
+      if (restaurantConfig.banner_url) document.getElementById('restBanner').src = restaurantConfig.banner_url;
+      if (restaurantConfig.logo_url) document.getElementById('restLogo').src = restaurantConfig.logo_url;
+    }
+
     async function syncWithSupabase() {
       if (!supabaseClient) return;
       try {
-        const [catsRes, typesRes, prodsRes, restRes, promosRes, modsRes] = await Promise.all([
+        const [catsRes, typesRes, prodsRes, modsRes, restRes, promosRes] = await Promise.all([
           supabaseClient.from('categories').select('*').order('order_index', { ascending: true }),
           supabaseClient.from('product_types').select('*').order('order_index', { ascending: true }),
           supabaseClient.from('products').select('*').order('created_at', { ascending: false }),
+          supabaseClient.from('product_modifiers').select('*'),
           supabaseClient.from('restaurants').select('*').limit(1).single(),
-          supabaseClient.from('promotions').select('*').eq('is_active', true),
-          supabaseClient.from('product_modifiers').select('*')
+          supabaseClient.from('promotions').select('*').eq('is_active', true)
         ]);
-
-        if (catsRes?.data?.length > 0) categoriesList = catsRes.data;
-        if (typesRes?.data?.length > 0) typesList = typesRes.data;
-        if (prodsRes?.data?.length > 0) productsList = prodsRes.data;
-        if (promosRes?.data) promotionsList = promosRes.data;
-        if (modsRes?.data) modifiersList = modsRes.data;
 
         if (restRes?.data) {
           restaurantConfig = restRes.data;
-          document.getElementById('restName').innerText = restaurantConfig.name || 'Café & Bistro Áurea';
-          document.getElementById('restDesc').innerText = restaurantConfig.description || '';
-          if (restaurantConfig.banner_url) document.getElementById('restBanner').src = restaurantConfig.banner_url;
-          if (restaurantConfig.logo_url) document.getElementById('restLogo').src = restaurantConfig.logo_url;
+          renderHeaderData();
+          const leftLabel = document.getElementById('navLeftLabel');
+          if (leftLabel) leftLabel.innerText = restaurantConfig.bottom_left_label || 'Promos';
         }
+
+        if (catsRes?.data?.length > 0) {
+          categoriesList = catsRes.data;
+          if (!activeCategoryId || !categoriesList.some(c => c.id === activeCategoryId)) {
+            activeCategoryId = categoriesList[0].id;
+          }
+        }
+        if (typesRes?.data?.length > 0) typesList = typesRes.data;
+        if (prodsRes?.data?.length > 0) productsList = prodsRes.data;
+        if (modsRes?.data?.length > 0) modifiersList = modsRes.data;
+        if (promosRes?.data) promotionsList = promosRes.data;
 
         renderTypesFilters();
         renderCategoryTabs();
@@ -370,8 +410,13 @@
     function selectCategoryTab(catId) {
       activeCategoryId = catId;
       renderCategoryTabs();
-      const target = document.getElementById(`cat-${catId}`);
-      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+      const targetSection = document.getElementById(`cat-${catId}`);
+      if (targetSection) {
+        targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        renderMenu();
+      }
     }
 
     function renderMenu(filterQuery = '') {
@@ -380,13 +425,16 @@
 
       container.innerHTML = categoriesList.map(cat => {
         let items = productsList.filter(p => p.category_id === cat.id);
+
         if (activeTypeId) items = items.filter(p => p.type_id === activeTypeId);
+
         if (query) {
           items = items.filter(p => 
             p.title.toLowerCase().includes(query) || 
             (p.description || '').toLowerCase().includes(query)
           );
         }
+
         if (items.length === 0) return '';
 
         return `
@@ -444,8 +492,8 @@
             <p class="text-xs opacity-90">${p.description || ''}</p>
           </div>
           <div class="relative z-10 pt-3 border-t border-white/20 text-[10px] font-mono opacity-80 flex justify-between">
-            <span>Horario: ${(p.start_time || '00:00').substring(0,5)} - ${(p.end_time || '23:59').substring(0,5)}</span>
-            <span>✓ Se calcula en tu orden</span>
+            <span>Horario: ${p.start_time.substring(0,5)} - ${p.end_time.substring(0,5)}</span>
+            <span>✓ Se aplica en tu orden</span>
           </div>
         </div>
       `).join('');
@@ -545,7 +593,7 @@
         document.getElementById('modalCrossSellSection').classList.remove('hidden');
         crossCont.innerHTML = recProducts.map(rp => `
           <div onclick="openProductModal('${rp.id}')" class="flex-shrink-0 w-32 border border-stone-200 rounded-xl p-2 bg-stone-50 cursor-pointer">
-            <img src="${(rp.media && rp.media[0]) ? rp.media[0].url : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=200&q=80'}" class="w-full h-20 object-cover rounded-lg">
+            <img src="${(rp.media && rp.media[0]) ? rp.media[0].url : ''}" class="w-full h-20 object-cover rounded-lg">
             <p class="font-bold text-xs truncate mt-1.5 text-stone-800">${rp.title}</p>
             <span class="text-xs font-mono font-bold text-amber-700">$${rp.price}</span>
           </div>
@@ -564,13 +612,13 @@
         selectedModifiers.splice(idx, 1);
       } else {
         const modObj = modifiersList.find(m => m.id === modId);
-        if (modObj) selectedModifiers.push(modObj);
+        selectedModifiers.push(modObj);
       }
       updateModalTotal();
     }
 
     function updateModalTotal() {
-      const extrasTotal = selectedModifiers.reduce((acc, m) => acc + Number(m.price || 0), 0);
+      const extrasTotal = selectedModifiers.reduce((acc, m) => acc + Number(m.price), 0);
       const total = Number(currentModalProduct.price) + extrasTotal;
       document.getElementById('modalFinalPrice').innerText = `$${total.toFixed(2)}`;
       document.getElementById('modalAddBtn').onclick = () => {
@@ -584,20 +632,21 @@
       currentModalProduct = null;
     }
 
-    // GESTIÓN DEL CARRITO Y CÁLCULOS
+    // -------------------------------------------------------------
+    // MOTOR DE CÁLCULO DE ORDEN Y DESCUENTOS
+    // -------------------------------------------------------------
+
     function quickAdd(productId) {
       const prod = productsList.find(p => p.id === productId);
       if (prod) addItemToOrder(prod, []);
     }
 
     function addItemToOrder(product, mods = []) {
-      const modsKey = JSON.stringify(mods.map(m => m.id || m.name).sort());
-      const existing = order.find(item => item.product.id === product.id && JSON.stringify(item.modifiers.map(m => m.id || m.name).sort()) === modsKey);
-
+      const existing = order.find(item => item.product.id === product.id && JSON.stringify(item.modifiers) === JSON.stringify(mods));
       if (existing) {
         existing.qty += 1;
       } else {
-        const modsTotal = mods.reduce((acc, m) => acc + Number(m.price || 0), 0);
+        const modsTotal = mods.reduce((acc, m) => acc + Number(m.price), 0);
         order.push({
           instanceId: Date.now() + Math.random(),
           product: product,
@@ -648,7 +697,7 @@
       promotionsList.forEach(p => {
         if (!isPromoValidNow(p)) return;
 
-        // 1. REGLA 2x1 (Multi-pack)
+        // 1. REGLA 2x1 (O Multi-pack X por Y)
         if (p.promo_type === '2x1') {
           const buy = p.buy_qty || 1;
           const get = p.get_qty || 2;
@@ -684,7 +733,7 @@
             }
           }
         }
-        // 3. REGLA PORCENTAJE
+        // 3. REGLA PORCENTAJE DIRECTO
         else if (p.promo_type === 'percentage') {
           const pct = (p.discount_percentage || 20) / 100;
           order.forEach(item => {
@@ -721,7 +770,7 @@
         <div class="py-3 flex justify-between items-center text-xs">
           <div>
             <h4 class="font-bold text-stone-900 text-sm">${item.product.title}</h4>
-            ${item.modifiers && item.modifiers.length > 0 ? `<p class="text-[11px] text-amber-700 font-medium">↳ ${item.modifiers.map(m => m.name).join(', ')}</p>` : ''}
+            ${item.modifiers.length > 0 ? `<p class="text-[11px] text-amber-700 font-medium">↳ ${item.modifiers.map(m => m.name).join(', ')}</p>` : ''}
             <span class="font-mono text-stone-500 font-bold">$${item.unitPrice.toFixed(2)} c/u</span>
           </div>
           <div class="flex items-center gap-3">
@@ -769,151 +818,90 @@
       if (view === 'order') renderOrderSummary();
     }
 
-    function handleNavLeft() { switchView('promos'); }
-
-    // =============================================================
-    // ENVÍO DIRECTO A SUPABASE (SIN WHATSAPP)
-    // =============================================================
-    async function sendOrder() {
-      if (order.length === 0) {
-        alert("Agrega al menos un platillo a tu orden.");
-        return;
+    function handleNavLeft() {
+      if (restaurantConfig.bottom_left_type === 'custom_link' && restaurantConfig.bottom_left_url) {
+        window.open(restaurantConfig.bottom_left_url, '_blank');
+      } else {
+        switchView('promos');
       }
+    }
 
-      const btn = document.getElementById('btnSendOrder');
-      btn.disabled = true;
-      btn.innerHTML = `<span class="animate-spin mr-2">🔄</span> Enviando a cocina...`;
-
+    async function sendOrder() {
+      if (order.length === 0) return;
       const { subtotal, totalDiscount, finalTotal, appliedMessages } = calculateOrderTotals();
-      const customerNotes = document.getElementById('orderCustomerNotes')?.value?.trim() || '';
 
-      const itemsPayload = order.map(it => ({
+      const orderItemsPayload = order.map(it => ({
         id: it.product.id,
         title: it.product.title,
         qty: it.qty,
         price: Number(it.unitPrice),
-        modifiers: (it.modifiers || []).map(m => m.name || m)
+        modifiers: (it.modifiers || []).map(m => m.name)
       }));
 
-      const newOrderPayload = {
-        restaurant_id: REST_ID,
-        table_number: currentTable,
-        items: itemsPayload,
-        subtotal: subtotal,
-        discount: totalDiscount,
-        total: finalTotal,
-        applied_promotions: appliedMessages,
-        customer_notes: customerNotes,
-        status: 'pending',
-        is_archived: false,
-        created_at: new Date().toISOString()
-      };
-
-      let sentSuccess = false;
-
+      // 1. Guardar en Supabase para cocina / KDS
       if (supabaseClient) {
         try {
-          const { error } = await supabaseClient.from('orders').insert([newOrderPayload]);
-          if (!error) {
-            sentSuccess = true;
-          } else {
-            console.error("Error Supabase:", error);
-          }
-        } catch(e) {
-          console.error("Error al enviar orden:", e);
-        }
-      }
-
-      btn.disabled = false;
-      btn.innerHTML = `<span>Confirmar Pedido al Mesero 🛎️</span>`;
-
-      if (sentSuccess) {
-        order = [];
-        document.getElementById('orderCustomerNotes').value = '';
-        updateOrderUI();
-        switchView('menu');
-        alert(`¡Comanda enviada con éxito! La cocina ya recibió tu pedido para la Mesa ${currentTable}.`);
-      } else {
-        alert(`No se pudo enviar la orden en tiempo real a cocina. Verifica la conexión o intenta nuevamente.`);
-      }
-    }
-
-    // =============================================================
-    // LLAMAR MESERO: 30s COOLDOWN / 3 INTENTOS = 2 MIN BLOQUEO
-    // =============================================================
-    async function callWaiter() {
-      const btn = document.getElementById('btnCallWaiter');
-      const text = document.getElementById('waiterBtnText');
-
-      if (isWaiterBlocked || btn.disabled) return;
-
-      waiterCallCount++;
-
-      // Registrar llamada en Supabase
-      if (supabaseClient) {
-        try {
-          await supabaseClient.from('waiter_calls').insert([{
-            restaurant_id: REST_ID,
+          await supabaseClient.from('orders').insert([{
+            restaurant_id: restaurantConfig.id,
             table_number: currentTable,
-            status: 'pending'
+            items: orderItemsPayload,
+            subtotal: subtotal,
+            discount: totalDiscount,
+            total: finalTotal,
+            applied_promotions: appliedMessages,
+            status: 'pending',
+            is_archived: false
           }]);
-        } catch(e) {
-          console.warn("Error llamada mesero:", e);
+        } catch (e) {
+          console.warn("Error guardando orden:", e);
         }
       }
 
-      // Si superó los 3 intentos, bloqueo de 2 minutos (120s)
-      if (waiterCallCount >= 3) {
-        isWaiterBlocked = true;
-        btn.disabled = true;
-        btn.className = "bg-stone-600 text-stone-300 font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition cursor-not-allowed";
-        
-        let remainingSeconds = 120;
-        alert(`Se han enviado 3 alertas al personal. Por favor espera a que se acerquen a la Mesa ${currentTable}.`);
+      // 2. WhatsApp
+      let msg = `*ORDEN DE MESA ${currentTable}*\n\n`;
+      order.forEach((item, idx) => {
+        msg += `${idx + 1}. *${item.qty}x ${item.product.title}* - $${(item.unitPrice * item.qty).toFixed(2)}\n`;
+        if (item.modifiers && item.modifiers.length > 0) {
+          msg += `   └ Extras: ${item.modifiers.map(m => m.name).join(', ')}\n`;
+        }
+      });
 
-        clearInterval(waiterCooldownTimer);
-        waiterCooldownTimer = setInterval(() => {
-          remainingSeconds--;
-          const m = Math.floor(remainingSeconds / 60);
-          const s = remainingSeconds % 60;
-          text.innerText = `Espera ${m}:${s < 10 ? '0' : ''}${s}`;
-
-          if (remainingSeconds <= 0) {
-            clearInterval(waiterCooldownTimer);
-            isWaiterBlocked = false;
-            waiterCallCount = 0;
-            btn.disabled = false;
-            btn.className = "bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 shadow-md transition";
-            text.innerText = "🔔 Mesero";
-          }
-        }, 1000);
-        return;
+      if (totalDiscount > 0) {
+        msg += `\n*Subtotal:* $${subtotal.toFixed(2)}\n`;
+        msg += `*Ahorro Promos:* -$${totalDiscount.toFixed(2)}\n`;
+        appliedMessages.forEach(m => msg += `  └ ${m}\n`);
       }
 
-      // Reintento normal a los 30 segundos
-      btn.disabled = true;
-      btn.className = "bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition";
-      text.innerText = "Mesero llamado ✓";
+      msg += `\n*TOTAL FINAL: $${finalTotal.toFixed(2)} MXN*`;
 
-      let remainingSecs = 30;
-      clearInterval(waiterCooldownTimer);
-      waiterCooldownTimer = setInterval(() => {
-        remainingSecs--;
-        text.innerText = `Llamado (${remainingSecs}s)`;
+      const phone = restaurantConfig.whatsapp_number || '523312345678';
+      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
 
-        if (remainingSecs <= 0) {
-          clearInterval(waiterCooldownTimer);
-          btn.disabled = false;
-          btn.className = "bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 shadow-md transition";
-          text.innerText = "🔔 Mesero";
-        }
-      }, 1000);
+      order = [];
+      updateOrderUI();
+      alert(`¡Comanda enviada a cocina para la Mesa ${currentTable}!`);
     }
 
     function connectWifi() {
       const pass = restaurantConfig.wifi_password || 'Brunch2026';
       navigator.clipboard.writeText(pass);
-      alert(`Red Wi-Fi: ${restaurantConfig.wifi_ssid || 'Invitados'}\nContraseña copiada al portapapeles: ${pass}`);
+      alert(`Wi-Fi: ${restaurantConfig.wifi_ssid || 'Invitados'}\nClave copiada: ${pass}`);
+    }
+
+    async function callWaiter() {
+      const btn = document.getElementById('btnCallWaiter');
+      btn.innerText = "Llamando...";
+      if (supabaseClient) {
+        await supabaseClient.from('waiter_calls').insert([{
+          restaurant_id: restaurantConfig.id,
+          table_number: currentTable,
+          status: 'pending'
+        }]);
+      }
+      setTimeout(() => {
+        btn.innerText = "Mesero en camino ✓";
+        alert(`Mesero llamado para la Mesa ${currentTable}.`);
+      }, 400);
     }
 
     window.onload = setupUI;
