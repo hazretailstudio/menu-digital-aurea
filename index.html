@@ -39,11 +39,11 @@
       </div>
 
       <div class="flex items-center gap-2">
-        <button onclick="connectWifi()" class="bg-black/40 hover:bg-black/60 backdrop-blur-md active:scale-95 text-stone-200 px-2.5 py-1.5 rounded-xl text-xs flex items-center gap-1.5 border border-white/15 transition shadow-sm">
+        <button onclick="window.connectWifi()" class="bg-black/40 hover:bg-black/60 backdrop-blur-md active:scale-95 text-stone-200 px-2.5 py-1.5 rounded-xl text-xs flex items-center gap-1.5 border border-white/15 transition shadow-sm">
           <span>📶 Wi-Fi</span>
         </button>
 
-        <button id="btnCallWaiter" onclick="callWaiter()" class="bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 shadow-md transition">
+        <button id="btnCallWaiter" onclick="window.callWaiter()" class="bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 shadow-md transition">
           <span id="waiterBtnText">🔔 Mesero</span>
         </button>
       </div>
@@ -75,9 +75,7 @@
     </div>
   </header>
 
-  <!-- ========================================================================= -->
   <!-- TRACKER DE PEDIDO EN CURSO (SI YA EXISTE PEDIDO EN ESTA MESA) -->
-  <!-- ========================================================================= -->
   <div id="liveOrderTracker" class="hidden px-4 pt-4 max-w-lg mx-auto">
     <div class="bg-white border-2 border-amber-500/40 rounded-3xl p-4 shadow-md space-y-3 relative overflow-hidden">
       <div class="flex justify-between items-start border-b border-stone-100 pb-2.5">
@@ -110,15 +108,15 @@
 
       <!-- BOTONES DE ACCIÓN: MODIFICAR / DIVIDIR / WHATSAPP -->
       <div class="grid grid-cols-2 gap-2 pt-1 text-xs font-bold">
-        <button id="btnClientModifyOrder" onclick="handleClientModifyOrder()" class="p-2.5 rounded-xl border border-stone-300 bg-stone-50 hover:bg-stone-100 text-stone-800 transition flex items-center justify-center gap-1.5 shadow-xs">
+        <button id="btnClientModifyOrder" onclick="window.handleClientModifyOrder()" class="p-2.5 rounded-xl border border-stone-300 bg-stone-50 hover:bg-stone-100 text-stone-800 transition flex items-center justify-center gap-1.5 shadow-xs">
           <span>✏️ Modificar</span>
         </button>
-        <button onclick="openSplitBillModal()" class="p-2.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-950 transition flex items-center justify-center gap-1.5 shadow-xs">
+        <button onclick="window.openSplitBillModal()" class="p-2.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-950 transition flex items-center justify-center gap-1.5 shadow-xs">
           <span>👥 Dividir Cuenta</span>
         </button>
       </div>
 
-      <button onclick="sendTicketToMyWhatsApp()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition active:scale-95">
+      <button onclick="window.sendTicketToMyWhatsApp()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition active:scale-95">
         <span>📲 Enviar Recibo a mi WhatsApp</span>
       </button>
     </div>
@@ -128,8 +126,8 @@
   <div class="px-4 pt-4 max-w-lg mx-auto">
     <div class="relative flex items-center bg-white rounded-2xl shadow-sm border border-stone-200/80 px-3.5 py-2.5">
       <span class="text-stone-400 mr-2.5 text-sm">🔍</span>
-      <input type="text" id="searchInput" oninput="handleSearch(this.value)" placeholder="Busca por platillo o ingrediente..." class="w-full text-sm bg-transparent outline-none placeholder-stone-400">
-      <button id="clearSearch" onclick="clearSearchInput()" class="hidden text-stone-400 hover:text-stone-600 font-bold px-1">✕</button>
+      <input type="text" id="searchInput" oninput="window.handleSearch(this.value)" placeholder="Busca por platillo o ingrediente..." class="w-full text-sm bg-transparent outline-none placeholder-stone-400">
+      <button id="clearSearch" onclick="window.clearSearchInput()" class="hidden text-stone-400 hover:text-stone-600 font-bold px-1">✕</button>
     </div>
     <div id="predictiveBox" class="hidden mt-1.5 bg-white rounded-xl shadow-lg border border-stone-100 p-2 text-xs divide-y divide-stone-100 z-30 relative"></div>
   </div>
@@ -191,17 +189,17 @@
         <span id="orderTotal">$0.00 MXN</span>
       </div>
 
-      <!-- BOTÓN DIRECTO AL PANEL KDS DE COCINA (SIN WHATSAPP) -->
-      <button onclick="sendOrder()" id="btnSendOrder" class="w-full mt-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition shadow-md">
+      <!-- BOTÓN DIRECTO AL PANEL KDS DE COCINA -->
+      <button onclick="window.sendOrder()" id="btnSendOrder" class="w-full mt-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition shadow-md">
         <span>Confirmar Pedido al Mesero 🛎️</span>
       </button>
     </div>
   </section>
 
-  <!-- MODAL BOTTOM-SHEET DETALLE DE PRODUCTO MULTIMEDIA -->
+  <!-- MODAL DETALLE DE PRODUCTO -->
   <div id="productModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-end sm:items-center justify-center">
     <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl max-h-[90vh] overflow-y-auto no-scrollbar flex flex-col relative">
-      <button onclick="closeProductModal()" class="absolute top-4 right-4 z-20 bg-black/50 text-white p-2 rounded-full active:scale-95 w-8 h-8 flex items-center justify-center font-bold">
+      <button onclick="window.closeProductModal()" class="absolute top-4 right-4 z-20 bg-black/50 text-white p-2 rounded-full active:scale-95 w-8 h-8 flex items-center justify-center font-bold">
         ✕
       </button>
 
@@ -239,9 +237,7 @@
     </div>
   </div>
 
-  <!-- ========================================================================= -->
-  <!-- MODAL DIVIDIR CUENTA (CLIENTE / EN MESA) -->
-  <!-- ========================================================================= -->
+  <!-- MODAL DIVIDIR CUENTA -->
   <div id="splitBillModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
     <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto no-scrollbar">
       <div class="flex justify-between items-center border-b pb-3">
@@ -251,15 +247,14 @@
           </h3>
           <p class="text-xs text-stone-500">Mesa <span id="splitModalTableBadge">01</span> • Total: <b id="splitModalTotalBadge" class="text-stone-900 font-mono">$0.00</b></p>
         </div>
-        <button onclick="closeSplitBillModal()" class="text-stone-400 hover:text-stone-700 font-bold text-lg p-1">✕</button>
+        <button onclick="window.closeSplitBillModal()" class="text-stone-400 hover:text-stone-700 font-bold text-lg p-1">✕</button>
       </div>
 
-      <!-- Selector de Modo de División -->
       <div class="grid grid-cols-2 gap-2 text-xs font-bold">
-        <button id="btnSplitEqual" onclick="selectSplitMode('equal')" class="p-3 border-2 border-amber-600 bg-amber-50 rounded-2xl text-amber-950 text-center transition font-bold shadow-xs">
+        <button id="btnSplitEqual" onclick="window.selectSplitMode('equal')" class="p-3 border-2 border-amber-600 bg-amber-50 rounded-2xl text-amber-950 text-center transition font-bold shadow-xs">
           ⚖️ Partes Iguales
         </button>
-        <button id="btnSplitItems" onclick="selectSplitMode('by_person')" class="p-3 border-2 border-stone-200 bg-white rounded-2xl text-stone-700 text-center transition font-bold">
+        <button id="btnSplitItems" onclick="window.selectSplitMode('by_person')" class="p-3 border-2 border-stone-200 bg-white rounded-2xl text-stone-700 text-center transition font-bold">
           👤 Por Comensal
         </button>
       </div>
@@ -268,7 +263,7 @@
       <div id="splitEqualArea" class="space-y-3 pt-1 text-xs">
         <label class="block font-semibold text-stone-700">¿Entre cuántas personas se divide?</label>
         <div class="flex items-center gap-3">
-          <input type="number" id="splitCountInput" value="3" min="2" max="30" oninput="calculateEqualSplit()" class="border-2 rounded-2xl p-2.5 text-center font-black text-lg w-24 bg-stone-50 outline-none focus:border-amber-600">
+          <input type="number" id="splitCountInput" value="3" min="2" max="30" oninput="window.calculateEqualSplit()" class="border-2 rounded-2xl p-2.5 text-center font-black text-lg w-24 bg-stone-50 outline-none focus:border-amber-600">
           <div>
             <span class="text-stone-400 block text-[11px]">Le toca a cada uno:</span>
             <span id="equalSplitPerPerson" class="text-xl font-black font-mono text-emerald-700">$0.00 MXN</span>
@@ -277,11 +272,11 @@
         <div id="equalPersonsBreakdown" class="space-y-1.5 pt-2 border-t text-[11px] text-stone-600"></div>
       </div>
 
-      <!-- MODO 2: POR COMENSAL (CADA QUIEN LO SUYO) -->
+      <!-- MODO 2: POR COMENSAL -->
       <div id="splitByPersonArea" class="hidden space-y-3 pt-1 text-xs">
         <div class="flex gap-2">
           <input type="text" id="splitPersonNameInput" placeholder="Nombre del comensal (ej. Sofía)..." class="border rounded-xl px-3 py-2 text-xs flex-grow outline-none focus:border-amber-600">
-          <button onclick="addSplitPerson()" class="bg-stone-900 text-white font-bold px-3.5 py-2 rounded-xl text-xs shadow-xs">
+          <button onclick="window.addSplitPerson()" class="bg-stone-900 text-white font-bold px-3.5 py-2 rounded-xl text-xs shadow-xs">
             + Añadir
           </button>
         </div>
@@ -301,7 +296,7 @@
       </div>
 
       <div class="pt-3 border-t flex justify-end gap-2">
-        <button onclick="saveSplitBill()" class="w-full bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-bold py-3.5 rounded-xl text-xs shadow-md transition">
+        <button onclick="window.saveSplitBill()" class="w-full bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-bold py-3.5 rounded-xl text-xs shadow-md transition">
           Confirmar División de Cuenta ✓
         </button>
       </div>
@@ -311,17 +306,17 @@
   <!-- NAVEGACIÓN INFERIOR (3 SECCIONES) -->
   <nav class="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-stone-200 max-w-lg mx-auto">
     <div class="grid grid-cols-3 h-16 items-center text-center">
-      <button id="navLeftBtn" onclick="handleNavLeft()" class="flex flex-col items-center justify-center gap-1 text-stone-500 hover:text-amber-600 transition">
+      <button id="navLeftBtn" onclick="window.handleNavLeft()" class="flex flex-col items-center justify-center gap-1 text-stone-500 hover:text-amber-600 transition">
         <span class="text-lg">🏷️</span>
         <span id="navLeftLabel" class="text-[11px] font-semibold">Promos</span>
       </button>
 
-      <button id="navMenuBtn" onclick="switchView('menu')" class="flex flex-col items-center justify-center gap-1 text-amber-600 font-bold transition">
+      <button id="navMenuBtn" onclick="window.switchView('menu')" class="flex flex-col items-center justify-center gap-1 text-amber-600 font-bold transition">
         <span class="text-lg">📖</span>
         <span class="text-[11px]">Menú</span>
       </button>
 
-      <button id="navOrderBtn" onclick="switchView('order')" class="flex flex-col items-center justify-center gap-1 text-stone-500 hover:text-amber-600 transition relative">
+      <button id="navOrderBtn" onclick="window.switchView('order')" class="flex flex-col items-center justify-center gap-1 text-stone-500 hover:text-amber-600 transition relative">
         <div class="relative">
           <span class="text-lg">🛍️</span>
           <span id="navOrderBadge" class="hidden absolute -top-1.5 -right-2 bg-amber-600 text-white rounded-full text-[10px] font-bold w-4 h-4 flex items-center justify-center">0</span>
@@ -331,948 +326,7 @@
     </div>
   </nav>
 
-  <!-- JAVASCRIPT NATIVO ROBUSTO -->
-  <script>
-    const REST_ID = 'b47a9880-9fd3-4c9b-b05b-86ea8f0d014d';
-    const SUPABASE_URL = 'https://jmqqkgshwwycercknzgy.supabase.co';
-    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImptcXFrZ3Nod3d5Y2VyY2tuemd5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMzNzYyODUsImV4cCI6MjEwODk1MjI4NX0.tCiRMvl05IXv_IGXIeJ2h9p6AEABRgPofgIRQZMt9UE';
-    
-    let supabaseClient = null;
-    try {
-      if (window.supabase) supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-    } catch(e) {
-      console.warn("Supabase client init error:", e);
-    }
-
-    let currentTable = '01';
-    let restaurantConfig = {};
-    let categoriesList = [];
-    let typesList = [];
-    let productsList = [];
-    let modifiersList = [];
-    let promotionsList = [];
-    let activeTypeId = null;
-    let activeCategoryId = null;
-    let order = [];
-    let currentModalProduct = null;
-    let selectedModifiers = [];
-
-    // Monitoreo de Orden Activa de la Mesa
-    let currentActiveOrder = null;
-
-    // Control Mesero (Cooldown 30s / Bloqueo tras 3 llamadas por 2 min)
-    let waiterCallCount = 0;
-    let waiterCooldownTimer = null;
-    let isWaiterBlocked = false;
-
-    // Control División de Cuenta
-    let currentSplitMode = 'equal';
-    let splitPersonsList = [];
-
-    // Respaldos locales
-    const DEFAULT_CATS = [
-      { id: 'c1', name: 'Brunch & Cocina', icon: '🥪', order_index: 1 },
-      { id: 'c2', name: 'Cafetería de Especialidad', icon: '☕', order_index: 2 }
-    ];
-    const DEFAULT_TYPES = [
-      { id: 't1', name: 'Salado / Brunch', icon: '🥪', order_index: 1 },
-      { id: 't2', name: 'Bebida Caliente', icon: '☕', order_index: 2 }
-    ];
-    const DEFAULT_PRODS = [
-      { id: 'p1', category_id: 'c1', type_id: 't1', title: 'Tostón de Aguacate Trufado', description: 'Pan de masa madre, aguacate hass y huevo poché orgánico.', price: 165.00, media: [{ type: 'image', url: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=800&q=80' }] },
-      { id: 'p2', category_id: 'c2', type_id: 't2', title: 'Flat White Oaxaca Pluma', description: 'Extracción doble con leche emulsionada y notas a avellana.', price: 78.00, media: [{ type: 'image', url: 'https://images.unsplash.com/photo-1577968897966-3d4325b36b61?auto=format&fit=crop&w=800&q=80' }] }
-    ];
-
-    function setupUI() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const tableParam = urlParams.get('mesa') || urlParams.get('table');
-      if (tableParam) currentTable = tableParam.padStart(2, '0');
-      document.getElementById('tableBadge').innerText = `Mesa ${currentTable}`;
-
-      categoriesList = DEFAULT_CATS;
-      typesList = DEFAULT_TYPES;
-      productsList = DEFAULT_PRODS;
-      activeCategoryId = categoriesList[0].id;
-
-      renderTypesFilters();
-      renderCategoryTabs();
-      renderMenu();
-
-      syncWithSupabase();
-      checkActiveTableOrder();
-    }
-
-    async function syncWithSupabase() {
-      if (!supabaseClient) return;
-      try {
-        const [catsRes, typesRes, prodsRes, restRes, promosRes, modsRes] = await Promise.all([
-          supabaseClient.from('categories').select('*').order('order_index', { ascending: true }),
-          supabaseClient.from('product_types').select('*').order('order_index', { ascending: true }),
-          supabaseClient.from('products').select('*').order('created_at', { ascending: false }),
-          supabaseClient.from('restaurants').select('*').limit(1).single(),
-          supabaseClient.from('promotions').select('*').eq('is_active', true),
-          supabaseClient.from('product_modifiers').select('*')
-        ]);
-
-        if (catsRes?.data?.length > 0) categoriesList = catsRes.data;
-        if (typesRes?.data?.length > 0) typesList = typesRes.data;
-        if (prodsRes?.data?.length > 0) productsList = prodsRes.data;
-        if (promosRes?.data) promotionsList = promosRes.data;
-        if (modsRes?.data) modifiersList = modsRes.data;
-
-        if (restRes?.data) {
-          restaurantConfig = restRes.data;
-          document.getElementById('restName').innerText = restaurantConfig.name || 'Café & Bistro Áurea';
-          document.getElementById('restDesc').innerText = restaurantConfig.description || '';
-          if (restaurantConfig.banner_url) document.getElementById('restBanner').src = restaurantConfig.banner_url;
-          if (restaurantConfig.logo_url) document.getElementById('restLogo').src = restaurantConfig.logo_url;
-        }
-
-        renderTypesFilters();
-        renderCategoryTabs();
-        renderMenu();
-        renderPromotionsPage();
-
-        // Suscripción Realtime a Órdenes para actualizar estado de la mesa en vivo
-        supabaseClient
-          .channel('public_table_sync_' + currentTable)
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, async () => {
-            await checkActiveTableOrder();
-          })
-          .subscribe();
-
-      } catch (err) {
-        console.warn("Usando datos locales:", err);
-      }
-    }
-
-    // =========================================================================
-    // SEGUIMIENTO DE COMANDA EN MESA Y CONTROL DE MODIFICACIÓN / BLOQUEO
-    // =========================================================================
-    async function checkActiveTableOrder() {
-      if (!supabaseClient) return;
-      try {
-        const { data, error } = await supabaseClient
-          .from('orders')
-          .select('*')
-          .eq('table_number', currentTable)
-          .neq('status', 'paid')
-          .neq('status', 'cancelled')
-          .eq('is_archived', false)
-          .order('created_at', { ascending: false })
-          .limit(1);
-
-        if (!error && data && data.length > 0) {
-          currentActiveOrder = data[0];
-          renderLiveOrderTracker();
-        } else {
-          currentActiveOrder = null;
-          document.getElementById('liveOrderTracker').classList.add('hidden');
-        }
-      } catch(e) {
-        console.warn("Check table order error:", e);
-      }
-    }
-
-    function renderLiveOrderTracker() {
-      if (!currentActiveOrder) return;
-      const tracker = document.getElementById('liveOrderTracker');
-      tracker.classList.remove('hidden');
-
-      document.getElementById('trackerOrderId').innerText = `#${(currentActiveOrder.id || '').substring(0,6)}`;
-      document.getElementById('trackerTotalAmount').innerText = `$${Number(currentActiveOrder.total).toFixed(2)} MXN`;
-
-      const statusBadge = document.getElementById('trackerStatusBadge');
-      const btnModify = document.getElementById('btnClientModifyOrder');
-
-      if (currentActiveOrder.status === 'pending') {
-        statusBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300';
-        statusBadge.innerText = '🟡 1. Recibida en Cocina';
-        btnModify.className = 'p-2.5 rounded-xl border border-stone-300 bg-stone-50 hover:bg-stone-100 text-stone-800 transition flex items-center justify-center gap-1.5 shadow-xs';
-        btnModify.innerText = '✏️ Modificar Pedido';
-      } else if (currentActiveOrder.status === 'preparing') {
-        statusBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-900 border border-orange-300 animate-pulse';
-        statusBadge.innerText = '🟠 2. En Preparación';
-        btnModify.className = 'p-2.5 rounded-xl border border-stone-200 bg-stone-100 text-stone-400 cursor-not-allowed transition flex items-center justify-center gap-1.5 shadow-xs';
-        btnModify.innerText = '🔒 En Cocina (No editable)';
-      } else if (currentActiveOrder.status === 'delivered') {
-        statusBadge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-900 border border-blue-300';
-        statusBadge.innerText = '🔵 3. Servida en Mesa';
-        btnModify.className = 'p-2.5 rounded-xl border border-stone-200 bg-stone-100 text-stone-400 cursor-not-allowed transition flex items-center justify-center gap-1.5 shadow-xs';
-        btnModify.innerText = '🔒 Servido en Mesa';
-      }
-
-      // Desglose de platillos
-      const items = Array.isArray(currentActiveOrder.items) ? currentActiveOrder.items : [];
-      document.getElementById('trackerItemsList').innerHTML = items.map(it => `
-        <div class="flex justify-between items-center py-1.5">
-          <div>
-            <span class="font-bold text-stone-900">${it.qty}x ${it.title}</span>
-            ${it.modifiers && it.modifiers.length > 0 ? `<p class="text-[10px] text-amber-800 font-semibold">↳ ${it.modifiers.join(', ')}</p>` : ''}
-          </div>
-          <span class="font-mono font-bold text-stone-700">$${(Number(it.price) * it.qty).toFixed(2)}</span>
-        </div>
-      `).join('');
-
-      // Desglose de split si existe
-      const splitBadge = document.getElementById('trackerSplitSummaryBadge');
-      const splitText = document.getElementById('trackerSplitSummaryText');
-      if (currentActiveOrder.split_type && currentActiveOrder.split_type !== 'single' && currentActiveOrder.split_details) {
-        splitBadge.classList.remove('hidden');
-        splitText.innerText = currentActiveOrder.split_type === 'equal' 
-          ? `Partes iguales (${currentActiveOrder.split_details.length} comensales)` 
-          : `Por comensal (${currentActiveOrder.split_details.length} personas)`;
-      } else {
-        splitBadge.classList.add('hidden');
-      }
-    }
-
-    function handleClientModifyOrder() {
-      if (!currentActiveOrder) return;
-      if (currentActiveOrder.status === 'preparing' || currentActiveOrder.status === 'delivered') {
-        alert("Tu orden ya se encuentra en cocina o servida en mesa y no puede ser modificada directamente desde la pantalla.\n\nSe ha enviado una llamada al mesero para que asista a tu mesa de inmediato.");
-        callWaiter();
-        return;
-      }
-
-      // Si está en pending: cargar la orden en el carrito para editar
-      order = (currentActiveOrder.items || []).map(it => {
-        const prod = productsList.find(p => p.id === it.id) || { id: it.id, title: it.title, price: it.price };
-        return {
-          instanceId: Date.now() + Math.random(),
-          product: prod,
-          qty: it.qty,
-          modifiers: (it.modifiers || []).map(m => ({ name: m, price: 0 })),
-          unitPrice: Number(it.price)
-        };
-      });
-
-      updateOrderUI();
-      switchView('order');
-      alert("Puedes modificar las cantidades, agregar nuevos platillos y presionar 'Confirmar Pedido' para actualizar.");
-    }
-
-    // =========================================================================
-    // ENVIAR RECIBO A MI PROPIO WHATSAPP
-    // =========================================================================
-    function sendTicketToMyWhatsApp() {
-      if (!currentActiveOrder) return;
-      const total = Number(currentActiveOrder.total).toFixed(2);
-      const items = Array.isArray(currentActiveOrder.items) ? currentActiveOrder.items : [];
-
-      let msg = `*RECIBO DE CONSUMO - CAFÉ & BISTRO ÁUREA*\n`;
-      msg += `📍 Mesa ${currentActiveOrder.table_number} | Fecha: ${new Date(currentActiveOrder.created_at).toLocaleDateString()}\n`;
-      msg += `Folio: #${(currentActiveOrder.id || '').substring(0,6)}\n`;
-      msg += `------------------------------------\n`;
-
-      items.forEach((it, idx) => {
-        msg += `${idx + 1}. *${it.qty}x ${it.title}* - $${(Number(it.price) * it.qty).toFixed(2)}\n`;
-        if (it.modifiers && it.modifiers.length > 0) {
-          msg += `   └ Extras: ${it.modifiers.join(', ')}\n`;
-        }
-      });
-
-      msg += `------------------------------------\n`;
-      msg += `*TOTAL A PAGAR: $${total} MXN*\n\n`;
-
-      if (currentActiveOrder.split_type && currentActiveOrder.split_type !== 'single' && currentActiveOrder.split_details) {
-        msg += `*División de Cuenta:*\n`;
-        currentActiveOrder.split_details.forEach(p => {
-          msg += `• ${p.name}: $${Number(p.amount).toFixed(2)} ${p.paid ? '(Pagado)' : ''}\n`;
-        });
-        msg += `\n`;
-      }
-
-      msg += `¡Gracias por visitarnos! ✨`;
-      window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
-    }
-
-    // =========================================================================
-    // MODAL Y LÓGICA DE DIVIDIR CUENTA (SPLIT BILL)
-    // =========================================================================
-    function openSplitBillModal() {
-      if (!currentActiveOrder) {
-        alert("Aún no tienes una comanda activa en esta mesa.");
-        return;
-      }
-      document.getElementById('splitModalTableBadge').innerText = currentActiveOrder.table_number;
-      document.getElementById('splitModalTotalBadge').innerText = `$${Number(currentActiveOrder.total).toFixed(2)} MXN`;
-      
-      selectSplitMode('equal');
-      document.getElementById('splitBillModal').classList.remove('hidden');
-    }
-
-    function closeSplitBillModal() {
-      document.getElementById('splitBillModal').classList.add('hidden');
-    }
-
-    function selectSplitMode(mode) {
-      currentSplitMode = mode;
-      const btnEqual = document.getElementById('btnSplitEqual');
-      const btnItems = document.getElementById('btnSplitItems');
-      const areaEqual = document.getElementById('splitEqualArea');
-      const areaItems = document.getElementById('splitByPersonArea');
-
-      if (mode === 'equal') {
-        btnEqual.className = 'p-3 border-2 border-amber-600 bg-amber-50 rounded-2xl text-amber-950 text-center transition font-bold shadow-xs';
-        btnItems.className = 'p-3 border-2 border-stone-200 bg-white rounded-2xl text-stone-700 text-center transition font-bold';
-        areaEqual.classList.remove('hidden');
-        areaItems.classList.add('hidden');
-        calculateEqualSplit();
-      } else {
-        btnItems.className = 'p-3 border-2 border-amber-600 bg-amber-50 rounded-2xl text-amber-950 text-center transition font-bold shadow-xs';
-        btnEqual.className = 'p-3 border-2 border-stone-200 bg-white rounded-2xl text-stone-700 text-center transition font-bold';
-        areaItems.classList.remove('hidden');
-        areaEqual.classList.add('hidden');
-        renderSplitByPersonSetup();
-      }
-    }
-
-    function calculateEqualSplit() {
-      if (!currentActiveOrder) return;
-      const count = Math.max(2, parseInt(document.getElementById('splitCountInput').value) || 2);
-      const total = Number(currentActiveOrder.total || 0);
-      const perPerson = (total / count).toFixed(2);
-      document.getElementById('equalSplitPerPerson').innerText = `$${perPerson} MXN`;
-
-      const breakdown = document.getElementById('equalPersonsBreakdown');
-      breakdown.innerHTML = Array.from({ length: count }, (_, i) => `
-        <div class="flex justify-between py-1 border-b border-stone-100">
-          <span>Comensal ${i + 1}:</span>
-          <b class="font-mono text-stone-900">$${perPerson}</b>
-        </div>
-      `).join('');
-    }
-
-    function renderSplitByPersonSetup() {
-      if (splitPersonsList.length === 0) {
-        splitPersonsList = [
-          { name: 'Comensal 1', items: [] },
-          { name: 'Comensal 2', items: [] }
-        ];
-      }
-      renderSplitPersonsCards();
-    }
-
-    function addSplitPerson() {
-      const input = document.getElementById('splitPersonNameInput');
-      const name = input.value.trim() || `Comensal ${splitPersonsList.length + 1}`;
-      splitPersonsList.push({ name, items: [] });
-      input.value = '';
-      renderSplitPersonsCards();
-    }
-
-    function removeSplitPerson(idx) {
-      if (splitPersonsList.length <= 2) { alert("Debe haber al menos 2 personas."); return; }
-      splitPersonsList.splice(idx, 1);
-      renderSplitPersonsCards();
-    }
-
-    function renderSplitPersonsCards() {
-      const cont = document.getElementById('splitPersonsList');
-      const orderItems = currentActiveOrder?.items || [];
-
-      cont.innerHTML = splitPersonsList.map((person, pIdx) => {
-        const personTotal = person.items.reduce((acc, it) => acc + (it.price * it.qty), 0);
-
-        return `
-          <div class="border rounded-2xl p-3 bg-stone-50 space-y-2 text-xs">
-            <div class="flex justify-between items-center border-b border-stone-200/60 pb-1.5">
-              <span class="font-black text-stone-900 text-sm">${person.name}</span>
-              <div class="flex items-center gap-2">
-                <span class="font-mono font-bold text-emerald-700">$${personTotal.toFixed(2)}</span>
-                <button onclick="removeSplitPerson(${pIdx})" class="text-rose-500 font-bold p-1">✕</button>
-              </div>
-            </div>
-
-            <!-- Asignar platillo a esta persona -->
-            <div class="flex gap-1.5 items-center">
-              <select id="personItemSelect_${pIdx}" class="text-[11px] border rounded-lg p-1.5 bg-white flex-grow">
-                ${orderItems.map((it, itIdx) => `<option value="${itIdx}">${it.qty}x ${it.title} ($${Number(it.price).toFixed(2)})</option>`).join('')}
-              </select>
-              <button onclick="assignItemToPerson(${pIdx})" class="bg-stone-900 text-white font-bold px-2.5 py-1.5 rounded-lg text-[10px]">
-                + Asignar
-              </button>
-            </div>
-
-            <!-- Platillos asignados -->
-            <div class="space-y-1 pt-1">
-              ${person.items.map((it, itIdx) => `
-                <div class="flex justify-between items-center bg-white p-1.5 rounded-lg border text-[11px]">
-                  <span>${it.qty}x ${it.title}</span>
-                  <div class="flex items-center gap-2">
-                    <span class="font-mono font-bold">$${(it.price * it.qty).toFixed(2)}</span>
-                    <button onclick="unassignItemFromPerson(${pIdx}, ${itIdx})" class="text-rose-600 font-bold">×</button>
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      // Calcular totales asignados vs total de la mesa
-      const totalOrder = Number(currentActiveOrder?.total || 0);
-      const totalAssigned = splitPersonsList.reduce((acc, p) => acc + p.items.reduce((iAcc, it) => iAcc + (it.price * it.qty), 0), 0);
-      const remaining = Math.max(0, totalOrder - totalAssigned);
-
-      document.getElementById('splitAssignedTotal').innerText = `$${totalAssigned.toFixed(2)} MXN`;
-      document.getElementById('splitRemainingTotal').innerText = `$${remaining.toFixed(2)} MXN`;
-    }
-
-    function assignItemToPerson(pIdx) {
-      const select = document.getElementById(`personItemSelect_${pIdx}`);
-      const itIdx = parseInt(select.value);
-      const orderItem = currentActiveOrder?.items[itIdx];
-      if (!orderItem) return;
-
-      const existing = splitPersonsList[pIdx].items.find(i => i.title === orderItem.title);
-      if (existing) {
-        existing.qty += 1;
-      } else {
-        splitPersonsList[pIdx].items.push({ title: orderItem.title, price: Number(orderItem.price), qty: 1 });
-      }
-      renderSplitPersonsCards();
-    }
-
-    function unassignItemFromPerson(pIdx, itIdx) {
-      splitPersonsList[pIdx].items.splice(itIdx, 1);
-      renderSplitPersonsCards();
-    }
-
-    async function saveSplitBill() {
-      if (!currentActiveOrder) return;
-
-      let splitDetails = [];
-      const totalOrder = Number(currentActiveOrder.total || 0);
-
-      if (currentSplitMode === 'equal') {
-        const count = Math.max(2, parseInt(document.getElementById('splitCountInput').value) || 2);
-        const perPerson = Number((totalOrder / count).toFixed(2));
-        for (let i = 1; i <= count; i++) {
-          splitDetails.push({ name: `Comensal ${i}`, amount: perPerson, paid: false, items: [] });
-        }
-      } else {
-        splitDetails = splitPersonsList.map(p => ({
-          name: p.name,
-          amount: Number(p.items.reduce((acc, it) => acc + (it.price * it.qty), 0).toFixed(2)),
-          paid: false,
-          items: p.items
-        }));
-      }
-
-      currentActiveOrder.split_type = currentSplitMode;
-      currentActiveOrder.split_details = splitDetails;
-
-      if (supabaseClient) {
-        try {
-          await supabaseClient.from('orders').update({
-            split_type: currentSplitMode,
-            split_details: splitDetails
-          }).eq('id', currentActiveOrder.id);
-        } catch(e) {
-          console.warn("Error guardando split bill:", e);
-        }
-      }
-
-      renderLiveOrderTracker();
-      closeSplitBillModal();
-      alert("¡Cuenta dividida con éxito! El mesero y la caja ya tienen el desglose en sus pantallas.");
-    }
-
-    // =========================================================================
-    // CARRITO Y ENVÍO DE PEDIDO (NATIVO A SUPABASE, SIN WHATSAPP)
-    // =========================================================================
-    function quickAdd(productId) {
-      const prod = productsList.find(p => p.id === productId);
-      if (prod) addItemToOrder(prod, []);
-    }
-
-    function addItemToOrder(product, mods = []) {
-      const modsKey = JSON.stringify(mods.map(m => m.id || m.name).sort());
-      const existing = order.find(item => item.product.id === product.id && JSON.stringify(item.modifiers.map(m => m.id || m.name).sort()) === modsKey);
-
-      if (existing) {
-        existing.qty += 1;
-      } else {
-        const modsTotal = mods.reduce((acc, m) => acc + Number(m.price || 0), 0);
-        order.push({
-          instanceId: Date.now() + Math.random(),
-          product: product,
-          qty: 1,
-          modifiers: [...mods],
-          unitPrice: Number(product.price) + modsTotal
-        });
-      }
-      updateOrderUI();
-    }
-
-    function updateOrderUI() {
-      const badge = document.getElementById('navOrderBadge');
-      const countBadge = document.getElementById('orderItemsCountBadge');
-      const totalQty = order.reduce((acc, it) => acc + it.qty, 0);
-
-      if (totalQty > 0) {
-        badge.innerText = totalQty;
-        badge.classList.remove('hidden');
-        if (countBadge) countBadge.innerText = `${totalQty} ítems`;
-      } else {
-        badge.classList.add('hidden');
-        if (countBadge) countBadge.innerText = `0 ítems`;
-      }
-      renderOrderSummary();
-    }
-
-    function calculateOrderTotals() {
-      let subtotal = 0;
-      order.forEach(item => { subtotal += item.unitPrice * item.qty; });
-
-      let totalDiscount = 0;
-      let appliedMessages = [];
-
-      promotionsList.forEach(p => {
-        if (!p.is_active) return;
-        if (p.promo_type === '2x1') {
-          const buy = p.buy_qty || 1;
-          const get = p.get_qty || 2;
-          const freePerBundle = get - buy;
-
-          order.forEach(item => {
-            if (item.qty >= get) {
-              const bundles = Math.floor(item.qty / get);
-              const freeUnits = bundles * freePerBundle;
-              const discountAmount = freeUnits * Number(item.product.price);
-              totalDiscount += discountAmount;
-              appliedMessages.push(`Promo 2x1: ${freeUnits}x ${item.product.title} GRATIS (-$${discountAmount.toFixed(2)})`);
-            }
-          });
-        }
-      });
-
-      const finalTotal = Math.max(0, subtotal - totalDiscount);
-      return { subtotal, totalDiscount, finalTotal, appliedMessages };
-    }
-
-    function renderOrderSummary() {
-      const cont = document.getElementById('orderItemsList');
-      if (order.length === 0) {
-        cont.innerHTML = '<p class="text-sm text-stone-400 py-6 text-center">Tu orden está vacía.</p>';
-        document.getElementById('orderSubtotal').innerText = '$0.00';
-        document.getElementById('orderTotal').innerText = '$0.00 MXN';
-        document.getElementById('appliedDiscountsBox').classList.add('hidden');
-        document.getElementById('orderDiscountRow').classList.add('hidden');
-        return;
-      }
-
-      cont.innerHTML = order.map((item, idx) => `
-        <div class="py-3 flex justify-between items-center text-xs">
-          <div>
-            <h4 class="font-bold text-stone-900 text-sm">${item.product.title}</h4>
-            ${item.modifiers && item.modifiers.length > 0 ? `<p class="text-[11px] text-amber-700 font-medium">↳ ${item.modifiers.map(m => m.name).join(', ')}</p>` : ''}
-            <span class="font-mono text-stone-500 font-bold">$${item.unitPrice.toFixed(2)} c/u</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <div class="flex items-center gap-1.5 bg-stone-100 rounded-lg p-1">
-              <button onclick="changeQty(${idx}, -1)" class="w-6 h-6 flex items-center justify-center font-bold text-stone-600 bg-white rounded shadow-sm">-</button>
-              <span class="font-bold px-1">${item.qty}</span>
-              <button onclick="changeQty(${idx}, 1)" class="w-6 h-6 flex items-center justify-center font-bold text-stone-600 bg-white rounded shadow-sm">+</button>
-            </div>
-            <span class="font-mono font-bold text-stone-900 w-16 text-right">$${(item.unitPrice * item.qty).toFixed(2)}</span>
-          </div>
-        </div>
-      `).join('');
-
-      const { subtotal, totalDiscount, finalTotal, appliedMessages } = calculateOrderTotals();
-      document.getElementById('orderSubtotal').innerText = `$${subtotal.toFixed(2)}`;
-      document.getElementById('orderTotal').innerText = `$${finalTotal.toFixed(2)} MXN`;
-
-      const discBox = document.getElementById('appliedDiscountsBox');
-      const discList = document.getElementById('appliedDiscountsList');
-      const discRow = document.getElementById('orderDiscountRow');
-
-      if (totalDiscount > 0) {
-        discBox.classList.remove('hidden');
-        discRow.classList.remove('hidden');
-        document.getElementById('orderDiscountAmount').innerText = `-$${totalDiscount.toFixed(2)}`;
-        discList.innerHTML = appliedMessages.map(m => `<div>• ${m}</div>`).join('');
-      } else {
-        discBox.classList.add('hidden');
-        discRow.classList.add('hidden');
-      }
-    }
-
-    function changeQty(idx, delta) {
-      order[idx].qty += delta;
-      if (order[idx].qty <= 0) order.splice(idx, 1);
-      updateOrderUI();
-    }
-
-    async function sendOrder() {
-      if (order.length === 0) {
-        alert("Agrega al menos un platillo a tu orden.");
-        return;
-      }
-
-      const btn = document.getElementById('btnSendOrder');
-      btn.disabled = true;
-      btn.innerHTML = `<span class="animate-spin mr-2">🔄</span> Enviando comanda...`;
-
-      const { subtotal, totalDiscount, finalTotal, appliedMessages } = calculateOrderTotals();
-      const customerNotes = document.getElementById('orderCustomerNotes')?.value?.trim() || '';
-
-      const itemsPayload = order.map(it => ({
-        id: it.product.id,
-        title: it.product.title,
-        qty: it.qty,
-        price: Number(it.unitPrice),
-        modifiers: (it.modifiers || []).map(m => m.name || m)
-      }));
-
-      let sentSuccess = false;
-
-      if (supabaseClient) {
-        try {
-          if (currentActiveOrder && currentActiveOrder.status === 'pending') {
-            const { error } = await supabaseClient.from('orders').update({
-              items: itemsPayload,
-              subtotal: subtotal,
-              discount: totalDiscount,
-              total: finalTotal,
-              applied_promotions: appliedMessages,
-              customer_notes: customerNotes
-            }).eq('id', currentActiveOrder.id);
-            if (!error) sentSuccess = true;
-          } else {
-            const { error } = await supabaseClient.from('orders').insert([{
-              restaurant_id: REST_ID,
-              table_number: currentTable,
-              order_channel: 'dine_in',
-              items: itemsPayload,
-              subtotal: subtotal,
-              discount: totalDiscount,
-              total: finalTotal,
-              applied_promotions: appliedMessages,
-              customer_notes: customerNotes,
-              status: 'pending',
-              is_archived: false,
-              created_at: new Date().toISOString()
-            }]);
-            if (!error) sentSuccess = true;
-          }
-        } catch(e) {
-          console.error("Error al enviar comanda:", e);
-        }
-      }
-
-      btn.disabled = false;
-      btn.innerHTML = `<span>Confirmar Pedido al Mesero 🛎️</span>`;
-
-      if (sentSuccess) {
-        order = [];
-        document.getElementById('orderCustomerNotes').value = '';
-        updateOrderUI();
-        switchView('menu');
-        await checkActiveTableOrder();
-        alert(`¡Comanda enviada a cocina para la Mesa ${currentTable}!`);
-      } else {
-        alert("Hubo un problema de conexión al registrar la comanda. Intenta nuevamente.");
-      }
-    }
-
-    // =========================================================================
-    // LLAMAR MESERO INTELIGENTE (30s COOLDOWN / 3 VECES = 2 MIN BLOQUEO)
-    // =========================================================================
-    async function callWaiter() {
-      const btn = document.getElementById('btnCallWaiter');
-      const text = document.getElementById('waiterBtnText');
-
-      if (isWaiterBlocked || btn.disabled) return;
-
-      waiterCallCount++;
-
-      if (supabaseClient) {
-        try {
-          await supabaseClient.from('waiter_calls').insert([{
-            restaurant_id: REST_ID,
-            table_number: currentTable,
-            status: 'pending'
-          }]);
-        } catch(e) {
-          console.warn("Llamada mesero error:", e);
-        }
-      }
-
-      if (waiterCallCount >= 3) {
-        isWaiterBlocked = true;
-        btn.disabled = true;
-        btn.className = "bg-stone-600 text-stone-300 font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition cursor-not-allowed";
-
-        let remaining = 120;
-        alert(`Se han enviado 3 alertas al personal de sala. Por favor espera a que se acerquen a la Mesa ${currentTable}.`);
-
-        clearInterval(waiterCooldownTimer);
-        waiterCooldownTimer = setInterval(() => {
-          remaining--;
-          const m = Math.floor(remaining / 60);
-          const s = remaining % 60;
-          text.innerText = `Espera ${m}:${s < 10 ? '0' : ''}${s}`;
-
-          if (remaining <= 0) {
-            clearInterval(waiterCooldownTimer);
-            isWaiterBlocked = false;
-            waiterCallCount = 0;
-            btn.disabled = false;
-            btn.className = "bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 shadow-md transition";
-            text.innerText = "🔔 Mesero";
-          }
-        }, 1000);
-        return;
-      }
-
-      btn.disabled = true;
-      btn.className = "bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition";
-      text.innerText = "Mesero llamado ✓";
-
-      let remainingSecs = 30;
-      clearInterval(waiterCooldownTimer);
-      waiterCooldownTimer = setInterval(() => {
-        remainingSecs--;
-        text.innerText = `Llamado (${remainingSecs}s)`;
-
-        if (remainingSecs <= 0) {
-          clearInterval(waiterCooldownTimer);
-          btn.disabled = false;
-          btn.className = "bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 shadow-md transition";
-          text.innerText = "🔔 Mesero";
-        }
-      }, 1000);
-    }
-
-    // =========================================================================
-    // RENDERS AUXILIARES
-    // =========================================================================
-    function renderTypesFilters() {
-      const cont = document.getElementById('typesFilterContainer');
-      cont.innerHTML = `
-        <button onclick="filterByType(null)" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition ${
-          activeTypeId === null ? 'bg-stone-900 text-white shadow-sm' : 'bg-white text-stone-600 border border-stone-200'
-        }">Todos</button>
-        ${typesList.map(t => `
-          <button onclick="filterByType('${t.id}')" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 transition ${
-            activeTypeId === t.id ? 'bg-amber-600 text-white shadow-sm' : 'bg-white text-stone-700 border border-stone-200'
-          }">
-            <span>${t.icon || '🏷️'}</span>
-            <span>${t.name}</span>
-          </button>
-        `).join('')}
-      `;
-    }
-
-    function filterByType(typeId) {
-      activeTypeId = typeId;
-      renderTypesFilters();
-      renderMenu();
-    }
-
-    function renderCategoryTabs() {
-      const tabs = document.getElementById('categoryTabs');
-      tabs.innerHTML = categoriesList.map(cat => {
-        const isActive = activeCategoryId === cat.id;
-        return `
-          <button onclick="selectCategoryTab('${cat.id}')" class="whitespace-nowrap px-4 py-2 rounded-full text-xs font-bold flex items-center gap-1.5 transition ${
-            isActive ? 'bg-stone-900 text-white shadow-sm' : 'bg-white text-stone-600 border border-stone-200'
-          }">
-            <span class="text-sm">${cat.icon || '🍽️'}</span>
-            <span>${cat.name}</span>
-          </button>
-        `;
-      }).join('');
-    }
-
-    function selectCategoryTab(catId) {
-      activeCategoryId = catId;
-      renderCategoryTabs();
-      const target = document.getElementById(`cat-${catId}`);
-      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
-    function renderMenu(filterQuery = '') {
-      const container = document.getElementById('menuContainer');
-      const query = filterQuery || (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
-
-      container.innerHTML = categoriesList.map(cat => {
-        let items = productsList.filter(p => p.category_id === cat.id);
-        if (activeTypeId) items = items.filter(p => p.type_id === activeTypeId);
-        if (query) {
-          items = items.filter(p => p.title.toLowerCase().includes(query) || (p.description || '').toLowerCase().includes(query));
-        }
-        if (items.length === 0) return '';
-
-        return `
-          <section id="cat-${cat.id}" class="scroll-mt-20 space-y-3">
-            <div class="flex items-center gap-2 border-b border-stone-200/60 pb-2">
-              <span class="text-xl">${cat.icon || '🍽️'}</span>
-              <h3 class="font-bold text-lg text-stone-900">${cat.name}</h3>
-            </div>
-            <div class="space-y-3">
-              ${items.map(p => {
-                const firstMedia = (p.media && p.media[0]) ? p.media[0].url : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=300&q=80';
-                return `
-                  <div class="bg-white rounded-2xl p-3 border border-stone-200/80 shadow-sm flex gap-3.5 relative cursor-pointer active:scale-[0.99] transition ${!p.is_available ? 'opacity-50 grayscale' : ''}" onclick="openProductModal('${p.id}')">
-                    <img src="${firstMedia}" class="w-24 h-24 rounded-xl object-cover flex-shrink-0 bg-stone-100" alt="${p.title}">
-                    <div class="flex flex-col justify-between flex-grow py-0.5">
-                      <div>
-                        <h4 class="font-bold text-stone-900 text-sm leading-snug">${p.title}</h4>
-                        <p class="text-xs text-stone-500 line-clamp-2 mt-1">${p.description || ''}</p>
-                      </div>
-                      <div class="flex items-center justify-between mt-2" onclick="event.stopPropagation()">
-                        <span class="font-bold text-stone-900 text-sm font-mono">$${Number(p.price).toFixed(2)}</span>
-                        ${p.is_available ? `
-                          <button onclick="quickAdd('${p.id}')" class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1 rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm transition active:scale-95">
-                            + Agregar
-                          </button>
-                        ` : '<span class="text-[11px] text-rose-500 font-bold">Agotado</span>'}
-                      </div>
-                    </div>
-                  </div>
-                `;
-              }).join('')}
-            </div>
-          </section>
-        `;
-      }).join('');
-    }
-
-    function renderPromotionsPage() {
-      const cont = document.getElementById('promosList');
-      if (promotionsList.length === 0) {
-        cont.innerHTML = '<p class="text-stone-400 text-xs text-center py-8">No hay promociones activas por el momento.</p>';
-        return;
-      }
-      cont.innerHTML = promotionsList.map(p => `
-        <div class="rounded-3xl p-5 shadow-md flex flex-col justify-between text-white relative overflow-hidden min-h-[160px]" style="background-color: ${p.bg_color || '#b45309'}; color: ${p.text_color || '#fff'};">
-          <div class="relative z-10 space-y-2">
-            <span class="bg-white/20 backdrop-blur-md text-[10px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider">${p.promo_value || 'PROMO'}</span>
-            <h3 class="font-bold text-base leading-snug">${p.title}</h3>
-            <p class="text-xs opacity-90">${p.description || ''}</p>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    function handleSearch(term) {
-      const clearBtn = document.getElementById('clearSearch');
-      const box = document.getElementById('predictiveBox');
-      const q = term.toLowerCase().trim();
-      if (!q) {
-        clearBtn.classList.add('hidden');
-        box.classList.add('hidden');
-        renderMenu();
-        return;
-      }
-      clearBtn.classList.remove('hidden');
-      const matches = productsList.filter(p => p.title.toLowerCase().includes(q));
-      if (matches.length > 0) {
-        box.classList.remove('hidden');
-        box.innerHTML = matches.slice(0, 4).map(m => `
-          <div onclick="openProductModal('${m.id}')" class="py-2 px-2 flex justify-between items-center cursor-pointer hover:bg-stone-50 rounded-lg">
-            <span class="font-semibold text-stone-900">${m.title}</span>
-            <span class="font-bold text-amber-600 font-mono ml-2">$${Number(m.price).toFixed(2)}</span>
-          </div>
-        `).join('');
-      } else {
-        box.classList.add('hidden');
-      }
-      renderMenu(q);
-    }
-
-    function clearSearchInput() {
-      document.getElementById('searchInput').value = '';
-      handleSearch('');
-    }
-
-    function openProductModal(productId) {
-      const prod = productsList.find(p => p.id === productId);
-      if (!prod) return;
-      currentModalProduct = prod;
-      selectedModifiers = [];
-
-      document.getElementById('modalTitle').innerText = prod.title;
-      document.getElementById('modalDesc').innerText = prod.description || '';
-      document.getElementById('modalPrice').innerText = `$${Number(prod.price).toFixed(2)}`;
-
-      const mediaList = prod.media && prod.media.length > 0 ? prod.media : [{ type: 'image', url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80' }];
-      document.getElementById('modalMediaCarousel').innerHTML = mediaList.map(m => `
-        <div class="w-full h-full flex-shrink-0 snap-center">
-          <img src="${m.url}" class="w-full h-full object-cover">
-        </div>
-      `).join('');
-
-      const applicableMods = modifiersList.filter(m => (m.applies_to_products || []).includes(prod.id));
-      const modsCont = document.getElementById('modifiersList');
-      if (applicableMods.length > 0) {
-        document.getElementById('modalModifiersSection').classList.remove('hidden');
-        modsCont.innerHTML = applicableMods.map(mod => `
-          <label class="flex items-center justify-between p-2.5 rounded-xl border border-stone-200 bg-stone-50 text-xs cursor-pointer">
-            <div class="flex items-center gap-2">
-              <input type="checkbox" onchange="toggleModifier('${mod.id}')" class="rounded text-amber-600">
-              <span class="font-medium text-stone-800">${mod.name}</span>
-            </div>
-            <span class="font-mono text-stone-600">${mod.price > 0 ? `+$${mod.price}` : 'Sin costo'}</span>
-          </label>
-        `).join('');
-      } else {
-        document.getElementById('modalModifiersSection').classList.add('hidden');
-      }
-
-      updateModalTotal();
-      document.getElementById('productModal').classList.remove('hidden');
-    }
-
-    function toggleModifier(modId) {
-      const idx = selectedModifiers.findIndex(m => m.id === modId);
-      if (idx > -1) {
-        selectedModifiers.splice(idx, 1);
-      } else {
-        const modObj = modifiersList.find(m => m.id === modId);
-        if (modObj) selectedModifiers.push(modObj);
-      }
-      updateModalTotal();
-    }
-
-    function updateModalTotal() {
-      const extras = selectedModifiers.reduce((acc, m) => acc + Number(m.price || 0), 0);
-      const total = Number(currentModalProduct.price) + extras;
-      document.getElementById('modalFinalPrice').innerText = `$${total.toFixed(2)}`;
-      document.getElementById('modalAddBtn').onclick = () => {
-        addItemToOrder(currentModalProduct, selectedModifiers);
-        closeProductModal();
-      };
-    }
-
-    function closeProductModal() {
-      document.getElementById('productModal').classList.add('hidden');
-      currentModalProduct = null;
-    }
-
-    function switchView(view) {
-      document.getElementById('menuContainer').classList.toggle('hidden', view !== 'menu');
-      document.getElementById('promosView').classList.toggle('hidden', view !== 'promos');
-      document.getElementById('orderView').classList.toggle('hidden', view !== 'order');
-      document.getElementById('navMenuBtn').classList.toggle('text-amber-600', view === 'menu');
-      document.getElementById('navOrderBtn').classList.toggle('text-amber-600', view === 'order');
-      if (view === 'order') renderOrderSummary();
-    }
-
-    function handleNavLeft() { switchView('promos'); }
-
-    function connectWifi() {
-      const pass = restaurantConfig.wifi_password || 'Brunch2026';
-      navigator.clipboard.writeText(pass);
-      alert(`Red Wi-Fi: ${restaurantConfig.wifi_ssid || 'Invitados'}\nContraseña copiada al portapapeles: ${pass}`);
-    }
-
-    window.onload = setupUI;
-  </script>
+  <!-- CONEXIÓN A LA NUEVA ESTRUCTURA MODULAR -->
+  <script type="module" src="js/menu-main.js"></script>
 </body>
 </html>

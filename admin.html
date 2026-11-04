@@ -42,16 +42,14 @@
 <body class="bg-stone-100 text-stone-900 min-h-screen flex antialiased">
 
   <!-- OVERLAY MÓVIL PARA SIDEBAR -->
-  <div id="sidebarBackdrop" onclick="toggleSidebar(false)" class="fixed inset-0 bg-black/50 z-30 hidden md:hidden"></div>
+  <div id="sidebarBackdrop" onclick="window.toggleSidebar(false)" class="fixed inset-0 bg-black/50 z-30 hidden md:hidden"></div>
 
   <!-- BOTÓN SALIR MODO FOCUS -->
-  <button id="exitFocusBtn" onclick="toggleFocusMode()" class="hidden fixed bottom-5 right-5 z-50 bg-stone-900/90 text-white border border-stone-700 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-2xl font-bold text-xs items-center gap-2 hover:bg-stone-800 transition active:scale-95">
+  <button id="exitFocusBtn" onclick="window.toggleFocusMode()" class="hidden fixed bottom-5 right-5 z-50 bg-stone-900/90 text-white border border-stone-700 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-2xl font-bold text-xs items-center gap-2 hover:bg-stone-800 transition active:scale-95">
     <span>✕ Salir de Pantalla Completa</span>
   </button>
 
-  <!-- ========================================================================= -->
-  <!-- BARRA LATERAL (SIDEBAR) -->
-  <!-- ========================================================================= -->
+  <!-- BARRA LATERAL -->
   <aside id="appSidebar" class="w-64 bg-stone-900 text-stone-300 flex-shrink-0 flex flex-col justify-between fixed top-0 bottom-0 left-0 z-40 transition-transform duration-300 border-r border-stone-800 shadow-xl">
     <div class="flex flex-col h-full">
       <div class="p-5 border-b border-stone-800 flex items-center justify-between">
@@ -64,13 +62,13 @@
             <p class="text-[10px] text-amber-400 font-mono font-semibold" id="connStatus">Sincronizando...</p>
           </div>
         </div>
-        <button onclick="toggleSidebar(false)" class="md:hidden text-stone-400 hover:text-white p-1 text-lg">✕</button>
+        <button onclick="window.toggleSidebar(false)" class="md:hidden text-stone-400 hover:text-white p-1 text-lg">✕</button>
       </div>
 
-      <!-- Selector de Modo de Estación / Rol -->
+      <!-- Selector de Modo / Rol -->
       <div class="px-4 py-3 bg-stone-950/60 border-b border-stone-800/80">
         <label class="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">Estación Operativa:</label>
-        <select id="roleModeSelector" onchange="switchStationRole(this.value)" class="w-full bg-stone-800 border border-stone-700 text-amber-300 font-bold text-xs rounded-xl p-2 outline-none cursor-pointer focus:border-amber-500">
+        <select id="roleModeSelector" onchange="window.switchStationRole(this.value)" class="w-full bg-stone-800 border border-stone-700 text-amber-300 font-bold text-xs rounded-xl p-2 outline-none cursor-pointer focus:border-amber-500">
           <option value="all">👑 Administrador (Todo)</option>
           <option value="kitchen">🍳 Modo Cocina / KDS</option>
           <option value="waiter">🛎️ Modo Meseros & Sala</option>
@@ -78,22 +76,22 @@
         </select>
       </div>
 
-      <!-- Navegación Agrupada por Modos -->
+      <!-- Navegación -->
       <nav class="flex-grow p-3 space-y-6 overflow-y-auto no-scrollbar text-xs">
         <div id="navGroup-live" class="space-y-1">
           <div class="px-3 py-1 text-[10px] font-extrabold text-stone-500 uppercase tracking-wider flex justify-between items-center">
             <span>⚡ Operación en Vivo</span>
             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           </div>
-          <button onclick="switchTab('orders')" id="tabBtn-orders" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold bg-amber-600 text-white shadow-sm transition">
+          <button onclick="window.switchTab('orders')" id="tabBtn-orders" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold bg-amber-600 text-white shadow-sm transition">
             <span class="flex items-center gap-2.5">📋 Tablero Kanban</span>
             <span id="badgeLiveOrders" class="bg-black/30 text-white text-[10px] px-2 py-0.5 rounded-full font-mono font-bold">0</span>
           </button>
-          <button onclick="switchTab('calls')" id="tabBtn-calls" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
+          <button onclick="window.switchTab('calls')" id="tabBtn-calls" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
             <span class="flex items-center gap-2.5">🔔 Llamadas Mesero</span>
             <span id="pendingCallsBadge" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">0</span>
           </button>
-          <button onclick="switchTab('reservations')" id="tabBtn-reservations" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
+          <button onclick="window.switchTab('reservations')" id="tabBtn-reservations" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
             <span class="flex items-center gap-2.5">📅 Agenda Reservas</span>
             <span id="badgeReservationsCount" class="bg-stone-800 text-stone-300 text-[10px] px-2 py-0.5 rounded-full font-mono">0</span>
           </button>
@@ -103,13 +101,13 @@
           <div class="px-3 py-1 text-[10px] font-extrabold text-stone-500 uppercase tracking-wider">
             📦 Gestión & Almacén
           </div>
-          <button onclick="switchTab('inventory')" id="tabBtn-inventory" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
+          <button onclick="window.switchTab('inventory')" id="tabBtn-inventory" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
             <span class="flex items-center gap-2.5">🥫 Stock, Mermas & Recetas</span>
           </button>
-          <button onclick="switchTab('products')" id="tabBtn-products" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
+          <button onclick="window.switchTab('products')" id="tabBtn-products" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
             <span class="flex items-center gap-2.5">🍽️ Carta y Platillos</span>
           </button>
-          <button onclick="switchTab('taxonomies')" id="tabBtn-taxonomies" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
+          <button onclick="window.switchTab('taxonomies')" id="tabBtn-taxonomies" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
             <span class="flex items-center gap-2.5">📑 Categorías & Tipos</span>
           </button>
         </div>
@@ -118,17 +116,17 @@
           <div class="px-3 py-1 text-[10px] font-extrabold text-stone-500 uppercase tracking-wider">
             📊 Gerencia & Dirección
           </div>
-          <button onclick="switchTab('analytics')" id="tabBtn-analytics" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
+          <button onclick="window.switchTab('analytics')" id="tabBtn-analytics" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
             <span class="flex items-center gap-2.5">📈 Métricas, Food Cost & Boston</span>
           </button>
-          <button onclick="switchTab('marketing')" id="tabBtn-marketing" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
+          <button onclick="window.switchTab('marketing')" id="tabBtn-marketing" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
             <span class="flex items-center gap-2.5">⭐ Google Maps & Fidelidad</span>
           </button>
         </div>
       </nav>
 
       <div class="p-4 border-t border-stone-800 bg-stone-950/80 space-y-2">
-        <button onclick="toggleFocusMode()" class="w-full bg-stone-800 hover:bg-stone-700 text-amber-300 font-bold text-xs py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-2 border border-stone-700 shadow-sm">
+        <button onclick="window.toggleFocusMode()" class="w-full bg-stone-800 hover:bg-stone-700 text-amber-300 font-bold text-xs py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-2 border border-stone-700 shadow-sm">
           <span>🖥️ Modo Pantalla Completa</span>
         </button>
         <a href="index.html?mesa=01" target="_blank" class="w-full bg-stone-900 hover:bg-stone-800 text-stone-300 hover:text-white text-[11px] font-semibold py-2 px-3 rounded-xl transition flex items-center justify-center gap-1.5 border border-stone-800">
@@ -138,13 +136,11 @@
     </div>
   </aside>
 
-  <!-- ========================================================================= -->
   <!-- CONTENIDO PRINCIPAL -->
-  <!-- ========================================================================= -->
   <div id="mainContentArea" class="flex-grow ml-0 md:ml-64 flex flex-col min-h-screen transition-all duration-300">
     <header id="appHeader" class="bg-white border-b border-stone-200 px-4 sm:px-6 py-3.5 flex flex-wrap justify-between items-center gap-3 sticky top-0 z-30 shadow-xs">
       <div class="flex items-center gap-3">
-        <button onclick="toggleSidebar()" class="p-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-sm transition" title="Mostrar/Ocultar Menú">
+        <button onclick="window.toggleSidebar()" class="p-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-sm transition" title="Mostrar/Ocultar Menú">
           ☰
         </button>
         <h2 id="topbarTitle" class="text-base font-extrabold text-stone-900">Tablero Kanban KDS</h2>
@@ -154,7 +150,7 @@
       </div>
 
       <div class="flex items-center gap-2 sm:gap-3 text-xs">
-        <button onclick="openStatusConfigModal()" class="flex items-center gap-1.5 bg-stone-100 hover:bg-stone-200 border border-stone-300 px-3 py-1.5 rounded-xl font-bold text-stone-700 transition">
+        <button onclick="window.openStatusConfigModal()" class="flex items-center gap-1.5 bg-stone-100 hover:bg-stone-200 border border-stone-300 px-3 py-1.5 rounded-xl font-bold text-stone-700 transition">
           <span>⚙️ Configurar Estatus y Sonidos</span>
         </button>
         <span id="kdsActiveCount" class="bg-amber-100 text-amber-900 border border-amber-200 px-3 py-1.5 rounded-xl font-bold font-mono">
@@ -164,24 +160,25 @@
     </header>
 
     <main class="p-4 sm:p-6 max-w-[1600px] w-full mx-auto space-y-6 flex-grow">
+      
       <!-- 1. KANBAN -->
       <section id="tab-orders" class="tab-panel space-y-5">
         <div id="kdsFilterBar" class="bg-white rounded-2xl p-4 shadow-sm border border-stone-200 flex flex-wrap justify-between items-center gap-4">
           <div class="flex flex-wrap items-center gap-3">
             <div class="flex items-center gap-1.5 bg-stone-100 p-1 rounded-2xl border border-stone-200 text-xs font-bold">
-              <button onclick="filterByChannel('all')" id="btnChannel-all" class="px-3 py-1.5 rounded-xl bg-stone-900 text-white shadow-sm transition">Todos</button>
-              <button onclick="filterByChannel('dine_in')" id="btnChannel-dine_in" class="px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 transition">🍽️ En Mesa</button>
-              <button onclick="filterByChannel('takeout')" id="btnChannel-takeout" class="px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 transition">🛍️ Para Llevar</button>
-              <button onclick="filterByChannel('delivery')" id="btnChannel-delivery" class="px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 transition">🛵 Delivery</button>
+              <button onclick="window.filterByChannel('all')" id="btnChannel-all" class="px-3 py-1.5 rounded-xl bg-stone-900 text-white shadow-sm transition">Todos</button>
+              <button onclick="window.filterByChannel('dine_in')" id="btnChannel-dine_in" class="px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 transition">🍽️ En Mesa</button>
+              <button onclick="window.filterByChannel('takeout')" id="btnChannel-takeout" class="px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 transition">🛍️ Para Llevar</button>
+              <button onclick="window.filterByChannel('delivery')" id="btnChannel-delivery" class="px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 transition">🛵 Delivery</button>
             </div>
 
             <div class="inline-flex p-1 bg-stone-100 rounded-2xl border border-stone-200 text-xs font-bold">
-              <button onclick="setKanbanDisplayMode('all')" id="btnViewMode-all" class="px-3.5 py-1.5 rounded-xl transition bg-stone-900 text-white shadow-sm">🗂️ Todas</button>
-              <button onclick="setKanbanDisplayMode('single')" id="btnViewMode-single" class="px-3.5 py-1.5 rounded-xl transition text-stone-600 hover:text-stone-900">🎯 Columna Única</button>
+              <button onclick="window.setKanbanDisplayMode('all')" id="btnViewMode-all" class="px-3.5 py-1.5 rounded-xl transition bg-stone-900 text-white shadow-sm">🗂️ Todas</button>
+              <button onclick="window.setKanbanDisplayMode('single')" id="btnViewMode-single" class="px-3.5 py-1.5 rounded-xl transition text-stone-600 hover:text-stone-900">🎯 Columna Única</button>
             </div>
           </div>
 
-          <button onclick="openNewOrderModal()" class="bg-amber-600 hover:bg-amber-500 active:scale-95 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-md transition flex items-center gap-2">
+          <button onclick="window.openNewOrderModal()" class="bg-amber-600 hover:bg-amber-500 active:scale-95 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-md transition flex items-center gap-2">
             <span>➕</span>
             <span>Nuevo Pedido Manual</span>
           </button>
@@ -195,19 +192,19 @@
         <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-stone-200 flex flex-wrap justify-between items-center gap-4">
           <div class="flex flex-wrap items-center gap-2">
             <span class="text-xs font-bold text-stone-500 uppercase tracking-wider mr-1">Periodo:</span>
-            <button onclick="setAnalyticsDateFilter('today')" id="btnDate-today" class="px-3 py-1.5 rounded-xl text-xs font-bold transition bg-stone-900 text-white shadow-sm">Hoy</button>
-            <button onclick="setAnalyticsDateFilter('yesterday')" id="btnDate-yesterday" class="px-3 py-1.5 rounded-xl text-xs font-bold transition bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-200">Ayer</button>
-            <button onclick="setAnalyticsDateFilter('week')" id="btnDate-week" class="px-3 py-1.5 rounded-xl text-xs font-bold transition bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-200">Últimos 7 días</button>
-            <button onclick="setAnalyticsDateFilter('all')" id="btnDate-all" class="px-3 py-1.5 rounded-xl text-xs font-bold transition bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-200">Todo el Histórico</button>
+            <button onclick="window.setAnalyticsDateFilter('today')" id="btnDate-today" class="px-3 py-1.5 rounded-xl text-xs font-bold transition bg-stone-900 text-white shadow-sm">Hoy</button>
+            <button onclick="window.setAnalyticsDateFilter('yesterday')" id="btnDate-yesterday" class="px-3 py-1.5 rounded-xl text-xs font-bold transition bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-200">Ayer</button>
+            <button onclick="window.setAnalyticsDateFilter('week')" id="btnDate-week" class="px-3 py-1.5 rounded-xl text-xs font-bold transition bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-200">Últimos 7 días</button>
+            <button onclick="window.setAnalyticsDateFilter('all')" id="btnDate-all" class="px-3 py-1.5 rounded-xl text-xs font-bold transition bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-200">Todo el Histórico</button>
           </div>
 
           <div class="flex flex-wrap items-center gap-2 text-xs">
             <span class="text-stone-400 font-semibold">Rango:</span>
-            <input type="date" id="analyticsDateFrom" onchange="applyCustomDateRange()" class="border border-stone-200 rounded-xl px-2.5 py-1.5 bg-stone-50 text-stone-800 font-medium outline-none focus:border-amber-600">
+            <input type="date" id="analyticsDateFrom" onchange="window.applyCustomDateRange()" class="border border-stone-200 rounded-xl px-2.5 py-1.5 bg-stone-50 text-stone-800 font-medium outline-none focus:border-amber-600">
             <span class="text-stone-400">a</span>
-            <input type="date" id="analyticsDateTo" onchange="applyCustomDateRange()" class="border border-stone-200 rounded-xl px-2.5 py-1.5 bg-stone-50 text-stone-800 font-medium outline-none focus:border-amber-600">
-            <button onclick="applyCustomDateRange()" class="bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-xl font-bold shadow-sm transition">Filtrar</button>
-            <button onclick="exportHistoryToCSV()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3.5 py-1.5 rounded-xl transition shadow-sm flex items-center gap-1.5 ml-2">
+            <input type="date" id="analyticsDateTo" onchange="window.applyCustomDateRange()" class="border border-stone-200 rounded-xl px-2.5 py-1.5 bg-stone-50 text-stone-800 font-medium outline-none focus:border-amber-600">
+            <button onclick="window.applyCustomDateRange()" class="bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-xl font-bold shadow-sm transition">Filtrar</button>
+            <button onclick="window.exportHistoryToCSV()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3.5 py-1.5 rounded-xl transition shadow-sm flex items-center gap-1.5 ml-2">
               <span>📥 Exportar CSV</span>
             </button>
           </div>
@@ -242,7 +239,6 @@
           </div>
         </div>
 
-        <!-- Matriz Boston & Top Platillos -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div class="lg:col-span-7 bg-white rounded-3xl p-6 border border-stone-200 shadow-sm space-y-4">
             <div class="flex justify-between items-center border-b pb-3">
@@ -293,7 +289,6 @@
           </div>
         </div>
 
-        <!-- Rendimiento Mesero & SLA -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div class="lg:col-span-5 bg-white rounded-3xl p-6 border border-stone-200 shadow-sm space-y-4">
             <h3 class="font-extrabold text-sm text-stone-900 border-b pb-3">Eficiencia Operativa: Tiempos SLA</h3>
@@ -335,12 +330,11 @@
           </div>
         </div>
 
-        <!-- Historial Comandas -->
         <div class="bg-white rounded-2xl p-6 shadow-sm border border-stone-200 space-y-4">
           <div class="flex justify-between items-center border-b pb-3">
             <div>
               <h3 class="font-extrabold text-base text-stone-900">Historial Detallado de Comandas</h3>
-              <p class="text-xs text-stone-400">Haz clic en cualquier comanda para consultar recibo, imprimir ticket térmico o PDF.</p>
+              <p class="text-xs text-stone-400">Haz clic en cualquier comanda para consultar recibo o imprimir ticket.</p>
             </div>
             <span id="historyOrdersCount" class="text-xs font-mono font-bold bg-stone-100 text-stone-700 px-2.5 py-1 rounded-xl">0 comandas</span>
           </div>
@@ -363,7 +357,7 @@
         </div>
       </section>
 
-      <!-- 3. ALMACÉN, ESCANDALLOS & MERMAS (CON TRAZABILIDAD) -->
+      <!-- 3. INVENTARIO & ESCANDALLOS -->
       <section id="tab-inventory" class="tab-panel hidden space-y-6">
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm">
@@ -390,7 +384,7 @@
                 <h3 class="font-bold text-sm text-stone-900">Catálogo de Insumos</h3>
                 <p class="text-xs text-stone-500">Unidades: Gramos (g), Mililitros (ml), Onzas (oz), Piezas (pza).</p>
               </div>
-              <button onclick="openNewSupplyModal()" class="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl transition">
+              <button onclick="window.openNewSupplyModal()" class="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl transition">
                 + Nuevo Insumo
               </button>
             </div>
@@ -416,21 +410,20 @@
               <h3 class="font-bold text-sm text-stone-900">Escandallo por Platillo (Receta)</h3>
               <p class="text-xs text-stone-500">Insumos descontados al cocinar cada porción.</p>
             </div>
-            <select id="recipeProductSelect" onchange="loadProductRecipe(this.value)" class="w-full border rounded-xl p-2.5 text-xs bg-stone-50 font-semibold"></select>
+            <select id="recipeProductSelect" onchange="window.loadProductRecipe(this.value)" class="w-full border rounded-xl p-2.5 text-xs bg-stone-50 font-semibold"></select>
             <div id="recipeIngredientsList" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
             <div class="border-t pt-3 space-y-2">
               <div class="grid grid-cols-3 gap-2">
                 <select id="newRecipeSupplySelect" class="border rounded-xl p-2 text-xs bg-white col-span-2"></select>
                 <input type="number" step="0.01" id="newRecipeQty" placeholder="Cant." class="border rounded-xl p-2 text-xs font-mono">
               </div>
-              <button onclick="addIngredientToRecipe()" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs py-2 rounded-xl transition">
+              <button onclick="window.addIngredientToRecipe()" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs py-2 rounded-xl transition">
                 Vincular Insumo a Platillo
               </button>
             </div>
           </div>
         </div>
 
-        <!-- Mermas y Buffer con Trazabilidad -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-3">
             <div class="flex justify-between items-center border-b pb-3">
@@ -488,7 +481,7 @@
                 <label class="block font-semibold mb-1 text-stone-700">Notas</label>
                 <textarea id="resNotes" rows="2" placeholder="Terraza, cumpleaños..." class="w-full border rounded-xl p-2"></textarea>
               </div>
-              <button onclick="createReservation()" class="w-full bg-stone-900 hover:bg-stone-800 text-white font-bold py-2.5 rounded-xl transition shadow-sm mt-2">
+              <button onclick="window.createReservation()" class="w-full bg-stone-900 hover:bg-stone-800 text-white font-bold py-2.5 rounded-xl transition shadow-sm mt-2">
                 Registrar Reserva
               </button>
             </div>
@@ -497,7 +490,7 @@
           <div class="lg:col-span-8 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-4">
             <div class="flex justify-between items-center border-b pb-3">
               <h3 class="font-bold text-sm text-stone-900">Agenda de Reservas</h3>
-              <input type="date" id="resFilterDate" onchange="renderReservationsList()" class="border rounded-xl px-2.5 py-1 text-xs">
+              <input type="date" id="resFilterDate" onchange="window.renderReservationsList()" class="border rounded-xl px-2.5 py-1 text-xs">
             </div>
             <div id="reservationsListContainer" class="space-y-2.5"></div>
           </div>
@@ -511,14 +504,14 @@
             <h2 class="font-bold text-base text-stone-900">Llamadas Activas de Mesa</h2>
             <p class="text-xs text-stone-500">Alertas de atención solicitadas por comensales desde el menú QR.</p>
           </div>
-          <button onclick="testSimulateCall()" class="text-xs bg-stone-100 hover:bg-stone-200 text-stone-700 px-3 py-1.5 rounded-xl border border-stone-300 font-semibold transition">
+          <button onclick="window.testSimulateCall()" class="text-xs bg-stone-100 hover:bg-stone-200 text-stone-700 px-3 py-1.5 rounded-xl border border-stone-300 font-semibold transition">
             + Simular llamada
           </button>
         </div>
         <div id="waiterCallsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
       </section>
 
-      <!-- 6. CATEGORÍAS & TIPOS -->
+      <!-- 6. TAXONOMÍAS -->
       <section id="tab-taxonomies" class="tab-panel hidden space-y-5">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="bg-white rounded-2xl p-4 shadow-sm border border-stone-200 space-y-2">
@@ -526,7 +519,7 @@
             <div class="flex gap-2">
               <input type="text" id="newCatIcon" value="🍽️" class="w-12 text-center border rounded-xl p-2 text-sm">
               <input type="text" id="newCategoryInput" placeholder="Nombre (ej: Cafetería de Especialidad)" class="border rounded-xl px-3 py-2 text-xs flex-grow outline-none focus:border-amber-600">
-              <button onclick="createCategory()" class="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs px-4 py-2 rounded-xl transition">Crear</button>
+              <button onclick="window.createCategory()" class="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs px-4 py-2 rounded-xl transition">Crear</button>
             </div>
           </div>
 
@@ -535,7 +528,7 @@
             <div class="flex gap-2">
               <input type="text" id="newTypeIcon" value="☕" class="w-12 text-center border rounded-xl p-2 text-sm">
               <input type="text" id="newTypeInput" placeholder="Nombre (ej: Bebida Caliente, Postre)" class="border rounded-xl px-3 py-2 text-xs flex-grow outline-none focus:border-amber-600">
-              <button onclick="createType()" class="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-4 py-2 rounded-xl transition">Crear Tipo</button>
+              <button onclick="window.createType()" class="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-4 py-2 rounded-xl transition">Crear Tipo</button>
             </div>
           </div>
         </div>
@@ -552,7 +545,7 @@
         </div>
       </section>
 
-      <!-- 7. CARTA Y PLATILLOS -->
+      <!-- 7. PLATILLOS -->
       <section id="tab-products" class="tab-panel hidden space-y-5">
         <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-4">
           <h3 class="font-bold text-sm text-stone-900 border-b pb-3">Crear Nuevo Producto</h3>
@@ -579,7 +572,7 @@
             <textarea id="newProdDesc" rows="2" placeholder="Detalles de preparación..." class="w-full text-xs border rounded-xl p-2.5 outline-none focus:border-amber-600"></textarea>
           </div>
           <div class="border-t border-stone-100 pt-3 flex justify-end">
-            <button onclick="createProduct()" class="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs px-6 py-2.5 rounded-xl transition active:scale-95 shadow-sm">
+            <button onclick="window.createProduct()" class="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs px-6 py-2.5 rounded-xl transition active:scale-95 shadow-sm">
               Guardar Platillo
             </button>
           </div>
@@ -594,7 +587,7 @@
         </div>
       </section>
 
-      <!-- 8. MARKETING, RESEÑAS GOOGLE MAPS & FIDELIDAD -->
+      <!-- 8. MARKETING -->
       <section id="tab-marketing" class="tab-panel hidden space-y-6">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           <div class="lg:col-span-7 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-4">
@@ -602,14 +595,14 @@
               <h3 class="font-bold text-base text-stone-900 flex items-center gap-2">
                 <span>📍 Perfil de Google Maps & Reseñas</span>
               </h3>
-              <p class="text-xs text-stone-500">Pega el código HTML de inserción (&lt;iframe&gt;) de tu perfil en Google Maps para consultar calificaciones y ubicación en vivo.</p>
+              <p class="text-xs text-stone-500">Pega el código HTML (&lt;iframe&gt;) de Google Maps para consultar calificaciones y ubicación en vivo.</p>
             </div>
 
             <div class="space-y-2">
               <label class="block text-xs font-semibold text-stone-700">Código &lt;iframe&gt; de Google Maps:</label>
               <div class="flex gap-2">
                 <input type="text" id="gmapsEmbedInput" placeholder='<iframe src="https://www.google.com/maps/embed?..." width="600" height="450"...></iframe>' class="flex-grow border rounded-xl px-3 py-2 text-xs font-mono">
-                <button onclick="saveGoogleMapsEmbed()" class="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs px-4 py-2 rounded-xl transition">
+                <button onclick="window.saveGoogleMapsEmbed()" class="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs px-4 py-2 rounded-xl transition">
                   Actualizar Ficha
                 </button>
               </div>
@@ -659,1779 +652,7 @@
     </main>
   </div>
 
-  <!-- ========================================================================= -->
-  <!-- MODALES OPERATIVOS COMPLETOS -->
-  <!-- ========================================================================= -->
-
-  <!-- 1. MODAL CONFIGURACIÓN DE ESTATUS Y SONIDOS INDEPENDIENTES -->
-  <div id="statusConfigModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-2xl rounded-3xl max-h-[92vh] overflow-y-auto no-scrollbar shadow-2xl p-6 space-y-5">
-      <div class="flex justify-between items-center border-b pb-3">
-        <div>
-          <h3 class="font-bold text-base text-stone-900 flex items-center gap-2">
-            <span>⚙️ Configuración de Flujo, Estatus y Sonidos</span>
-          </h3>
-          <p class="text-xs text-stone-500">Personaliza el nombre de tus columnas y asigna tonos independientes al entrar y salir.</p>
-        </div>
-        <button onclick="closeStatusConfigModal()" class="text-stone-400 hover:text-stone-700 font-bold text-lg p-1">✕</button>
-      </div>
-
-      <div id="statusConfigList" class="space-y-3"></div>
-
-      <div class="pt-3 border-t flex justify-between items-center">
-        <button onclick="addNewCustomStatus()" class="bg-stone-100 hover:bg-stone-200 border border-stone-300 text-stone-800 text-xs font-bold px-4 py-2.5 rounded-xl transition">
-          + Agregar Nuevo Estatus
-        </button>
-        <button onclick="saveStatusConfiguration()" class="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-6 py-2.5 rounded-xl transition shadow-md">
-          Guardar Cambios ✓
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 2. MODAL NUEVO PEDIDO MANUAL CON CANDADO DE MESAS Y BUSCADOR VISUAL -->
-  <div id="newOrderManualModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-xl rounded-3xl max-h-[92vh] overflow-y-auto no-scrollbar shadow-2xl p-6 space-y-4">
-      <div class="flex justify-between items-center border-b pb-3">
-        <h3 class="font-bold text-base text-stone-900 flex items-center gap-2">
-          <span>🛎️ Nuevo Pedido Manual (Caja / Mesero)</span>
-        </h3>
-        <button onclick="closeNewOrderModal()" class="text-stone-400 hover:text-stone-700 font-bold text-lg p-1">✕</button>
-      </div>
-
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-        <div>
-          <label class="block font-bold text-stone-700 mb-1">Canal de Venta:</label>
-          <select id="manualOrderChannel" onchange="handleManualChannelChange(this.value)" class="w-full border rounded-xl p-2.5 bg-stone-50 font-semibold outline-none focus:border-amber-600">
-            <option value="dine_in">🍽️ En Mesa</option>
-            <option value="takeout">🛍️ Para Llevar</option>
-            <option value="rappi">🛵 Rappi</option>
-            <option value="didi">🛵 DiDi Food</option>
-            <option value="ubereats">🛵 Uber Eats</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="block font-bold text-stone-700 mb-1" id="manualTableLabel">Mesa #:</label>
-          <input type="text" id="manualOrderTable" placeholder="01" class="w-full border rounded-xl p-2.5 font-bold outline-none focus:border-amber-600">
-        </div>
-
-        <div>
-          <label class="block font-bold text-stone-700 mb-1">Mesero / Atiende:</label>
-          <select id="manualOrderWaiter" class="w-full border rounded-xl p-2.5 bg-stone-50 font-semibold outline-none focus:border-amber-600"></select>
-        </div>
-      </div>
-
-      <!-- Buscador predictivo con fotos -->
-      <div class="border border-stone-200 bg-stone-50 rounded-2xl p-3.5 space-y-2">
-        <label class="block text-xs font-bold text-stone-800">Buscar Platillo con Foto:</label>
-        <div class="relative">
-          <input type="text" id="manualProdSearchInput" oninput="filterManualProductDropdown(this.value)" placeholder="Escribe el nombre del platillo..." class="w-full border rounded-xl p-2.5 text-xs bg-white outline-none focus:border-amber-600">
-          <div id="manualProdDropdown" class="hidden absolute left-0 right-0 top-full mt-1 bg-white border border-stone-200 rounded-xl shadow-xl max-h-48 overflow-y-auto z-30 divide-y text-xs"></div>
-        </div>
-      </div>
-
-      <div class="space-y-2">
-        <label class="block text-xs font-bold uppercase tracking-wider text-stone-600">Platillos en Comanda:</label>
-        <div id="manualOrderItemsList" class="space-y-2 max-h-48 overflow-y-auto pr-1"></div>
-      </div>
-
-      <div>
-        <label class="block font-bold text-xs text-stone-700 mb-1">Notas especiales para cocina:</label>
-        <textarea id="manualOrderNotes" rows="2" placeholder="Ej: Sin cebolla, término medio, aderezo aparte..." class="w-full border rounded-xl p-2.5 text-xs outline-none bg-stone-50"></textarea>
-      </div>
-
-      <div class="border-t pt-3 flex justify-between items-center">
-        <div>
-          <span class="text-xs text-stone-400 block font-medium">Total comanda:</span>
-          <span class="text-xl font-black font-mono text-stone-900" id="manualOrderTotalDisplay">$0.00 MXN</span>
-        </div>
-        <button onclick="submitManualOrder()" class="bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-bold text-xs px-6 py-2.5 rounded-xl transition shadow-md">
-          Crear y Enviar a Cocina 🛎️
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 3. MODAL EDITAR COMANDA CON CONFIRMACIÓN DE SEGURIDAD -->
-  <div id="editOrderModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-xl rounded-3xl max-h-[92vh] overflow-y-auto no-scrollbar shadow-2xl p-6 space-y-5">
-      <div class="flex justify-between items-center border-b pb-3">
-        <h3 class="font-bold text-base text-stone-900 flex items-center gap-2">
-          <span>✏️ Editar Comanda en Vivo</span>
-          <span id="modalOrderTableBadge" class="bg-amber-100 text-amber-900 font-black text-xs px-2.5 py-0.5 rounded-lg font-mono">Mesa --</span>
-        </h3>
-        <button onclick="closeEditOrderModal()" class="text-stone-400 hover:text-stone-700 font-bold text-lg p-1">✕</button>
-      </div>
-
-      <input type="hidden" id="modalOrderId">
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-        <div>
-          <label class="block font-bold text-stone-700 mb-1">Mesero Asignado:</label>
-          <select id="modalOrderWaiter" class="w-full border rounded-xl p-2.5 bg-stone-50 font-bold text-stone-800 outline-none"></select>
-        </div>
-        <div>
-          <label class="block font-bold text-stone-700 mb-1">Estatus Actual:</label>
-          <select id="modalOrderStatus" class="w-full border rounded-xl p-2.5 bg-stone-50 font-bold text-stone-800 outline-none"></select>
-        </div>
-      </div>
-
-      <!-- Buscador para añadir productos en edición -->
-      <div class="border border-stone-200 bg-stone-50 rounded-2xl p-3 space-y-2 text-xs">
-        <label class="block font-bold text-stone-800">+ Añadir Platillo a la Comanda:</label>
-        <div class="relative">
-          <input type="text" id="editProdSearchInput" oninput="filterEditProductDropdown(this.value)" placeholder="Buscar platillo por nombre..." class="w-full border rounded-xl p-2 bg-white outline-none">
-          <div id="editProdDropdown" class="hidden absolute left-0 right-0 top-full mt-1 bg-white border border-stone-200 rounded-xl shadow-xl max-h-48 overflow-y-auto z-30 divide-y text-xs"></div>
-        </div>
-      </div>
-
-      <div class="space-y-3">
-        <h4 class="font-bold text-xs uppercase tracking-wider text-stone-700">Platillos en Comanda:</h4>
-        <div id="modalOrderItemsContainer" class="space-y-2.5 max-h-60 overflow-y-auto pr-1"></div>
-      </div>
-
-      <div>
-        <label class="block font-bold text-xs text-stone-700 mb-1">Notas especiales:</label>
-        <textarea id="modalOrderNotes" rows="2" class="w-full border rounded-xl p-2.5 text-xs outline-none bg-stone-50"></textarea>
-      </div>
-
-      <div class="border-t pt-4 flex justify-between items-center">
-        <p class="text-xl font-black font-mono text-stone-900" id="modalOrderTotalDisplay">$0.00 MXN</p>
-        <button onclick="saveOrderEditsWithConfirm()" class="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-6 py-2.5 rounded-xl transition shadow-md">
-          Guardar Cambios ✓
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 4. MODAL RETROCESO INTELIGENTE (MERMA / BUFFER / REGRESO O ELIMINACIÓN) -->
-  <div id="retrocesoModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4">
-      <div class="flex items-center gap-2 border-b pb-3">
-        <span class="text-xl">⚠️</span>
-        <div>
-          <h3 class="font-bold text-base text-stone-900">Control de Insumos y Destino</h3>
-          <p class="text-[11px] text-stone-500" id="retrocesoModalSub">Mesa --</p>
-        </div>
-      </div>
-
-      <!-- PASO 1: ESTADO DEL INVENTARIO CON BOTONES ACTIVOS -->
-      <div id="retrocesoStep1" class="space-y-3">
-        <label class="block text-xs font-bold text-stone-800">1. ¿El platillo ya se había preparado / cocinado?</label>
-        <div class="grid grid-cols-2 gap-2 text-xs font-bold">
-          <button id="btnRetroNoPrep" onclick="handleRetrocesoInventoryChoice('no_prepared')" class="p-3 border rounded-xl text-left transition space-y-1 bg-white">
-            <span class="block text-emerald-700 font-bold">❌ Aún no se preparó</span>
-            <span class="text-[10px] font-normal text-stone-500 block">Reincorporar 100% de insumos al almacén.</span>
-          </button>
-          <button id="btnRetroPrep" onclick="handleRetrocesoInventoryChoice('prepared')" class="p-3 border rounded-xl text-left transition space-y-1 bg-white">
-            <span class="block text-amber-800 font-bold">🍳 Sí, ya está listo</span>
-            <span class="text-[10px] font-normal text-stone-500 block">Decidir si se revende o es merma.</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- PASO 1.5: DESTINO DE LO PREPARADO CON SELECCIÓN ACTIVA -->
-      <div id="retrocesoStep1Sub" class="hidden space-y-2 border-t pt-3">
-        <label class="block text-xs font-bold text-stone-800">Destino del platillo preparado:</label>
-        <div class="grid grid-cols-2 gap-2 text-xs font-bold">
-          <button id="btnRetroBuffer" onclick="setRetrocesoPreparedDestination('buffer_resell')" class="p-3 border rounded-xl text-left transition bg-white">
-            <span class="block text-blue-700 font-bold">🥪 Es Revendible</span>
-            <span class="text-[10px] font-normal text-stone-500 block">Enviar a buffer para próximo cliente.</span>
-          </button>
-          <button id="btnRetroWaste" onclick="setRetrocesoPreparedDestination('waste_loss')" class="p-3 border rounded-xl text-left transition bg-white">
-            <span class="block text-rose-700 font-bold">🗑️ Es Merma</span>
-            <span class="text-[10px] font-normal text-stone-500 block">Registrar como pérdida financiera de cocina.</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- PASO 2: QUÉ HACER CON LA COMANDA EN KDS -->
-      <div id="retrocesoStep2" class="hidden space-y-3 border-t pt-3">
-        <label class="block text-xs font-bold text-stone-800">2. ¿Qué deseas hacer con la comanda en el KDS?</label>
-        <div class="grid grid-cols-2 gap-2 text-xs font-bold">
-          <button onclick="finalizeRetrocesoOrderAction('return_flow')" class="p-3 border rounded-xl hover:bg-stone-100 text-stone-700 text-left transition space-y-1">
-            <span class="block text-stone-900 font-bold">🔄 Regresar a Recibida</span>
-            <span class="text-[10px] font-normal text-stone-500 block">La comanda continúa viva en cocina.</span>
-          </button>
-          <button onclick="finalizeRetrocesoOrderAction('delete_order')" class="p-3 border border-rose-200 hover:bg-rose-50 text-rose-800 text-left transition space-y-1">
-            <span class="block text-rose-700 font-bold">🚫 Eliminar Comanda</span>
-            <span class="text-[10px] font-normal text-stone-500 block">Archivar como Cancelada en historial.</span>
-          </button>
-        </div>
-      </div>
-
-      <div class="flex justify-end pt-2 border-t">
-        <button onclick="closeRetrocesoModal()" class="text-xs font-bold text-stone-500 hover:text-stone-800 px-4 py-2">
-          Cancelar Acción
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 5. MODAL DETALLE DE COMANDA (CONSULTAR, IMPRIMIR TICKET LIMPIO & VER SPLIT BILL) -->
-  <div id="orderDetailModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-md rounded-3xl max-h-[92vh] overflow-y-auto no-scrollbar shadow-2xl p-6 space-y-4">
-      <div class="flex justify-between items-start border-b pb-3">
-        <div>
-          <span class="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Detalle de Comanda</span>
-          <h3 class="text-lg font-black text-stone-900 flex items-center gap-2 mt-0.5">
-            <span id="detailTableNum">Mesa --</span>
-            <span id="detailOrderId" class="text-xs font-mono font-normal text-stone-400">#0000</span>
-          </h3>
-        </div>
-        <button onclick="closeOrderDetailModal()" class="text-stone-400 hover:text-stone-700 font-bold text-lg p-1">✕</button>
-      </div>
-
-      <!-- Ticket térmico limpio (sin marcas operativas internas) -->
-      <div id="printableTicketArea" class="bg-stone-50 border border-stone-200 rounded-2xl p-4 font-mono text-xs space-y-3">
-        <div class="text-center pb-2 border-b border-dashed border-stone-300">
-          <h4 class="font-extrabold text-sm text-stone-900 uppercase">Café & Bistro Áurea</h4>
-          <p class="text-[10px] text-stone-500 mt-0.5" id="ticketDateTime">--/--/---- --:--</p>
-          <div class="flex justify-center gap-2 mt-1 text-[11px] font-bold">
-            <span id="ticketChannelBadge" class="bg-stone-200 px-1.5 py-0.5 rounded text-stone-800">Mesa</span>
-            <span id="ticketWaiter" class="text-stone-700">Mesero: --</span>
-          </div>
-        </div>
-
-        <div id="ticketItemsContainer" class="space-y-1.5 py-1"></div>
-
-        <div class="border-t border-dashed border-stone-300 pt-2 space-y-1 text-[11px]">
-          <div class="flex justify-between">
-            <span>Subtotal:</span>
-            <span id="ticketSubtotal">$0.00</span>
-          </div>
-          <div class="flex justify-between text-emerald-700 font-bold" id="ticketDiscountRow">
-            <span>Descuento Promo:</span>
-            <span id="ticketDiscount">-$0.00</span>
-          </div>
-          <div class="flex justify-between text-sm font-black border-t pt-1 text-stone-900">
-            <span>TOTAL:</span>
-            <span id="ticketTotal">$0.00 MXN</span>
-          </div>
-        </div>
-
-        <!-- Visualización del Split Bill en el Ticket si la cuenta fue dividida -->
-        <div id="ticketSplitStatusBox" class="hidden border-t border-dashed border-stone-300 pt-2 space-y-1"></div>
-
-        <div id="ticketNotesBox" class="text-[10px] text-amber-900 bg-amber-100/60 p-2 rounded-lg hidden"></div>
-      </div>
-
-      <div class="flex justify-end gap-2 pt-2 border-t">
-        <button onclick="printCurrentOrderTicket()" class="flex-grow bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm">
-          <span>🖨️ Imprimir Ticket / Guardar PDF</span>
-        </button>
-        <button onclick="closeOrderDetailModal()" class="px-4 py-2.5 border rounded-xl text-xs font-bold text-stone-600 hover:bg-stone-100">
-          Cerrar
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 6. MODAL NUEVO INSUMO -->
-  <div id="newSupplyModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl space-y-3">
-      <div class="flex justify-between items-center border-b pb-2">
-        <h3 class="font-bold text-sm text-stone-900">+ Nuevo Insumo / Materia Prima</h3>
-        <button onclick="closeNewSupplyModal()" class="text-stone-400 hover:text-stone-700 font-bold">✕</button>
-      </div>
-      <div class="space-y-2 text-xs">
-        <div>
-          <label class="block font-semibold mb-1">Nombre Insumo</label>
-          <input type="text" id="supName" placeholder="Ej: Café Pluma Grano" class="w-full border rounded-xl p-2 outline-none">
-        </div>
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <label class="block font-semibold mb-1">Unidad</label>
-            <select id="supUnit" class="w-full border rounded-xl p-2 bg-white">
-              <option value="g">Gramos (g)</option>
-              <option value="ml">Mililitros (ml)</option>
-              <option value="oz">Onzas (oz)</option>
-              <option value="pza">Pieza (pza)</option>
-            </select>
-          </div>
-          <div>
-            <label class="block font-semibold mb-1">Stock Inicial</label>
-            <input type="number" step="0.01" id="supStock" placeholder="1000" class="w-full border rounded-xl p-2 font-mono">
-          </div>
-        </div>
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <label class="block font-semibold mb-1">Alerta Mínima</label>
-            <input type="number" step="0.01" id="supMin" placeholder="200" class="w-full border rounded-xl p-2 font-mono">
-          </div>
-          <div>
-            <label class="block font-semibold mb-1">Costo Unitario ($)</label>
-            <input type="number" step="0.0001" id="supCost" placeholder="0.42" class="w-full border rounded-xl p-2 font-mono">
-          </div>
-        </div>
-        <button onclick="saveNewSupply()" class="w-full bg-stone-900 hover:bg-stone-800 text-white font-bold py-2.5 rounded-xl transition shadow-sm mt-1">
-          Guardar Insumo
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- SCRIPT INTEGRAL CON TODAS LAS FUNCIONALIDADES CONECTADAS -->
-  <script>
-    const REST_ID = 'b47a9880-9fd3-4c9b-b05b-86ea8f0d014d';
-    const SUPABASE_URL = 'https://jmqqkgshwwycercknzgy.supabase.co';
-    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImptcXFrZ3Nod3d5Y2VyY2tuemd5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMzNzYyODUsImV4cCI6MjEwODk1MjI4NX0.tCiRMvl05IXv_IGXIeJ2h9p6AEABRgPofgIRQZMt9UE';
-    
-    let client = null;
-    try {
-      if (window.supabase) client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-    } catch(e) { console.warn(e); }
-
-    const WAITERS_LIST = ['Carlos M.', 'Sofía R.', 'Miguel A.', 'Barra / Mostrador'];
-    
-    const DEFAULT_STATUS_CONFIG = [
-      { id: 'pending', name: '1. Recibida en Cocina', color: '#f59e0b', sound_in: 'bell', sound_out: 'arcade' },
-      { id: 'preparing', name: '2. En Preparación', color: '#ea580c', sound_in: 'arcade', sound_out: 'dingdong' },
-      { id: 'delivered', name: '3. Servida en Mesa', color: '#2563eb', sound_in: 'dingdong', sound_out: 'reward' },
-      { id: 'paid', name: '4. Cobrada / Finalizada', color: '#16a34a', sound_in: 'reward', sound_out: 'fanfare' }
-    ];
-
-    let customStatusConfig = JSON.parse(localStorage.getItem('kds_status_config') || 'null') || DEFAULT_STATUS_CONFIG;
-
-    let adminOrders = [];
-    let adminProducts = [];
-    let adminCategories = [];
-    let adminTypes = [];
-    let adminSupplies = [];
-    let adminRecipes = [];
-    let adminWaste = [];
-    let adminBuffer = [];
-    let adminReservations = [];
-    let adminCalls = [];
-
-    let currentChannelFilter = 'all';
-    let kanbanViewMode = 'all';
-    let selectedSingleStatus = 'pending';
-    let currentAnalyticsFilter = 'today';
-    let customDateFrom = null;
-    let customDateTo = null;
-
-    let currentEditingOrder = null;
-    let currentSelectedDetailOrder = null;
-    let manualOrderItems = [];
-
-    // Variables de retroceso multi-paso
-    let retrocesoOrderId = null;
-    let retrocesoInventoryChoice = null;
-    let retrocesoPreparedDest = null;
-
-    // AUDIO API CON 10 TONOS
-    let audioCtx = null;
-    function getAudioContext() {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-      return audioCtx;
-    }
-
-    function playTone(freq, startTime, duration, type = 'sine', gainLevel = 0.25) {
-      try {
-        const ctx = getAudioContext();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = type;
-        osc.frequency.setValueAtTime(freq, startTime);
-        gain.gain.setValueAtTime(gainLevel, startTime);
-        gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(startTime);
-        osc.stop(startTime + duration);
-      } catch(e) {}
-    }
-
-    const SOUND_ENGINES = {
-      bell: (ctx, t) => { playTone(1046.5, t, 0.35, 'triangle', 0.3); playTone(1567.9, t + 0.12, 0.5, 'sine', 0.35); },
-      chime: (ctx, t) => { playTone(523.25, t, 0.2, 'sine', 0.25); playTone(659.25, t + 0.08, 0.2, 'sine', 0.28); playTone(783.99, t + 0.16, 0.4, 'triangle', 0.32); },
-      dingdong: (ctx, t) => { playTone(1318.5, t, 0.3, 'triangle', 0.3); playTone(987.7, t + 0.15, 0.5, 'sine', 0.3); },
-      arcade: (ctx, t) => { playTone(440, t, 0.15, 'triangle', 0.25); playTone(880, t + 0.08, 0.25, 'triangle', 0.25); },
-      fanfare: (ctx, t) => { playTone(783.99, t, 0.1, 'square', 0.18); playTone(1046.5, t + 0.15, 0.35, 'square', 0.25); },
-      zen: (ctx, t) => { playTone(432.0, t, 0.9, 'sine', 0.4); },
-      jazz: (ctx, t) => { playTone(523.25, t, 0.4, 'triangle', 0.22); playTone(783.99, t + 0.08, 0.4, 'triangle', 0.22); },
-      drop: (ctx, t) => { playTone(1800, t, 0.12, 'sine', 0.35); playTone(600, t + 0.08, 0.15, 'sine', 0.35); },
-      reward: (ctx, t) => { playTone(523, t, 0.1, 'triangle', 0.2); playTone(659, t + 0.08, 0.1, 'triangle', 0.2); playTone(1046, t + 0.16, 0.4, 'sine', 0.3); },
-      pulse: (ctx, t) => { playTone(900, t, 0.08, 'sawtooth', 0.15); playTone(1400, t + 0.06, 0.18, 'triangle', 0.3); }
-    };
-
-    function playSoundByName(presetName) {
-      if (!presetName || presetName === 'none') return;
-      try {
-        const ctx = getAudioContext();
-        const engine = SOUND_ENGINES[presetName] || SOUND_ENGINES.bell;
-        engine(ctx, ctx.currentTime);
-      } catch(e) {}
-    }
-
-    // TOGGLE SIDEBAR Y FOCUS
-    function toggleSidebar(forceState) {
-      const sidebar = document.getElementById('appSidebar');
-      const content = document.getElementById('mainContentArea');
-      const backdrop = document.getElementById('sidebarBackdrop');
-      const isClosed = (forceState !== undefined) ? !forceState : sidebar.classList.contains('sidebar-hidden');
-
-      if (!isClosed) {
-        sidebar.classList.add('sidebar-hidden');
-        content.classList.add('sidebar-collapsed');
-        backdrop.classList.add('hidden');
-      } else {
-        sidebar.classList.remove('sidebar-hidden');
-        content.classList.remove('sidebar-collapsed');
-        if (window.innerWidth < 768) backdrop.classList.remove('hidden');
-      }
-    }
-
-    function toggleFocusMode() {
-      document.body.classList.toggle('focus-mode');
-      if (document.body.classList.contains('focus-mode')) {
-        if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{});
-      } else {
-        if (document.exitFullscreen && document.fullscreenElement) document.exitFullscreen().catch(()=>{});
-      }
-    }
-
-    function switchStationRole(role) {
-      const gLive = document.getElementById('navGroup-live');
-      const gMgmt = document.getElementById('navGroup-management');
-      const gAnal = document.getElementById('navGroup-analytics');
-      const roleBadge = document.getElementById('topbarRoleBadge');
-
-      if (role === 'kitchen') {
-        gLive.classList.remove('hidden'); gMgmt.classList.add('hidden'); gAnal.classList.add('hidden');
-        roleBadge.innerText = '🍳 Modo Cocina / KDS';
-        switchTab('orders');
-      } else if (role === 'waiter') {
-        gLive.classList.remove('hidden'); gMgmt.classList.add('hidden'); gAnal.classList.add('hidden');
-        roleBadge.innerText = '🛎️ Modo Meseros & Sala';
-        switchTab('calls');
-      } else if (role === 'management') {
-        gLive.classList.add('hidden'); gMgmt.classList.remove('hidden'); gAnal.classList.remove('hidden');
-        roleBadge.innerText = '📊 Modo Gerencia & Costes';
-        switchTab('analytics');
-      } else {
-        gLive.classList.remove('hidden'); gMgmt.classList.remove('hidden'); gAnal.classList.remove('hidden');
-        roleBadge.innerText = '👑 Todo Administrador';
-      }
-    }
-
-    const TAB_TITLES = {
-      orders: 'Tablero Kanban KDS',
-      calls: 'Llamadas de Mesero en Vivo',
-      reservations: 'Agenda de Reservas',
-      inventory: 'Almacén, Escandallos & Mermas',
-      products: 'Gestión de Platillos y Carta',
-      taxonomies: 'Categorías y Tipos de Menú',
-      analytics: 'Métricas, Food Cost & Ingeniería de Menús',
-      marketing: 'Google Maps Reviews & Lealtad'
-    };
-
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab-panel').forEach(el => el.classList.add('hidden'));
-      document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('bg-amber-600', 'text-white', 'shadow-sm', 'font-bold');
-        btn.classList.add('text-stone-400', 'font-medium');
-      });
-
-      const targetPanel = document.getElementById(`tab-${tabId}`);
-      const targetBtn = document.getElementById(`tabBtn-${tabId}`);
-      if (targetPanel && targetBtn) {
-        targetPanel.classList.remove('hidden');
-        targetBtn.classList.remove('text-stone-400', 'font-medium');
-        targetBtn.classList.add('bg-amber-600', 'text-white', 'shadow-sm', 'font-bold');
-      }
-
-      const topTitle = document.getElementById('topbarTitle');
-      if (topTitle) topTitle.innerText = TAB_TITLES[tabId] || 'Estación de Trabajo';
-
-      if (window.innerWidth < 768) toggleSidebar(false);
-
-      if (tabId === 'analytics') renderAnalyticsDashboard();
-      if (tabId === 'inventory') renderInventoryTab();
-      if (tabId === 'reservations') renderReservationsList();
-    }
-
-    function filterByChannel(channel) {
-      currentChannelFilter = channel;
-      ['all', 'dine_in', 'takeout', 'delivery'].forEach(ch => {
-        const btn = document.getElementById(`btnChannel-${ch}`);
-        if (!btn) return;
-        btn.className = (ch === channel)
-          ? 'px-3 py-1.5 rounded-xl bg-stone-900 text-white shadow-sm transition'
-          : 'px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 transition';
-      });
-      renderKanbanBoard();
-    }
-
-    function setKanbanDisplayMode(mode) {
-      kanbanViewMode = mode;
-      renderKanbanBoard();
-    }
-
-    // =========================================================================
-    // TABLERO KANBAN CON CABECERAS GRANDES, DUAL TIMER Y RESALTADO
-    // =========================================================================
-    function renderKanbanBoard() {
-      const container = document.getElementById('kanbanBoardContainer');
-      if (!container) return;
-
-      let filtered = adminOrders.filter(o => !o.is_archived);
-      if (currentChannelFilter === 'dine_in') filtered = filtered.filter(o => !o.order_channel || o.order_channel === 'dine_in');
-      else if (currentChannelFilter === 'takeout') filtered = filtered.filter(o => o.order_channel === 'takeout');
-      else if (currentChannelFilter === 'delivery') filtered = filtered.filter(o => ['rappi', 'didi', 'ubereats'].includes(o.order_channel));
-
-      const activeCount = filtered.filter(o => o.status !== 'paid' && o.status !== 'cancelled').length;
-      document.getElementById('kdsActiveCount').innerText = `${activeCount} activas`;
-      document.getElementById('badgeLiveOrders').innerText = activeCount;
-
-      container.innerHTML = customStatusConfig.map((col, idx) => {
-        const ordersInStatus = filtered.filter(o => o.status === col.id);
-        const count = ordersInStatus.length;
-
-        let cardsHtml = '';
-        if (count === 0) {
-          cardsHtml = '<div class="h-36 border-2 border-dashed border-stone-300 rounded-2xl flex items-center justify-center text-stone-400 text-xs">Sin pedidos</div>';
-        } else {
-          cardsHtml = ordersInStatus.map(order => renderOrderCardHtml(order, idx)).join('');
-        }
-
-        return `
-          <div id="column-${col.id}" class="kanban-col bg-stone-200/70 rounded-3xl p-3.5 space-y-3 border border-stone-300/80">
-            <!-- CABECERA DE COLUMNA GRÁFICA DESTACADA -->
-            <div class="flex justify-between items-center p-2 rounded-2xl bg-white shadow-xs border border-stone-200/60">
-              <div class="flex items-center gap-2">
-                <span class="w-3.5 h-3.5 rounded-full" style="background-color: ${col.color || '#f59e0b'}"></span>
-                <div>
-                  <h3 class="font-black text-xs uppercase tracking-wider text-stone-800 leading-tight">${col.name}</h3>
-                  <span class="text-[10px] text-stone-400 font-semibold block">Etapa ${idx + 1}</span>
-                </div>
-              </div>
-              <div class="bg-stone-900 text-white px-3 py-1.5 rounded-xl text-sm font-black font-mono shadow-xs">
-                ${count}
-              </div>
-            </div>
-
-            <div id="cards-${col.id}" class="space-y-3 min-h-[300px]">
-              ${cardsHtml}
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function renderOrderCardHtml(order, currentIdx) {
-      const items = Array.isArray(order.items) ? order.items : [];
-
-      let channelBadge = '<span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-lg">🍽️ Mesa ' + order.table_number + '</span>';
-      if (order.order_channel === 'takeout') {
-        channelBadge = '<span class="bg-amber-100 text-amber-900 text-[10px] font-bold px-2 py-0.5 rounded-lg">🛍️ Para Llevar</span>';
-      } else if (['rappi', 'didi', 'ubereats'].includes(order.order_channel)) {
-        channelBadge = `<span class="bg-orange-100 text-orange-950 text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase">🛵 ${order.order_channel}</span>`;
-      }
-
-      // CRONÓMETRO DUAL
-      const createdMs = new Date(order.kitchen_cycle_started_at || order.created_at).getTime();
-      const deliveredMs = order.delivered_at ? new Date(order.delivered_at).getTime() : null;
-      const paidMs = order.paid_at ? new Date(order.paid_at).getTime() : null;
-
-      let t1Secs = deliveredMs ? Math.max(0, Math.floor((deliveredMs - createdMs) / 1000)) : Math.max(0, Math.floor((Date.now() - createdMs) / 1000));
-      let t1Label = deliveredMs ? `✓ Servido en: ${formatElapsed(t1Secs)}` : `🔥 Cocina: ${formatElapsed(t1Secs)}`;
-      let t1Class = deliveredMs ? 'bg-blue-50 text-blue-900 border-blue-200' : (t1Secs > 1200 ? 'bg-rose-100 text-rose-900 border-rose-300 pulse-danger' : 'bg-stone-100 text-stone-800 border-stone-200');
-
-      let t2Label = '🍽️ Mesa: --:--', t2Class = 'bg-stone-50 text-stone-400 border-stone-200';
-      if (deliveredMs) {
-        let t2Secs = paidMs ? Math.max(0, Math.floor((paidMs - deliveredMs) / 1000)) : Math.max(0, Math.floor((Date.now() - deliveredMs) / 1000));
-        t2Label = paidMs ? `✓ Pagó en: ${formatElapsed(t2Secs)}` : `🍽️ En Mesa: ${formatElapsed(t2Secs)}`;
-        t2Class = paidMs ? 'bg-emerald-50 text-emerald-900 border-emerald-200' : 'bg-amber-50 text-amber-900 border-amber-200';
-      }
-
-      const totalEstancia = Math.max(0, Math.floor(((paidMs || Date.now()) - new Date(order.created_at).getTime()) / 1000));
-
-      const hasNext = currentIdx < customStatusConfig.length - 1;
-      const nextCol = hasNext ? customStatusConfig[currentIdx + 1] : null;
-
-      return `
-        <div class="bg-white rounded-2xl border-2 border-stone-200 p-3.5 shadow-sm space-y-2.5" id="card-${order.id}">
-          <div class="flex justify-between items-start gap-2">
-            <div>
-              <div class="flex items-center gap-1.5 flex-wrap">
-                ${channelBadge}
-                <span class="text-[10px] text-stone-400 font-mono">#${(order.id || '').substring(0,4)}</span>
-              </div>
-              <div class="flex items-center gap-1 mt-1">
-                <span class="text-[11px] text-stone-400">Mesero:</span>
-                <span class="text-xs font-bold text-stone-700">${order.waiter_name || 'Sin asignar'}</span>
-              </div>
-            </div>
-
-            <div class="flex items-center gap-1">
-              <button onclick="openEditOrderModal('${order.id}')" class="p-1 hover:bg-stone-100 rounded-lg text-xs font-bold text-stone-600 transition" title="Editar Comanda">✏️</button>
-              <button onclick="openOrderDetailModal('${order.id}')" class="p-1 hover:bg-stone-100 rounded-lg text-xs font-bold text-amber-700 transition" title="Ver Ticket / Imprimir">🖨️</button>
-            </div>
-          </div>
-
-          <!-- DUAL TIMER DESTACADO -->
-          <div class="bg-stone-50 border border-stone-200 rounded-xl p-2 space-y-1">
-            <div class="grid grid-cols-2 gap-1 text-[10px] font-mono font-bold text-center">
-              <div class="border rounded-lg p-1 ${t1Class}">${t1Label}</div>
-              <div class="border rounded-lg p-1 ${t2Class}">${t2Label}</div>
-            </div>
-            <div class="text-[9px] text-stone-500 font-mono text-center">
-              Estancia Total: <b class="text-stone-800">${formatElapsed(totalEstancia)}</b>
-            </div>
-          </div>
-
-          <!-- LISTA DE PRODUCTOS CON RESALTADO DE NUEVAS ADICIONES -->
-          <div class="border-t border-stone-100 pt-2 space-y-1 text-xs">
-            ${items.map(it => `
-              <div class="flex justify-between items-start ${it.is_new ? 'bg-amber-100 border border-amber-300 rounded p-1 font-bold' : ''}">
-                <span>${it.qty}x ${it.title} ${it.is_new ? '<span class="text-[9px] bg-amber-600 text-white px-1 rounded ml-1">NUEVO</span>' : ''}</span>
-                <span class="font-mono text-stone-500">$${(it.price * it.qty).toFixed(2)}</span>
-              </div>
-            `).join('')}
-            ${order.customer_notes ? `
-              <div class="p-1.5 rounded-lg text-[10px] font-semibold mt-1 ${order.notes_updated ? 'bg-amber-200 text-amber-950 font-bold border border-amber-400' : 'bg-amber-50 text-amber-900'}">
-                ${order.notes_updated ? '⚠️ NOTA MODIFICADA: ' : 'Nota: '} ${order.customer_notes}
-              </div>
-            ` : ''}
-          </div>
-
-          <div class="border-t border-stone-100 pt-2 flex justify-between items-center text-xs">
-            <span class="text-stone-400 text-[10px]">Total:</span>
-            <div class="flex items-center gap-2">
-              ${order.split_type && order.split_type !== 'single' ? '<span class="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded">👥 Dividida</span>' : ''}
-              <span class="font-black font-mono text-sm text-stone-900">$${Number(order.total).toFixed(2)}</span>
-            </div>
-          </div>
-
-          <div class="border-t border-stone-100 pt-2 flex items-center justify-between gap-1.5">
-            ${currentIdx > 0 ? `
-              <button onclick="requestRetrocesoOrder('${order.id}')" class="px-2.5 py-1.5 rounded-xl text-stone-600 bg-stone-100 hover:bg-stone-200 text-xs font-bold transition active:scale-95" title="Regresar de Estatus">←</button>
-            ` : '<div></div>'}
-
-            ${order.status === 'paid' ? `
-              <button onclick="archiveOrder('${order.id}')" class="flex-grow px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-sm">📦 Enviar al Histórico</button>
-            ` : (hasNext ? `
-              <button onclick="advanceOrderStatus('${order.id}')" class="flex-grow px-3 py-1.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold transition shadow-sm active:scale-95">Mover a ${nextCol.name} →</button>
-            ` : `
-              <button onclick="archiveOrder('${order.id}')" class="flex-grow px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-sm">Finalizar Pedido ✓</button>
-            `)}
-          </div>
-        </div>
-      `;
-    }
-
-    async function advanceOrderStatus(orderId) {
-      const order = adminOrders.find(o => o.id === orderId);
-      if (!order) return;
-      const currentIdx = customStatusConfig.findIndex(c => c.id === order.status);
-      const nextCol = customStatusConfig[currentIdx + 1];
-      if (!nextCol) return;
-
-      const nowIso = new Date().toISOString();
-      const prevCol = customStatusConfig[currentIdx];
-
-      if (prevCol?.sound_out) playSoundByName(prevCol.sound_out);
-      if (nextCol?.sound_in) playSoundByName(nextCol.sound_in);
-
-      order.status = nextCol.id;
-
-      if (nextCol.id === 'preparing' || nextCol.id.includes('prep')) {
-        order.preparing_at = nowIso;
-        deductSuppliesForOrder(order);
-      } else if (nextCol.id === 'delivered' || nextCol.id.includes('serv')) {
-        order.delivered_at = nowIso;
-        // Al servirse, se limpian las banderas operativas de cocina
-        order.has_new_additions = false;
-        order.notes_updated = false;
-        (order.items || []).forEach(it => it.is_new = false);
-      } else if (nextCol.id === 'paid' || nextCol.id.includes('cob')) {
-        order.paid_at = nowIso;
-      }
-
-      renderKanbanBoard();
-      if (client) {
-        await client.from('orders').update({
-          status: nextCol.id,
-          preparing_at: order.preparing_at,
-          delivered_at: order.delivered_at,
-          paid_at: order.paid_at,
-          has_new_additions: order.has_new_additions,
-          notes_updated: order.notes_updated,
-          items: order.items
-        }).eq('id', orderId);
-      }
-    }
-
-    function deductSuppliesForOrder(order) {
-      (order.items || []).forEach(item => {
-        const bufferIdx = adminBuffer.findIndex(b => b.product_title === item.title && b.status === 'available');
-        if (bufferIdx > -1) {
-          adminBuffer[bufferIdx].status = 'resold';
-          if (client) client.from('prepared_items_buffer').update({ status: 'resold' }).eq('id', adminBuffer[bufferIdx].id);
-          return;
-        }
-
-        const recipes = adminRecipes.filter(r => r.product_id === item.id || r.product_title === item.title);
-        recipes.forEach(rcp => {
-          const sup = adminSupplies.find(s => s.id === rcp.supply_id);
-          if (sup) {
-            const used = Number(rcp.quantity_per_portion) * Number(item.qty);
-            sup.current_stock = Math.max(0, sup.current_stock - used);
-            if (client) client.from('supplies').update({ current_stock: sup.current_stock }).eq('id', sup.id);
-          }
-        });
-      });
-    }
-
-    // RETROCESO EN 2 PASOS CON BOTONES ACTIVOS Y REINICIO DE CONTADOR
-    function requestRetrocesoOrder(orderId) {
-      const order = adminOrders.find(o => o.id === orderId);
-      if (!order) return;
-
-      retrocesoOrderId = orderId;
-      retrocesoInventoryChoice = null;
-      retrocesoPreparedDest = null;
-
-      ['btnRetroNoPrep', 'btnRetroPrep', 'btnRetroBuffer', 'btnRetroWaste'].forEach(b => {
-        const el = document.getElementById(b);
-        if (el) el.className = 'p-3 border rounded-xl text-left transition space-y-1 bg-white';
-      });
-
-      if (order.status === 'preparing') {
-        document.getElementById('retrocesoModalSub').innerText = `Mesa ${order.table_number}`;
-        document.getElementById('retrocesoStep1').classList.remove('hidden');
-        document.getElementById('retrocesoStep1Sub').classList.add('hidden');
-        document.getElementById('retrocesoStep2').classList.add('hidden');
-        document.getElementById('retrocesoModal').classList.remove('hidden');
-      } else if (order.status === 'delivered') {
-        const rePrep = confirm("¿Se preparará en cocina algún producto nuevo o modificación?\n\n• [Aceptar]: Regresar a 'En Preparación' e iniciar nuevo contador de cocina.\n• [Cancelar]: Regresar normalmente.");
-        if (rePrep) {
-          order.status = 'preparing';
-          order.kitchen_cycle_started_at = new Date().toISOString();
-        } else {
-          order.status = 'preparing';
-        }
-        renderKanbanBoard();
-        if (client) client.from('orders').update({ status: order.status, kitchen_cycle_started_at: order.kitchen_cycle_started_at }).eq('id', order.id);
-      } else {
-        const currentIdx = customStatusConfig.findIndex(c => c.id === order.status);
-        if (currentIdx > 0) {
-          order.status = customStatusConfig[currentIdx - 1].id;
-          renderKanbanBoard();
-          if (client) client.from('orders').update({ status: order.status }).eq('id', order.id);
-        }
-      }
-    }
-
-    function handleRetrocesoInventoryChoice(choice) {
-      retrocesoInventoryChoice = choice;
-      document.getElementById('btnRetroNoPrep').className = choice === 'no_prepared' ? 'p-3 border-2 border-emerald-600 bg-emerald-50 rounded-xl text-left' : 'p-3 border rounded-xl text-left bg-white opacity-50';
-      document.getElementById('btnRetroPrep').className = choice === 'prepared' ? 'p-3 border-2 border-amber-600 bg-amber-50 rounded-xl text-left' : 'p-3 border rounded-xl text-left bg-white opacity-50';
-
-      if (choice === 'no_prepared') {
-        document.getElementById('retrocesoStep1Sub').classList.add('hidden');
-        document.getElementById('retrocesoStep2').classList.remove('hidden');
-      } else {
-        document.getElementById('retrocesoStep1Sub').classList.remove('hidden');
-      }
-    }
-
-    function setRetrocesoPreparedDestination(dest) {
-      retrocesoPreparedDest = dest;
-      document.getElementById('btnRetroBuffer').className = dest === 'buffer_resell' ? 'p-3 border-2 border-blue-600 bg-blue-50 rounded-xl text-left' : 'p-3 border rounded-xl text-left bg-white opacity-50';
-      document.getElementById('btnRetroWaste').className = dest === 'waste_loss' ? 'p-3 border-2 border-rose-600 bg-rose-50 rounded-xl text-left' : 'p-3 border rounded-xl text-left bg-white opacity-50';
-      document.getElementById('retrocesoStep2').classList.remove('hidden');
-    }
-
-    async function finalizeRetrocesoOrderAction(orderAction) {
-      const order = adminOrders.find(o => o.id === retrocesoOrderId);
-      if (!order) return;
-
-      if (retrocesoInventoryChoice === 'no_prepared') {
-        (order.items || []).forEach(item => {
-          const recipes = adminRecipes.filter(r => r.product_id === item.id || r.product_title === item.title);
-          recipes.forEach(rcp => {
-            const sup = adminSupplies.find(s => s.id === rcp.supply_id);
-            if (sup) {
-              sup.current_stock += Number(rcp.quantity_per_portion) * Number(item.qty);
-              if (client) client.from('supplies').update({ current_stock: sup.current_stock }).eq('id', sup.id);
-            }
-          });
-        });
-      } else if (retrocesoInventoryChoice === 'prepared') {
-        if (retrocesoPreparedDest === 'buffer_resell') {
-          (order.items || []).forEach(item => {
-            const buff = { id: 'buf-' + Date.now(), restaurant_id: REST_ID, order_id: order.id, product_title: item.title, qty: item.qty, status: 'available', table_number: order.table_number, waiter_name: order.waiter_name, created_at: new Date().toISOString() };
-            adminBuffer.push(buff);
-            if (client) client.from('prepared_items_buffer').insert([buff]);
-          });
-        } else if (retrocesoPreparedDest === 'waste_loss') {
-          (order.items || []).forEach(item => {
-            const wasteEntry = { id: 'wst-' + Date.now(), restaurant_id: REST_ID, order_id: order.id, product_title: item.title, reason: 'Cancelado durante preparación', cost_loss: Number(item.price) * 0.35, ingredients_summary: [{ item: item.title, qty: item.qty }], table_number: order.table_number, waiter_name: order.waiter_name, created_at: new Date().toISOString() };
-            adminWaste.push(wasteEntry);
-            if (client) client.from('kitchen_waste').insert([wasteEntry]);
-          });
-        }
-      }
-
-      if (orderAction === 'return_flow') {
-        order.status = 'pending';
-        order.preparing_at = null;
-        if (client) await client.from('orders').update({ status: 'pending', preparing_at: null }).eq('id', order.id);
-      } else if (orderAction === 'delete_order') {
-        order.status = 'cancelled';
-        order.is_archived = true;
-        if (client) await client.from('orders').update({ status: 'cancelled', is_archived: true }).eq('id', order.id);
-      }
-
-      renderKanbanBoard();
-      closeRetrocesoModal();
-    }
-
-    function closeRetrocesoModal() {
-      document.getElementById('retrocesoModal').classList.add('hidden');
-      retrocesoOrderId = null;
-    }
-
-    // NUEVO PEDIDO MANUAL CON CANDADO DE MESAS Y BUSCADOR VISUAL
-    function openNewOrderModal() {
-      manualOrderItems = [];
-      document.getElementById('manualOrderTable').value = '';
-      document.getElementById('manualOrderNotes').value = '';
-      const waiterSelect = document.getElementById('manualOrderWaiter');
-      waiterSelect.innerHTML = WAITERS_LIST.map(w => `<option value="${w}">${w}</option>`).join('');
-      renderManualOrderItems();
-      document.getElementById('newOrderManualModal').classList.remove('hidden');
-    }
-
-    function closeNewOrderModal() {
-      document.getElementById('newOrderManualModal').classList.add('hidden');
-      manualOrderItems = [];
-    }
-
-    function handleManualChannelChange(channel) {
-      const tableInput = document.getElementById('manualOrderTable');
-      const tableLabel = document.getElementById('manualTableLabel');
-      if (channel === 'dine_in') { tableLabel.innerText = 'Mesa #:'; tableInput.placeholder = '01'; }
-      else if (channel === 'takeout') { tableLabel.innerText = 'Etiqueta:'; tableInput.value = 'Para Llevar'; }
-      else { tableLabel.innerText = 'Folio App:'; tableInput.placeholder = 'Ej: #A92'; }
-    }
-
-    function filterManualProductDropdown(query) {
-      const q = query.toLowerCase().trim();
-      const drop = document.getElementById('manualProdDropdown');
-      if (!q) { drop.classList.add('hidden'); return; }
-
-      const matches = adminProducts.filter(p => p.title.toLowerCase().includes(q));
-      drop.classList.remove('hidden');
-      drop.innerHTML = matches.map(p => {
-        const img = (p.media && p.media[0]) ? p.media[0].url : 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=100&q=80';
-        return `
-          <div onclick="selectProductToAddManual('${p.id}')" class="p-2 hover:bg-amber-50 cursor-pointer flex items-center justify-between gap-2 text-xs">
-            <div class="flex items-center gap-2">
-              <img src="${img}" class="w-8 h-8 rounded-lg object-cover bg-stone-200">
-              <span class="font-bold text-stone-900">${p.title}</span>
-            </div>
-            <span class="font-bold font-mono text-amber-700">$${Number(p.price).toFixed(2)}</span>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function selectProductToAddManual(prodId) {
-      const prod = adminProducts.find(p => p.id === prodId);
-      if (!prod) return;
-      manualOrderItems.push({ id: prod.id, title: prod.title, price: Number(prod.price), qty: 1 });
-      document.getElementById('manualProdDropdown').classList.add('hidden');
-      document.getElementById('manualProdSearchInput').value = '';
-      renderManualOrderItems();
-    }
-
-    function renderManualOrderItems() {
-      const cont = document.getElementById('manualOrderItemsList');
-      if (manualOrderItems.length === 0) {
-        cont.innerHTML = '<p class="text-xs text-stone-400 py-3 text-center">Sin platillos agregados aún.</p>';
-        document.getElementById('manualOrderTotalDisplay').innerText = '$0.00 MXN';
-        return;
-      }
-      cont.innerHTML = manualOrderItems.map((it, idx) => `
-        <div class="flex justify-between items-center p-2 rounded-xl bg-stone-50 border text-xs">
-          <span><b>${it.qty}x</b> ${it.title}</span>
-          <div class="flex items-center gap-2">
-            <span class="font-mono font-bold">$${(it.price * it.qty).toFixed(2)}</span>
-            <button onclick="manualOrderItems.splice(${idx},1); renderManualOrderItems();" class="text-rose-600 font-bold px-1">✕</button>
-          </div>
-        </div>
-      `).join('');
-      const total = manualOrderItems.reduce((acc, it) => acc + (it.price * it.qty), 0);
-      document.getElementById('manualOrderTotalDisplay').innerText = `$${total.toFixed(2)} MXN`;
-    }
-
-    async function submitManualOrder() {
-      if (manualOrderItems.length === 0) { alert("Agrega al menos un platillo."); return; }
-      const channel = document.getElementById('manualOrderChannel').value;
-      let tableNum = document.getElementById('manualOrderTable').value.trim() || '01';
-
-      if (channel === 'dine_in') {
-        const activeExisting = adminOrders.find(o => o.table_number === tableNum && o.status !== 'paid' && o.status !== 'cancelled' && !o.is_archived);
-        if (activeExisting) {
-          const unite = confirm(`La Mesa ${tableNum} ya tiene una comanda activa (#${activeExisting.id.substring(0,4)}).\n\n• [Aceptar]: Unificar y enviar lo nuevo a cocina.\n• [Cancelar]: Crear cuenta separada (${tableNum}-B).`);
-          if (unite) {
-            manualOrderItems.forEach(it => activeExisting.items.unshift({ ...it, is_new: true }));
-            activeExisting.has_new_additions = true;
-            activeExisting.status = 'preparing';
-            activeExisting.kitchen_cycle_started_at = new Date().toISOString();
-            activeExisting.total = activeExisting.items.reduce((acc, i) => acc + (i.price * i.qty), 0);
-
-            if (client) {
-              await client.from('orders').update({
-                items: activeExisting.items,
-                has_new_additions: true,
-                status: 'preparing',
-                kitchen_cycle_started_at: activeExisting.kitchen_cycle_started_at,
-                total: activeExisting.total
-              }).eq('id', activeExisting.id);
-            }
-            renderKanbanBoard();
-            closeNewOrderModal();
-            return;
-          } else {
-            tableNum = `${tableNum}-B`;
-          }
-        }
-      }
-
-      const total = manualOrderItems.reduce((acc, it) => acc + (it.price * it.qty), 0);
-      const newOrder = {
-        id: 'ord-' + Date.now(),
-        restaurant_id: REST_ID,
-        table_number: tableNum,
-        order_channel: channel,
-        waiter_name: document.getElementById('manualOrderWaiter').value,
-        items: manualOrderItems,
-        subtotal: total,
-        discount: 0,
-        total: total,
-        status: customStatusConfig[0].id,
-        is_archived: false,
-        customer_notes: document.getElementById('manualOrderNotes').value.trim(),
-        created_at: new Date().toISOString()
-      };
-
-      const firstCol = customStatusConfig[0];
-      if (firstCol?.sound_in) playSoundByName(firstCol.sound_in);
-
-      adminOrders.unshift(newOrder);
-      renderKanbanBoard();
-      closeNewOrderModal();
-
-      if (client) {
-        try { await client.from('orders').insert([newOrder]); } catch(e){}
-      }
-    }
-
-    // MODAL EDITAR COMANDA CON BUSCADOR Y CONFIRMACIÓN
-    function openEditOrderModal(orderId) {
-      const order = adminOrders.find(o => o.id === orderId);
-      if (!order) return;
-      currentEditingOrder = order;
-
-      document.getElementById('modalOrderId').value = order.id;
-      document.getElementById('modalOrderTableBadge').innerText = `Mesa ${order.table_number}`;
-      document.getElementById('modalOrderNotes').value = order.customer_notes || '';
-
-      const waiterSelect = document.getElementById('modalOrderWaiter');
-      waiterSelect.innerHTML = WAITERS_LIST.map(w => `<option value="${w}" ${order.waiter_name === w ? 'selected' : ''}>${w}</option>`).join('');
-
-      const statusSelect = document.getElementById('modalOrderStatus');
-      statusSelect.innerHTML = customStatusConfig.map(s => `<option value="${s.id}" ${order.status === s.id ? 'selected' : ''}>${s.name}</option>`).join('');
-
-      renderEditOrderItems();
-      document.getElementById('editOrderModal').classList.remove('hidden');
-    }
-
-    function closeEditOrderModal() {
-      document.getElementById('editOrderModal').classList.add('hidden');
-      currentEditingOrder = null;
-    }
-
-    function filterEditProductDropdown(query) {
-      const q = query.toLowerCase().trim();
-      const drop = document.getElementById('editProdDropdown');
-      if (!q) { drop.classList.add('hidden'); return; }
-
-      const matches = adminProducts.filter(p => p.title.toLowerCase().includes(q));
-      drop.classList.remove('hidden');
-      drop.innerHTML = matches.map(p => `
-        <div onclick="selectProductToAddEdit('${p.id}')" class="p-2 hover:bg-amber-50 cursor-pointer flex justify-between text-xs">
-          <span>${p.title}</span>
-          <span class="font-mono font-bold">$${Number(p.price).toFixed(2)}</span>
-        </div>
-      `).join('');
-    }
-
-    function selectProductToAddEdit(prodId) {
-      const prod = adminProducts.find(p => p.id === prodId);
-      if (!prod || !currentEditingOrder) return;
-      currentEditingOrder.items.unshift({ id: prod.id, title: prod.title, price: Number(prod.price), qty: 1, is_new: true });
-      document.getElementById('editProdDropdown').classList.add('hidden');
-      document.getElementById('editProdSearchInput').value = '';
-      renderEditOrderItems();
-    }
-
-    function renderEditOrderItems() {
-      const cont = document.getElementById('modalOrderItemsContainer');
-      const items = currentEditingOrder?.items || [];
-      cont.innerHTML = items.map((it, idx) => `
-        <div class="flex justify-between items-center p-2 rounded-xl bg-stone-50 border text-xs">
-          <span>${it.title} ${it.is_new ? '<b class="text-amber-700">(NUEVO)</b>' : ''}</span>
-          <div class="flex items-center gap-2">
-            <span class="font-mono font-bold">$${(it.price * it.qty).toFixed(2)}</span>
-            <button onclick="currentEditingOrder.items.splice(${idx},1); renderEditOrderItems();" class="text-rose-600 font-bold px-1">✕</button>
-          </div>
-        </div>
-      `).join('');
-      const total = items.reduce((acc, it) => acc + (it.price * it.qty), 0);
-      document.getElementById('modalOrderTotalDisplay').innerText = `$${total.toFixed(2)} MXN`;
-    }
-
-    async function saveOrderEditsWithConfirm() {
-      if (!currentEditingOrder) return;
-      const confirmSave = confirm(`¿Confirmas la modificación de la Comanda de la Mesa ${currentEditingOrder.table_number}?`);
-      if (!confirmSave) return;
-
-      const waiter = document.getElementById('modalOrderWaiter').value;
-      const status = document.getElementById('modalOrderStatus').value;
-      const notes = document.getElementById('modalOrderNotes').value.trim();
-      const total = currentEditingOrder.items.reduce((acc, it) => acc + (it.price * it.qty), 0);
-
-      if (currentEditingOrder.status === 'delivered' && currentEditingOrder.items.some(i => i.is_new)) {
-        const prep = confirm("Se han añadido productos nuevos a una mesa servida. ¿Regresar comanda a preparación en cocina?");
-        if (prep) {
-          currentEditingOrder.status = 'preparing';
-          currentEditingOrder.kitchen_cycle_started_at = new Date().toISOString();
-          currentEditingOrder.has_new_additions = true;
-        }
-      }
-
-      currentEditingOrder.waiter_name = waiter;
-      currentEditingOrder.customer_notes = notes;
-      currentEditingOrder.subtotal = total;
-      currentEditingOrder.total = total;
-
-      renderKanbanBoard();
-      closeEditOrderModal();
-
-      if (client) {
-        await client.from('orders').update({
-          items: currentEditingOrder.items,
-          waiter_name: waiter,
-          status: currentEditingOrder.status,
-          customer_notes: notes,
-          subtotal: total,
-          total: total,
-          has_new_additions: currentEditingOrder.has_new_additions,
-          kitchen_cycle_started_at: currentEditingOrder.kitchen_cycle_started_at
-        }).eq('id', currentEditingOrder.id);
-      }
-    }
-
-    // MODAL DETALLE / TICKET LIMPIO Y SPLIT BILL
-    function openOrderDetailModal(orderId) {
-      const order = adminOrders.find(o => o.id === orderId);
-      if (!order) return;
-      currentSelectedDetailOrder = order;
-
-      document.getElementById('detailTableNum').innerText = `Mesa ${order.table_number}`;
-      document.getElementById('detailOrderId').innerText = `#${(order.id || '').substring(0,6)}`;
-      document.getElementById('ticketDateTime').innerText = new Date(order.created_at).toLocaleString();
-      document.getElementById('ticketWaiter').innerText = `Mesero: ${order.waiter_name || 'Sin asignar'}`;
-      document.getElementById('ticketChannelBadge').innerText = order.order_channel === 'takeout' ? 'Para Llevar' : (order.order_channel === 'delivery' ? 'Delivery' : 'En Mesa');
-
-      // TICKET LIMPIO PARA EL CLIENTE (sin etiquetas operativas internas)
-      const items = Array.isArray(order.items) ? order.items : [];
-      document.getElementById('ticketItemsContainer').innerHTML = items.map(it => `
-        <div class="flex justify-between items-start">
-          <span>${it.qty}x ${it.title}</span>
-          <span class="font-bold">$${(it.price * it.qty).toFixed(2)}</span>
-        </div>
-      `).join('');
-
-      document.getElementById('ticketSubtotal').innerText = `$${Number(order.subtotal || order.total).toFixed(2)}`;
-      document.getElementById('ticketTotal').innerText = `$${Number(order.total).toFixed(2)} MXN`;
-
-      // Visualización interactiva de cuenta dividida
-      const splitBox = document.getElementById('ticketSplitStatusBox');
-      if (order.split_type && order.split_type !== 'single' && order.split_details) {
-        splitBox.classList.remove('hidden');
-        splitBox.innerHTML = `
-          <div class="space-y-1">
-            <span class="font-bold text-[11px] text-amber-900 block">👥 Cuenta Dividida (${order.split_type === 'equal' ? 'Partes Iguales' : 'Por Comensal'}):</span>
-            ${order.split_details.map((p, idx) => `
-              <div class="flex justify-between items-center text-[10px] bg-white p-1 rounded border">
-                <span>${p.name}: $${Number(p.amount).toFixed(2)}</span>
-                <button onclick="togglePersonPaid('${order.id}', ${idx})" class="px-2 py-0.5 rounded font-bold ${p.paid ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
-                  ${p.paid ? 'Pagado ✓' : 'Pendiente ✕'}
-                </button>
-              </div>
-            `).join('')}
-          </div>
-        `;
-      } else {
-        splitBox.classList.add('hidden');
-      }
-
-      document.getElementById('orderDetailModal').classList.remove('hidden');
-    }
-
-    function closeOrderDetailModal() {
-      document.getElementById('orderDetailModal').classList.add('hidden');
-      currentSelectedDetailOrder = null;
-    }
-
-    async function togglePersonPaid(orderId, personIdx) {
-      const order = adminOrders.find(o => o.id === orderId);
-      if (!order || !order.split_details) return;
-      order.split_details[personIdx].paid = !order.split_details[personIdx].paid;
-      openOrderDetailModal(orderId);
-      if (client) await client.from('orders').update({ split_details: order.split_details }).eq('id', order.id);
-    }
-
-    function printCurrentOrderTicket() {
-      const printContents = document.getElementById('printableTicketArea').innerHTML;
-      const printWindow = window.open('', '_blank', 'width=380,height=600');
-      printWindow.document.write(`
-        <html><head><title>Ticket Mesa ${currentSelectedDetailOrder?.table_number}</title>
-        <style>body { font-family: monospace; font-size: 12px; margin: 20px; } .flex { display: flex; justify-content: space-between; } .border-b { border-bottom: 1px dashed #000; padding-bottom: 8px; margin-bottom: 8px; }</style>
-        </head><body>${printContents}</body></html>
-      `);
-      printWindow.document.close();
-      printWindow.focus();
-      printWindow.print();
-      printWindow.close();
-    }
-
-    // CONFIGURACIÓN DE ESTATUS Y SONIDOS
-    function openStatusConfigModal() {
-      const cont = document.getElementById('statusConfigList');
-      const soundOptions = Object.keys(SOUND_ENGINES).map(s => `<option value="${s}">${s.toUpperCase()}</option>`).join('') + `<option value="none">SIN SONIDO</option>`;
-
-      cont.innerHTML = customStatusConfig.map((st, idx) => `
-        <div class="border rounded-2xl p-3 bg-stone-50 text-xs flex justify-between items-center gap-2">
-          <input type="text" value="${st.name}" onchange="customStatusConfig[${idx}].name=this.value" class="border rounded px-2 py-1 font-bold flex-grow bg-white">
-          <div class="flex items-center gap-1">
-            <span class="text-[10px] text-stone-500 font-bold">In:</span>
-            <select onchange="customStatusConfig[${idx}].sound_in=this.value" class="border rounded p-1 text-[11px] bg-white">
-              ${soundOptions.replace(`value="${st.sound_in}"`, `value="${st.sound_in}" selected`)}
-            </select>
-            <button onclick="playSoundByName('${st.sound_in}')" class="text-stone-500 font-bold px-1">▶</button>
-          </div>
-        </div>
-      `).join('');
-      document.getElementById('statusConfigModal').classList.remove('hidden');
-    }
-    function closeStatusConfigModal() { document.getElementById('statusConfigModal').classList.add('hidden'); }
-    function saveStatusConfiguration() {
-      localStorage.setItem('kds_status_config', JSON.stringify(customStatusConfig));
-      closeStatusConfigModal();
-      renderKanbanBoard();
-      alert("Configuración de estatus guardada.");
-    }
-
-    // TRAZABILIDAD EN ALMACÉN
-    function openOriginOrderTrace(orderId) {
-      if (!orderId) { alert("Sin comanda asociada."); return; }
-      openOrderDetailModal(orderId);
-    }
-
-    function renderPreparedBuffer() {
-      const cont = document.getElementById('preparedBufferList');
-      const badge = document.getElementById('bufferCountBadge');
-      const avail = adminBuffer.filter(b => b.status === 'available');
-      if (badge) badge.innerText = `${avail.length} listos`;
-      if (!cont) return;
-
-      if (avail.length === 0) {
-        cont.innerHTML = '<p class="text-xs text-stone-400 py-3 text-center">No hay platillos preparados en buffer.</p>';
-        return;
-      }
-      cont.innerHTML = avail.map(b => `
-        <div class="flex justify-between items-center p-2.5 rounded-xl bg-blue-50 border border-blue-200 text-xs">
-          <div>
-            <span class="font-bold text-blue-950">${b.qty}x ${b.product_title}</span>
-            ${b.order_id ? `<button onclick="openOriginOrderTrace('${b.order_id}')" class="text-[10px] text-blue-700 underline font-mono block mt-0.5">🔗 Ver Comanda Origen</button>` : ''}
-          </div>
-          <span class="text-[10px] font-bold text-blue-700 bg-white px-2 py-0.5 rounded shadow-xs">Listo para servir</span>
-        </div>
-      `).join('');
-    }
-
-    function renderKitchenWasteList() {
-      const cont = document.getElementById('kitchenWasteList');
-      const badge = document.getElementById('wasteCountBadge');
-      if (badge) badge.innerText = `${adminWaste.length} registros`;
-      if (!cont) return;
-
-      let totalLoss = adminWaste.reduce((acc, w) => acc + Number(w.cost_loss || 0), 0);
-      document.getElementById('kpiWasteLossTotal').innerText = `$${totalLoss.toFixed(2)} MXN`;
-
-      if (adminWaste.length === 0) {
-        cont.innerHTML = '<p class="text-xs text-stone-400 py-3 text-center">Sin mermas registradas.</p>';
-        return;
-      }
-      cont.innerHTML = adminWaste.map(w => `
-        <div class="flex justify-between items-center p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-xs">
-          <div>
-            <span class="font-bold text-rose-950">${w.product_title}</span>
-            <span class="text-[10px] text-stone-500 block">${w.reason || 'Descarte'}</span>
-            ${w.order_id ? `<button onclick="openOriginOrderTrace('${w.order_id}')" class="text-[10px] text-rose-700 underline font-mono block mt-0.5">🔗 Ver Comanda Origen</button>` : ''}
-          </div>
-          <span class="font-mono font-bold text-rose-700">-$${Number(w.cost_loss).toFixed(2)}</span>
-        </div>
-      `).join('');
-    }
-
-    // ALMACÉN, INSUMOS, RESERVAS Y ANALYTICS
-    function renderInventoryTab() {
-      renderSuppliesTable();
-      renderProductRecipeSelect();
-      renderPreparedBuffer();
-      renderKitchenWasteList();
-    }
-
-    function renderSuppliesTable() {
-      const tbody = document.getElementById('suppliesTableBody');
-      if (!tbody) return;
-      let totalVal = 0, lowStock = 0;
-      tbody.innerHTML = adminSupplies.map(s => {
-        const val = Number(s.current_stock) * Number(s.unit_cost);
-        totalVal += val;
-        const isLow = Number(s.current_stock) <= Number(s.min_stock_alert);
-        if (isLow) lowStock++;
-        return `
-          <tr class="hover:bg-stone-50 text-stone-700">
-            <td class="py-2.5 font-bold text-stone-900">${s.name}</td>
-            <td class="py-2.5 font-mono ${isLow ? 'text-rose-600 font-black' : ''}">${s.current_stock} ${s.unit}</td>
-            <td class="py-2.5 font-mono text-stone-400">${s.min_stock_alert} ${s.unit}</td>
-            <td class="py-2.5 font-mono">$${Number(s.unit_cost).toFixed(4)} /${s.unit}</td>
-            <td class="py-2.5 font-mono font-bold">$${val.toFixed(2)}</td>
-            <td class="py-2.5"><button onclick="quickStockAdjust('${s.id}')" class="text-[10px] bg-stone-100 hover:bg-stone-200 border px-2 py-0.5 rounded font-bold">Ajustar</button></td>
-          </tr>
-        `;
-      }).join('');
-      document.getElementById('kpiInventoryValue').innerText = `$${totalVal.toFixed(2)} MXN`;
-      document.getElementById('kpiLowStockCount').innerText = lowStock;
-    }
-
-    function quickStockAdjust(supId) {
-      const sup = adminSupplies.find(s => s.id === supId);
-      if (!sup) return;
-      const newStock = prompt(`Ajustar stock de ${sup.name} (${sup.unit}):`, sup.current_stock);
-      if (newStock !== null && !isNaN(parseFloat(newStock))) {
-        sup.current_stock = parseFloat(newStock);
-        renderSuppliesTable();
-        if (client) client.from('supplies').update({ current_stock: sup.current_stock }).eq('id', sup.id);
-      }
-    }
-
-    function renderProductRecipeSelect() {
-      const sel = document.getElementById('recipeProductSelect');
-      const supSel = document.getElementById('newRecipeSupplySelect');
-      if (sel) sel.innerHTML = adminProducts.map(p => `<option value="${p.id}">${p.title}</option>`).join('');
-      if (supSel) supSel.innerHTML = adminSupplies.map(s => `<option value="${s.id}">${s.name} (${s.unit})</option>`).join('');
-      if (adminProducts.length > 0) loadProductRecipe(adminProducts[0].id);
-    }
-
-    function loadProductRecipe(prodId) {
-      const cont = document.getElementById('recipeIngredientsList');
-      if (!cont) return;
-      const recipes = adminRecipes.filter(r => r.product_id === prodId);
-      if (recipes.length === 0) {
-        cont.innerHTML = '<p class="text-xs text-stone-400 py-4 text-center">Sin ingredientes asociados.</p>';
-        return;
-      }
-      cont.innerHTML = recipes.map(r => {
-        const sup = adminSupplies.find(s => s.id === r.supply_id);
-        return `<div class="flex justify-between items-center p-2 rounded-xl bg-stone-50 border text-xs"><span class="font-bold text-stone-800">${sup ? sup.name : 'Insumo'}</span><span class="font-mono">${r.quantity_per_portion} ${sup ? sup.unit : ''}</span></div>`;
-      }).join('');
-    }
-
-    async function addIngredientToRecipe() {
-      const prodId = document.getElementById('recipeProductSelect')?.value;
-      const supId = document.getElementById('newRecipeSupplySelect')?.value;
-      const qty = parseFloat(document.getElementById('newRecipeQty')?.value) || 0;
-      if (!prodId || !supId || qty <= 0) return;
-      const newRcp = { id: 'rcp-' + Date.now(), restaurant_id: REST_ID, product_id: prodId, supply_id: supId, quantity_per_portion: qty };
-      adminRecipes.push(newRcp);
-      loadProductRecipe(prodId);
-      document.getElementById('newRecipeQty').value = '';
-      if (client) await client.from('product_recipes').insert([newRcp]);
-    }
-
-    function openNewSupplyModal() { document.getElementById('newSupplyModal').classList.remove('hidden'); }
-    function closeNewSupplyModal() { document.getElementById('newSupplyModal').classList.add('hidden'); }
-
-    async function saveNewSupply() {
-      const name = document.getElementById('supName')?.value?.trim();
-      const unit = document.getElementById('supUnit')?.value;
-      const stock = parseFloat(document.getElementById('supStock')?.value) || 0;
-      const min = parseFloat(document.getElementById('supMin')?.value) || 0;
-      const cost = parseFloat(document.getElementById('supCost')?.value) || 0;
-      if (!name) return;
-      const newSup = { id: 'sup-' + Date.now(), restaurant_id: REST_ID, name, unit, current_stock: stock, min_stock_alert: min, unit_cost: cost };
-      adminSupplies.push(newSup);
-      renderSuppliesTable();
-      closeNewSupplyModal();
-      if (client) await client.from('supplies').insert([newSup]);
-    }
-
-    function renderReservationsList() {
-      const cont = document.getElementById('reservationsListContainer');
-      document.getElementById('badgeReservationsCount').innerText = adminReservations.length;
-      if (!cont) return;
-      if (adminReservations.length === 0) { cont.innerHTML = '<p class="text-xs text-stone-400 py-8 text-center">No hay reservas registradas.</p>'; return; }
-      cont.innerHTML = adminReservations.map(r => `
-        <div class="p-3 rounded-2xl border bg-stone-50 flex items-center justify-between text-xs">
-          <div>
-            <div class="flex items-center gap-2"><span class="font-bold text-stone-900">${r.customer_name}</span><span class="bg-amber-100 text-amber-900 font-mono px-2 py-0.2 rounded font-bold">${r.party_size} pers.</span><span class="text-stone-400">Mesa ${r.table_number || 'S/A'}</span></div>
-            <p class="text-[11px] text-stone-500 mt-0.5">📞 ${r.customer_phone} | 🕒 ${r.reservation_time.substring(0,5)} | 📝 ${r.notes || 'Sin notas'}</p>
-          </div>
-          <button onclick="updateReservationStatus('${r.id}', 'seated')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-xl">Sentar en Mesa</button>
-        </div>
-      `).join('');
-    }
-
-    async function createReservation() {
-      const name = document.getElementById('resClientName')?.value?.trim();
-      const phone = document.getElementById('resClientPhone')?.value?.trim();
-      const size = parseInt(document.getElementById('resPartySize')?.value) || 2;
-      const table = document.getElementById('resTableNum')?.value?.trim() || '01';
-      const date = document.getElementById('resDate')?.value || new Date().toISOString().split('T')[0];
-      const time = document.getElementById('resTime')?.value || '14:00';
-      const notes = document.getElementById('resNotes')?.value?.trim() || '';
-      if (!name || !phone) return;
-      const newRes = { id: 'res-' + Date.now(), restaurant_id: REST_ID, customer_name: name, customer_phone: phone, party_size: size, table_number: table, reservation_date: date, reservation_time: time, notes: notes, status: 'confirmed' };
-      adminReservations.unshift(newRes);
-      renderReservationsList();
-      if (client) await client.from('reservations').insert([newRes]);
-    }
-
-    async function updateReservationStatus(id, newStatus) {
-      const r = adminReservations.find(x => x.id === id);
-      if (r) r.status = newStatus;
-      renderReservationsList();
-      if (client) await client.from('reservations').update({ status: newStatus }).eq('id', id);
-    }
-
-    function renderCalls() {
-      const grid = document.getElementById('waiterCallsGrid');
-      document.getElementById('pendingCallsBadge').innerText = adminCalls.length;
-      if (!grid) return;
-      if (adminCalls.length === 0) { grid.innerHTML = '<div class="col-span-full bg-white rounded-2xl p-8 text-center text-stone-400 text-xs">No hay mesas solicitando atención.</div>'; return; }
-      grid.innerHTML = adminCalls.map(c => `
-        <div class="bg-white rounded-2xl p-4 border border-rose-200 shadow-sm flex items-center justify-between">
-          <span class="font-black text-sm text-stone-900">Mesa ${c.table_number}</span>
-          <button onclick="resolveCall('${c.id}')" class="bg-emerald-600 text-white font-bold text-xs px-3 py-1.5 rounded-xl">Atendida ✓</button>
-        </div>
-      `).join('');
-    }
-
-    async function resolveCall(id) {
-      adminCalls = adminCalls.filter(c => c.id !== id);
-      renderCalls();
-      if (client) await client.from('waiter_calls').update({ status: 'resolved' }).eq('id', id);
-    }
-
-    async function testSimulateCall() {
-      const mockTable = '0' + (Math.floor(Math.random() * 8) + 1);
-      const newCall = { id: 'call-' + Date.now(), restaurant_id: REST_ID, table_number: mockTable, status: 'pending' };
-      adminCalls.unshift(newCall);
-      renderCalls();
-      if (client) await client.from('waiter_calls').insert([newCall]);
-    }
-
-    function renderTaxonomies() {
-      const catCont = document.getElementById('categoriesListAdmin');
-      if (catCont) catCont.innerHTML = adminCategories.map(c => `<div class="border rounded-xl p-2.5 bg-stone-50 flex items-center justify-between text-xs"><span class="font-bold text-stone-900">${c.icon || '🍽️'} ${c.name}</span></div>`).join('');
-      const typCont = document.getElementById('typesListAdmin');
-      if (typCont) typCont.innerHTML = adminTypes.map(t => `<div class="border rounded-xl p-2.5 bg-amber-50/50 flex items-center justify-between text-xs"><span class="font-bold text-amber-950">${t.icon || '🏷️'} ${t.name}</span></div>`).join('');
-    }
-
-    async function createCategory() {
-      const name = document.getElementById('newCategoryInput')?.value?.trim();
-      if (!name) return;
-      const newCat = { id: 'cat-' + Date.now(), restaurant_id: REST_ID, name, icon: '🍽️', order_index: adminCategories.length + 1 };
-      adminCategories.push(newCat);
-      document.getElementById('newCategoryInput').value = '';
-      renderTaxonomies();
-      if (client) await client.from('categories').insert([{ restaurant_id: REST_ID, name, icon: '🍽️', order_index: newCat.order_index }]);
-    }
-
-    async function createType() {
-      const name = document.getElementById('newTypeInput')?.value?.trim();
-      if (!name) return;
-      const newTyp = { id: 'typ-' + Date.now(), restaurant_id: REST_ID, name, icon: '☕', order_index: adminTypes.length + 1 };
-      adminTypes.push(newTyp);
-      document.getElementById('newTypeInput').value = '';
-      renderTaxonomies();
-      if (client) await client.from('product_types').insert([{ restaurant_id: REST_ID, name, icon: '☕', order_index: newTyp.order_index }]);
-    }
-
-    function renderProducts() {
-      const cont = document.getElementById('adminProductsList');
-      document.getElementById('prodCount').innerText = `${adminProducts.length} platillos`;
-      const selectCat = document.getElementById('newProdCategory');
-      const selectType = document.getElementById('newProdType');
-      if (selectCat) selectCat.innerHTML = adminCategories.map(c => `<option value="${c.id}">${c.icon || ''} ${c.name}</option>`).join('');
-      if (selectType) selectType.innerHTML = `<option value="">-- Sin tipo --</option>` + adminTypes.map(t => `<option value="${t.id}">${t.icon || ''} ${t.name}</option>`).join('');
-      if (!cont) return;
-
-      cont.innerHTML = adminProducts.map(p => `
-        <div class="p-3 border rounded-xl bg-stone-50 flex items-center justify-between gap-3 text-xs">
-          <div><h4 class="font-bold text-sm text-stone-900">${p.title}</h4><span class="font-mono font-bold text-stone-700">$${Number(p.price).toFixed(2)}</span></div>
-          <span class="px-2.5 py-1 rounded-lg font-bold bg-emerald-100 text-emerald-800">Disponible</span>
-        </div>
-      `).join('');
-    }
-
-    async function createProduct() {
-      const title = document.getElementById('newProdTitle')?.value?.trim();
-      const price = parseFloat(document.getElementById('newProdPrice')?.value) || 0;
-      const catId = document.getElementById('newProdCategory')?.value;
-      const typeId = document.getElementById('newProdType')?.value || null;
-      const desc = document.getElementById('newProdDesc')?.value?.trim();
-      if (!title || price <= 0) return;
-
-      const newProd = { id: 'prod-' + Date.now(), restaurant_id: REST_ID, category_id: catId, type_id: typeId, title, description: desc, price, media: [{ type: 'image', url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80' }], is_available: true };
-      adminProducts.unshift(newProd);
-      renderProducts();
-      document.getElementById('newProdTitle').value = '';
-      document.getElementById('newProdPrice').value = '';
-      document.getElementById('newProdDesc').value = '';
-      if (client) await client.from('products').insert([newProd]);
-    }
-
-    function saveGoogleMapsEmbed() {
-      const val = document.getElementById('gmapsEmbedInput')?.value?.trim();
-      if (!val) return;
-      document.getElementById('gmapsPreviewContainer').innerHTML = val;
-      if (client) client.from('restaurants').update({ google_maps_embed: val }).eq('id', REST_ID);
-      alert("Ficha de Google Maps vinculada correctamente.");
-    }
-
-    function setAnalyticsDateFilter(type) {
-      currentAnalyticsFilter = type;
-      renderAnalyticsDashboard();
-    }
-
-    function applyCustomDateRange() {
-      const fromVal = document.getElementById('analyticsDateFrom')?.value;
-      const toVal = document.getElementById('analyticsDateTo')?.value;
-      if (!fromVal) return;
-      customDateFrom = fromVal;
-      customDateTo = toVal || fromVal;
-      currentAnalyticsFilter = 'custom';
-      renderAnalyticsDashboard();
-    }
-
-    function getFilteredOrdersForAnalytics() {
-      const now = new Date();
-      const todayStr = now.toISOString().split('T')[0];
-      if (currentAnalyticsFilter === 'today') return adminOrders.filter(o => o.created_at && o.created_at.startsWith(todayStr));
-      if (currentAnalyticsFilter === 'yesterday') {
-        const yStr = new Date(now.getTime() - 86400000).toISOString().split('T')[0];
-        return adminOrders.filter(o => o.created_at && o.created_at.startsWith(yStr));
-      }
-      if (currentAnalyticsFilter === 'week') {
-        const sevenAgo = new Date(now.getTime() - 7 * 86400000);
-        return adminOrders.filter(o => new Date(o.created_at) >= sevenAgo);
-      }
-      if (currentAnalyticsFilter === 'custom' && customDateFrom) {
-        const fromDate = new Date(customDateFrom + 'T00:00:00');
-        const toDate = new Date((customDateTo || customDateFrom) + 'T23:59:59');
-        return adminOrders.filter(o => { const d = new Date(o.created_at); return d >= fromDate && d <= toDate; });
-      }
-      return adminOrders;
-    }
-
-    function renderAnalyticsDashboard() {
-      const filtered = getFilteredOrdersForAnalytics();
-      const paidOrders = filtered.filter(o => o.status === 'paid');
-      const totalRevenue = paidOrders.reduce((acc, o) => acc + Number(o.total || 0), 0);
-      const avgTicket = paidOrders.length > 0 ? (totalRevenue / paidOrders.length) : 0;
-
-      document.getElementById('kpiRevenue').innerText = `$${totalRevenue.toFixed(2)} MXN`;
-      document.getElementById('kpiAvgTicket').innerText = `$${avgTicket.toFixed(2)}`;
-
-      let dineRev = 0, takeRev = 0, delivRev = 0;
-      paidOrders.forEach(o => {
-        const tot = Number(o.total || 0);
-        if (!o.order_channel || o.order_channel === 'dine_in') dineRev += tot;
-        else if (o.order_channel === 'takeout') takeRev += tot;
-        else delivRev += tot;
-      });
-      document.getElementById('kpiChanDine').innerText = `$${dineRev.toFixed(2)}`;
-      document.getElementById('kpiChanTakeout').innerText = `$${takeRev.toFixed(2)}`;
-      document.getElementById('kpiChanDelivery').innerText = `$${delivRev.toFixed(2)}`;
-
-      let theoreticalCost = 0;
-      paidOrders.forEach(o => {
-        (o.items || []).forEach(it => {
-          const recipes = adminRecipes.filter(r => r.product_id === it.id || r.product_title === it.title);
-          recipes.forEach(rcp => {
-            const sup = adminSupplies.find(s => s.id === rcp.supply_id);
-            if (sup) theoreticalCost += Number(rcp.quantity_per_portion) * Number(it.qty) * Number(sup.unit_cost);
-          });
-        });
-      });
-      const foodCostPct = totalRevenue > 0 ? ((theoreticalCost / totalRevenue) * 100) : 31.2;
-      document.getElementById('kpiFoodCostPct').innerText = `${foodCostPct.toFixed(1)}%`;
-      document.getElementById('kpiFoodCostAmount').innerText = `Costo insumos: $${theoreticalCost.toFixed(2)}`;
-
-      calculateMenuEngineering(paidOrders);
-      renderTopProducts(filtered);
-      renderWaitersPerformance(filtered);
-      calculateSlaTimes(filtered);
-      renderHistoryTable(filtered);
-    }
-
-    function calculateMenuEngineering(paidOrders) {
-      const itemStats = {};
-      paidOrders.forEach(o => {
-        (o.items || []).forEach(it => {
-          if (!itemStats[it.title]) itemStats[it.title] = { qty: 0, revenue: 0, cost: 0 };
-          itemStats[it.title].qty += Number(it.qty || 1);
-          itemStats[it.title].revenue += Number(it.qty || 1) * Number(it.price || 0);
-          itemStats[it.title].cost += Number(it.qty || 1) * (Number(it.price || 0) * 0.32);
-        });
-      });
-      const list = Object.entries(itemStats).map(([title, st]) => ({ title, qty: st.qty, margin: st.revenue - st.cost }));
-      if (list.length === 0) {
-        document.getElementById('matrixStarItems').innerText = 'Tostón de Aguacate Trufado';
-        document.getElementById('matrixPuzzleItems').innerText = 'Flat White Pluma';
-        document.getElementById('matrixPlowItems').innerText = 'Croissant Almendra';
-        document.getElementById('matrixDogItems').innerText = 'Pan Francés';
-        return;
-      }
-      const avgQty = list.reduce((acc, i) => acc + i.qty, 0) / list.length;
-      const avgMargin = list.reduce((acc, i) => acc + i.margin, 0) / list.length;
-      document.getElementById('matrixStarItems').innerText = list.filter(i => i.qty >= avgQty && i.margin >= avgMargin).map(i => i.title).join(', ') || 'Sin clasificar';
-      document.getElementById('matrixPuzzleItems').innerText = list.filter(i => i.qty < avgQty && i.margin >= avgMargin).map(i => i.title).join(', ') || 'Sin clasificar';
-      document.getElementById('matrixPlowItems').innerText = list.filter(i => i.qty >= avgQty && i.margin < avgMargin).map(i => i.title).join(', ') || 'Sin clasificar';
-      document.getElementById('matrixDogItems').innerText = list.filter(i => i.qty < avgQty && i.margin < avgMargin).map(i => i.title).join(', ') || 'Sin clasificar';
-    }
-
-    function renderTopProducts(filteredOrders) {
-      const sales = {};
-      filteredOrders.forEach(o => {
-        (o.items || []).forEach(it => {
-          if (!sales[it.title]) sales[it.title] = { qty: 0, rev: 0 };
-          sales[it.title].qty += Number(it.qty || 1);
-          sales[it.title].rev += Number(it.qty || 1) * Number(it.price || 0);
-        });
-      });
-      const sorted = Object.entries(sales).sort((a,b) => b[1].qty - a[1].qty).slice(0, 5);
-      const cont = document.getElementById('topProductsList');
-      if (!cont) return;
-      if (sorted.length === 0) { cont.innerHTML = '<p class="text-xs text-stone-400 py-6 text-center">Sin registros.</p>'; return; }
-      cont.innerHTML = sorted.map(([title, st], idx) => `
-        <div class="flex items-center justify-between p-2.5 rounded-2xl bg-stone-50 border border-stone-100 text-xs">
-          <div class="flex items-center gap-2"><span class="w-5 h-5 rounded-full bg-amber-600 text-white font-bold flex items-center justify-center text-[10px]">${idx + 1}</span><span class="font-bold text-stone-800">${title}</span></div>
-          <span class="font-mono font-extrabold text-stone-900">${st.qty} vendidos</span>
-        </div>
-      `).join('');
-    }
-
-    function renderWaitersPerformance(filteredOrders) {
-      const stats = {};
-      WAITERS_LIST.forEach(w => stats[w] = { orders: 0, revenue: 0, responseSecs: [] });
-      filteredOrders.forEach(o => {
-        const w = o.waiter_name;
-        if (stats[w]) {
-          stats[w].orders++;
-          if (o.status === 'paid') stats[w].revenue += Number(o.total || 0);
-        }
-      });
-      adminCalls.forEach(c => {
-        if (c.status === 'resolved' && c.waiter_name && stats[c.waiter_name]) {
-          if (c.called_at && c.resolved_at) {
-            const secs = (new Date(c.resolved_at).getTime() - new Date(c.called_at).getTime()) / 1000;
-            if (secs > 0) stats[c.waiter_name].responseSecs.push(secs);
-          }
-        }
-      });
-      const tbody = document.getElementById('waitersPerformanceBody');
-      if (!tbody) return;
-      tbody.innerHTML = WAITERS_LIST.map(w => {
-        const st = stats[w];
-        const avg = st.orders > 0 ? (st.revenue / st.orders).toFixed(2) : '0.00';
-        const avgResp = st.responseSecs.length > 0 ? formatElapsed(Math.round(st.responseSecs.reduce((a,b)=>a+b, 0) / st.responseSecs.length)) : '35s (Prom.)';
-        return `
-          <tr class="hover:bg-stone-50 text-stone-700">
-            <td class="py-2 font-bold text-stone-900">${w}</td>
-            <td class="py-2 font-mono">${st.orders}</td>
-            <td class="py-2 font-mono font-bold text-emerald-700">$${st.revenue.toFixed(2)}</td>
-            <td class="py-2 font-mono text-stone-500">$${avg}</td>
-            <td class="py-2 font-mono font-semibold text-amber-800">⏱ ${avgResp}</td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    function calculateSlaTimes(filteredOrders) {
-      let wait = [], kitchen = [], table = [];
-      filteredOrders.forEach(o => {
-        const cMs = new Date(o.created_at).getTime();
-        if (o.preparing_at) wait.push((new Date(o.preparing_at).getTime() - cMs) / 1000);
-        if (o.preparing_at && o.delivered_at) kitchen.push((new Date(o.delivered_at).getTime() - new Date(o.preparing_at).getTime()) / 1000);
-        if (o.delivered_at && o.paid_at) table.push((new Date(o.paid_at).getTime() - new Date(o.delivered_at).getTime()) / 1000);
-      });
-      const avgW = wait.length > 0 ? Math.round(wait.reduce((a,b)=>a+b,0)/wait.length) : 180;
-      const avgK = kitchen.length > 0 ? Math.round(kitchen.reduce((a,b)=>a+b,0)/kitchen.length) : 720;
-      const avgT = table.length > 0 ? Math.round(table.reduce((a,b)=>a+b,0)/table.length) : 1800;
-      document.getElementById('slaWaitTime').innerText = formatElapsed(avgW);
-      document.getElementById('slaKitchenTime').innerText = formatElapsed(avgK);
-      document.getElementById('slaTableTime').innerText = formatElapsed(avgT);
-    }
-
-    function renderHistoryTable(filteredOrders) {
-      const tbody = document.getElementById('historyTableBody');
-      document.getElementById('historyOrdersCount').innerText = `${filteredOrders.length} comandas`;
-      if (!tbody) return;
-      if (filteredOrders.length === 0) { tbody.innerHTML = '<tr><td colspan="7" class="py-6 text-center text-stone-400">Sin comandas registradas.</td></tr>'; return; }
-      tbody.innerHTML = filteredOrders.map(o => {
-        const itemsSummary = (o.items || []).map(i => `${i.qty}x ${i.title}`).join(', ');
-        const dateFormatted = new Date(o.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-        let statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${o.status === 'paid' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">${o.status}</span>`;
-        if (o.status === 'cancelled') statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800">🚫 Cancelada / Eliminada</span>`;
-        return `
-          <tr onclick="openOrderDetailModal('${o.id}')" class="hover:bg-amber-50 cursor-pointer text-stone-700 transition">
-            <td class="py-2.5 font-bold font-mono">Mesa ${o.table_number}</td>
-            <td class="py-2.5 font-mono text-stone-500">${dateFormatted}</td>
-            <td class="py-2.5 font-semibold text-stone-800">${o.waiter_name || 'Sin asignar'}</td>
-            <td class="py-2.5 max-w-xs truncate" title="${itemsSummary}">${itemsSummary}</td>
-            <td class="py-2.5 font-mono text-emerald-600 font-semibold">${o.discount > 0 ? `-$${Number(o.discount).toFixed(2)}` : '-'}</td>
-            <td class="py-2.5 font-mono font-bold text-stone-900">$${Number(o.total).toFixed(2)}</td>
-            <td class="py-2.5">${statusBadge}</td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    function exportHistoryToCSV() {
-      const filtered = getFilteredOrdersForAnalytics();
-      if (filtered.length === 0) return;
-      let csv = "data:text/csv;charset=utf-8,ID,Mesa,Canal,Fecha,Hora,Mesero,Platillos,Total,Estatus\n";
-      filtered.forEach(o => {
-        const d = new Date(o.created_at);
-        const items = (o.items || []).map(i => `${i.qty}x ${i.title}`).join(' | ').replace(/"/g, '""');
-        csv += `"${o.id}","${o.table_number}","${o.order_channel || 'dine_in'}","${d.toLocaleDateString()}","${d.toLocaleTimeString()}","${o.waiter_name || ''}","${items}",${o.total},"${o.status}"\n`;
-      });
-      const encodedUri = encodeURI(csv);
-      const link = document.createElement("a");
-      link.setAttribute("href", encodedUri);
-      link.setAttribute("download", `comandas_${currentAnalyticsFilter}_${new Date().toISOString().split('T')[0]}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-
-    function formatElapsed(secs) {
-      const m = Math.floor(Math.max(0, secs) / 60);
-      const s = Math.max(0, secs) % 60;
-      return `${m}m ${s < 10 ? '0' : ''}${s}s`;
-    }
-
-    async function init() {
-      adminOrders = [
-        {
-          id: 'ord-demo-1',
-          table_number: '01',
-          order_channel: 'dine_in',
-          waiter_name: 'Carlos M.',
-          items: [{ id: 'p1', title: 'Tostón de Aguacate Trufado', qty: 2, price: 165.00 }, { id: 'p2', title: 'Flat White Oaxaca Pluma', qty: 2, price: 78.00 }],
-          subtotal: 486.00,
-          discount: 0.00,
-          total: 486.00,
-          status: 'paid',
-          is_archived: false,
-          created_at: new Date(Date.now() - 3600000).toISOString(),
-          preparing_at: new Date(Date.now() - 3400000).toISOString(),
-          delivered_at: new Date(Date.now() - 2200000).toISOString(),
-          paid_at: new Date(Date.now() - 600000).toISOString()
-        }
-      ];
-
-      adminSupplies = [
-        { id: 's1', name: 'Café Pluma Oaxaca Grano', unit: 'g', current_stock: 4500, min_stock_alert: 1000, unit_cost: 0.42 },
-        { id: 's2', name: 'Leche Entera Barista', unit: 'ml', current_stock: 12000, min_stock_alert: 3000, unit_cost: 0.032 },
-        { id: 's3', name: 'Pan Masa Madre Hogaza', unit: 'pza', current_stock: 22, min_stock_alert: 5, unit_cost: 14.5 }
-      ];
-
-      adminProducts = [
-        { id: 'p1', title: 'Tostón de Aguacate Trufado', price: 165.00, media: [{ type: 'image', url: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=600&q=80' }] },
-        { id: 'p2', title: 'Flat White Oaxaca Pluma', price: 78.00, media: [{ type: 'image', url: 'https://images.unsplash.com/photo-1577968897966-3d4325b36b61?auto=format&fit=crop&w=600&q=80' }] }
-      ];
-
-      adminReservations = [
-        { id: 'r1', customer_name: 'Valeria Méndez', customer_phone: '3318902345', party_size: 4, table_number: '05', reservation_date: new Date().toISOString().split('T')[0], reservation_time: '14:30:00', notes: 'Aniversario', status: 'confirmed' }
-      ];
-
-      renderKanbanBoard();
-      renderAnalyticsDashboard();
-      renderInventoryTab();
-      renderReservationsList();
-      renderCalls();
-      renderTaxonomies();
-      renderProducts();
-
-      document.getElementById('connStatus').innerText = 'Sincronizado en tiempo real ✓';
-
-      if (client) {
-        try {
-          const [ordersRes, prodsRes, catsRes, typesRes, supsRes, rcpsRes, resRes, restRes] = await Promise.all([
-            client.from('orders').select('*').order('created_at', { ascending: false }),
-            client.from('products').select('*').order('created_at', { ascending: false }),
-            client.from('categories').select('*').order('order_index', { ascending: true }),
-            client.from('product_types').select('*').order('order_index', { ascending: true }),
-            client.from('supplies').select('*').order('name', { ascending: true }),
-            client.from('product_recipes').select('*'),
-            client.from('reservations').select('*').order('reservation_time', { ascending: true }),
-            client.from('restaurants').select('google_maps_embed').eq('id', REST_ID).maybeSingle()
-          ]);
-
-          if (ordersRes?.data && ordersRes.data.length > 0) adminOrders = ordersRes.data;
-          if (prodsRes?.data && prodsRes.data.length > 0) adminProducts = prodsRes.data;
-          if (supsRes?.data && supsRes.data.length > 0) adminSupplies = supsRes.data;
-          if (rcpsRes?.data) adminRecipes = rcpsRes.data;
-          if (resRes?.data) adminReservations = resRes.data;
-
-          if (restRes?.data?.google_maps_embed) {
-            document.getElementById('gmapsEmbedInput').value = restRes.data.google_maps_embed;
-            document.getElementById('gmapsPreviewContainer').innerHTML = restRes.data.google_maps_embed;
-          }
-
-          renderKanbanBoard();
-          renderAnalyticsDashboard();
-          renderInventoryTab();
-          renderReservationsList();
-
-          client.channel('kds_full_realtime')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, async () => {
-              const { data } = await client.from('orders').select('*').order('created_at', { ascending: false });
-              if (data) { adminOrders = data; renderKanbanBoard(); renderAnalyticsDashboard(); }
-            })
-            .subscribe();
-        } catch(e) { console.warn("Supabase fetch:", e); }
-      }
-
-      setInterval(renderKanbanBoard, 1000);
-    }
-
-    window.onload = init;
-  </script>
+  <!-- SCRIPT MODULAR PRINCIPAL -->
+  <script type="module" src="js/admin-main.js"></script>
 </body>
 </html>

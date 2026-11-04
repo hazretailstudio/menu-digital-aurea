@@ -82,7 +82,7 @@ CREATE TABLE orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     restaurant_id UUID REFERENCES restaurants(id) ON DELETE CASCADE,
     table_number TEXT NOT NULL,
-    order_channel TEXT DEFAULT 'dine_in', -- 'dine_in', 'takeout', 'rappi', 'didi', 'ubereats'
+    order_channel TEXT DEFAULT 'dine_in',
     waiter_name TEXT DEFAULT 'Sin asignar',
     items JSONB NOT NULL DEFAULT '[]'::jsonb,
     subtotal NUMERIC(10,2) NOT NULL DEFAULT 0.00,
@@ -95,7 +95,12 @@ CREATE TABLE orders (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     preparing_at TIMESTAMPTZ,
     delivered_at TIMESTAMPTZ,
-    paid_at TIMESTAMPTZ
+    paid_at TIMESTAMPTZ,
+    has_new_additions BOOLEAN DEFAULT FALSE,
+    notes_updated BOOLEAN DEFAULT FALSE,
+    kitchen_cycle_started_at TIMESTAMPTZ,
+    split_type TEXT DEFAULT 'single',
+    split_details JSONB DEFAULT '[]'::jsonb
 );
 
 CREATE TABLE waiter_calls (
@@ -166,6 +171,8 @@ CREATE TABLE kitchen_waste (
     reason TEXT DEFAULT 'Cancelación en preparación',
     cost_loss NUMERIC(10,2) NOT NULL DEFAULT 0.00,
     ingredients_summary JSONB DEFAULT '[]'::jsonb,
+    table_number TEXT,
+    waiter_name TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -175,7 +182,9 @@ CREATE TABLE prepared_items_buffer (
     order_id UUID REFERENCES orders(id) ON DELETE SET NULL,
     product_title TEXT NOT NULL,
     qty INT NOT NULL DEFAULT 1,
-    status TEXT DEFAULT 'available', -- 'available', 'resold', 'discarded'
+    status TEXT DEFAULT 'available',
+    table_number TEXT,
+    waiter_name TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -190,7 +199,7 @@ CREATE TABLE reservations (
     reservation_date DATE NOT NULL,
     reservation_time TIME NOT NULL,
     notes TEXT,
-    status TEXT DEFAULT 'confirmed', -- 'confirmed', 'seated', 'completed', 'cancelled', 'no_show'
+    status TEXT DEFAULT 'confirmed',
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -228,89 +237,3 @@ BEGIN;
   DROP PUBLICATION IF EXISTS supabase_realtime;
   CREATE PUBLICATION supabase_realtime FOR TABLE orders, waiter_calls, products, supplies, reservations, prepared_items_buffer, kitchen_waste;
 COMMIT;
-
--- 12. DATOS SEMILLA
-DO $$
-DECLARE
-    r_id UUID := 'b47a9880-9fd3-4c9b-b05b-86ea8f0d014d';
-    cat_1 UUID := gen_random_uuid();
-    cat_2 UUID := gen_random_uuid();
-    typ_1 UUID := gen_random_uuid();
-    typ_2 UUID := gen_random_uuid();
-    p_1 UUID := gen_random_uuid();
-    p_2 UUID := gen_random_uuid();
-    s_cafe UUID := gen_random_uuid();
-    s_leche UUID := gen_random_uuid();
-    s_pan UUID := gen_random_uuid();
-    s_aguacate UUID := gen_random_uuid();
-    s_huevo UUID := gen_random_uuid();
-BEGIN
-    INSERT INTO restaurants (id, slug, name, description, logo_url, banner_url, wifi_ssid, wifi_password, whatsapp_number, google_maps_embed)
-    VALUES (
-        r_id, 'cafe-aurea', 'Café & Bistro Áurea', 
-        'Cafetería de especialidad, panadería artesanal y cocina de temporada.',
-        'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=250&q=80',
-        'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=1200&q=80',
-        'Aurea_HighSpeed', 'Brunch2026', '523312345678',
-        '<iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d238881.2005106541!2d-103.54023540205885!3d20.68914890429659!2m3!1f0!2f0!3f0!3m2!1i768!2f13.1!3m3!1m2!1s0x62d31e8f56465651%3A0x1c58e4177a2af557!2sHAZ%20Retail%20Studio!5e0!3m2!1ses-419!2smx!4v1793732225636!5m2!1ses-419!2smx" width="100%" height="250" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>'
-    );
-
-    INSERT INTO categories (id, restaurant_id, name, icon, order_index) VALUES 
-        (cat_1, r_id, 'Brunch & Cocina', '🥪', 1),
-        (cat_2, r_id, 'Cafetería de Especialidad', '☕', 2);
-
-    INSERT INTO product_types (id, restaurant_id, name, icon, order_index) VALUES 
-        (typ_1, r_id, 'Salado / Brunch', '🥪', 1),
-        (typ_2, r_id, 'Bebida Caliente', '☕', 2);
-
-    INSERT INTO products (id, restaurant_id, category_id, type_id, title, description, price, media) VALUES 
-        (p_1, r_id, cat_1, typ_1, 'Tostón de Aguacate Trufado', 'Pan de masa madre, aguacate hass y huevo poché orgánico.', 165.00, '[{"type":"image","url":"https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&w=800&q=80"}]'::jsonb),
-        (p_2, r_id, cat_2, typ_2, 'Flat White Oaxaca Pluma', 'Extracción doble con leche emulsionada y notas a avellana.', 78.00, '[{"type":"image","url":"https://images.unsplash.com/photo-1577968897966-3d4325b36b61?auto=format&fit=crop&w=800&q=80"}]'::jsonb);
-
-    INSERT INTO supplies (id, restaurant_id, name, unit, current_stock, min_stock_alert, unit_cost) VALUES 
-        (s_cafe, r_id, 'Café Pluma Oaxaca en Grano', 'g', 4500.000, 1000.000, 0.4200),
-        (s_leche, r_id, 'Leche Entera Barista', 'ml', 10500.000, 2500.000, 0.0320),
-        (s_pan, r_id, 'Pan Hogaza Masa Madre', 'pza', 20.000, 5.000, 14.5000),
-        (s_aguacate, r_id, 'Aguacate Hass', 'pza', 35.000, 8.000, 9.0000),
-        (s_huevo, r_id, 'Huevo Orgánico', 'pza', 50.000, 12.000, 4.5000);
-
-    INSERT INTO product_recipes (restaurant_id, product_id, supply_id, quantity_per_portion) VALUES 
-        (r_id, p_1, s_pan, 1.000),
-        (r_id, p_1, s_aguacate, 0.500),
-        (r_id, p_1, s_huevo, 1.000),
-        (r_id, p_2, s_cafe, 18.000),
-        (r_id, p_2, s_leche, 180.000);
-
-    INSERT INTO orders (restaurant_id, table_number, order_channel, waiter_name, items, subtotal, discount, total, status, created_at, preparing_at, delivered_at, paid_at) VALUES 
-        (r_id, '01', 'dine_in', 'Carlos M.', jsonb_build_array(
-            jsonb_build_object('id', p_1, 'title', 'Tostón de Aguacate Trufado', 'qty', 1, 'price', 165.00),
-            jsonb_build_object('id', p_2, 'title', 'Flat White Oaxaca Pluma', 'qty', 2, 'price', 78.00)
-        ), 321.00, 0.00, 321.00, 'paid', NOW() - INTERVAL '45 minutes', NOW() - INTERVAL '40 minutes', NOW() - INTERVAL '25 minutes', NOW() - INTERVAL '5 minutes'),
-        (r_id, '03', 'dine_in', 'Sofía R.', jsonb_build_array(
-            jsonb_build_object('id', p_1, 'title', 'Tostón de Aguacate Trufado', 'qty', 1, 'price', 165.00)
-        ), 165.00, 0.00, 165.00, 'preparing', NOW() - INTERVAL '12 minutes', NOW() - INTERVAL '8 minutes', NULL, NULL),
-        (r_id, 'Takeout-01', 'takeout', 'Carlos M.', jsonb_build_array(
-            jsonb_build_object('id', p_2, 'title', 'Flat White Oaxaca Pluma', 'qty', 1, 'price', 78.00)
-        ), 78.00, 0.00, 78.00, 'pending', NOW() - INTERVAL '3 minutes', NULL, NULL, NULL);
-
-    INSERT INTO reservations (restaurant_id, customer_name, customer_phone, party_size, table_number, reservation_date, reservation_time, notes, status) VALUES 
-        (r_id, 'Valeria Méndez', '3318902345', 4, '05', CURRENT_DATE, '14:30:00', 'Celebración de aniversario', 'confirmed'),
-        (r_id, 'Héctor Salgado', '3398765432', 2, '02', CURRENT_DATE, '16:00:00', 'Preferencia terraza', 'confirmed');
-END $$;
-
-
--- AJUSTES ADICIONALES PARA DIVISIÓN DE CUENTA Y TRAZABILIDAD
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS has_new_additions BOOLEAN DEFAULT FALSE;
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS notes_updated BOOLEAN DEFAULT FALSE;
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS kitchen_cycle_started_at TIMESTAMPTZ;
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS split_type TEXT DEFAULT 'single';
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS split_details JSONB DEFAULT '[]'::jsonb;
-
-ALTER TABLE waiter_calls ADD COLUMN IF NOT EXISTS waiter_name TEXT DEFAULT 'Sin asignar';
-ALTER TABLE waiter_calls ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMPTZ;
-ALTER TABLE waiter_calls ADD COLUMN IF NOT EXISTS response_time_seconds INT;
-
-ALTER TABLE kitchen_waste ADD COLUMN IF NOT EXISTS table_number TEXT;
-ALTER TABLE kitchen_waste ADD COLUMN IF NOT EXISTS waiter_name TEXT;
-ALTER TABLE prepared_items_buffer ADD COLUMN IF NOT EXISTS table_number TEXT;
-ALTER TABLE prepared_items_buffer ADD COLUMN IF NOT EXISTS waiter_name TEXT;
