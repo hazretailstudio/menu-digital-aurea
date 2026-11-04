@@ -195,4 +195,5 @@ async function init() {
   setInterval(renderKanbanBoard, 1000);
 }
 
-window.addEventListener('DOMContentLoaded', init);
+// INICIAMOS EL SISTEMA DIRECTAMENTE
+init();
