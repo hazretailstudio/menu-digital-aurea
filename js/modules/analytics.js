@@ -110,7 +110,6 @@ function calculateMenuEngineering(paidOrders) {
       const qty = Number(it.qty || 1);
       itemStats[it.title].qty += qty;
       itemStats[it.title].revenue += qty * Number(it.price || 0);
-      // Costo real desde escandallos si existe, o 32% estimado
       let unitCost = 0;
       const rcps = state.recipes.filter(r => r.product_id === it.id);
       if (rcps.length > 0) {
@@ -179,7 +178,6 @@ function renderWaitersPerformance(filteredOrders) {
     }
   });
 
-  // Usar state.allCalls (incluye resueltas) para métricas reales de tiempo de respuesta
   (state.allCalls || []).forEach(c => {
     if (c.status === 'resolved' && c.waiter_name && stats[c.waiter_name]) {
       const secs = Number(c.response_time_seconds) || ((c.called_at && c.resolved_at) ? (new Date(c.resolved_at).getTime() - new Date(c.called_at).getTime()) / 1000 : 0);
@@ -256,13 +254,11 @@ function renderHistoryTable(filteredOrders) {
 export function exportHistoryToCSV() {
   const filtered = getFilteredOrdersForAnalytics();
   if (filtered.length === 0) return;
-  let csv = "data:text/csv;charset=utf-8,ID,Mesa,Canal,Fecha,Hora,Mesero,Platillos,Descuento,Total,Propina,MetodoPago,Estatus
-";
+  let csv = "data:text/csv;charset=utf-8,ID,Mesa,Canal,Fecha,Hora,Mesero,Platillos,Descuento,Total,Propina,MetodoPago,Estatus\n";
   filtered.forEach(o => {
     const d = new Date(o.created_at);
     const items = (o.items || []).map(i => `${i.qty}x ${i.title}`).join(' | ').replace(/"/g, '""');
-    csv += `"${o.id}","${o.table_number}","${o.order_channel || 'dine_in'}","${d.toLocaleDateString()}","${d.toLocaleTimeString()}","${o.waiter_name || ''}","${items}",${o.discount || 0},${o.total || 0},${o.tip_amount || 0},"${o.payment_method || ''}","${o.status}"
-`;
+    csv += `"${o.id}","${o.table_number}","${o.order_channel || 'dine_in'}","${d.toLocaleDateString()}","${d.toLocaleTimeString()}","${o.waiter_name || ''}","${items}",${o.discount || 0},${o.total || 0},${o.tip_amount || 0},"${o.payment_method || ''}","${o.status}"\n`;
   });
   const encodedUri = encodeURI(csv);
   const link = document.createElement("a");

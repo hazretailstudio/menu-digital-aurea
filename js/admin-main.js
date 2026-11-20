@@ -66,30 +66,20 @@ import {
 
 import { saveGoogleMapsEmbed } from './modules/marketing.js';
 
-// EXPOSICIÓN A WINDOW PARA INTERACCIÓN CON HTML
+// EXPOSICIÓN INMEDIATA A WINDOW PARA QUE TODOS LOS BOTONES RESPONDAN AL INSTANTE
 Object.assign(window, {
   toggleSidebar, toggleFocusMode, switchTab, playSoundByName,
-
-  // PIN & Staff
   openSwitchStaffPinModal, closePinModal, pressPinDigit, clearPinInput,
   submitPinCode, createStaffMember, toggleStaffActive, deleteStaffMember,
-
-  // Mesas
   renderTablesFloorPlan, openTableActionsModal, closeTableActionsModal,
   setTableStatus, moveOrderToAnotherTable, mergeOrdersIntoTable,
   transferSingleItemToTable, createNewTableRecord, deleteTableRecord,
-
-  // Kanban KDS
   renderKanbanBoard, filterByChannel, filterByStation,
   setKanbanDisplayMode, selectSingleStage, toggleOrderItemDone, fireNextCourse,
   advanceOrderStatus, archiveOrder, openStatusConfigModal, closeStatusConfigModal,
   saveStatusConfiguration,
-
-  // Retroceso
   requestRetrocesoOrder, handleRetrocesoInventoryChoice,
   setRetrocesoPreparedDestination, finalizeRetrocesoOrderAction, closeRetrocesoModal,
-
-  // Comandas & Modales
   openNewOrderModal, closeNewOrderModal, handleManualChannelChange,
   filterManualProductDropdown, selectProductToAddManual, changeManualItemQty,
   renderManualOrderItems, removeManualOrderItem, submitManualOrder,
@@ -98,27 +88,17 @@ Object.assign(window, {
   saveOrderEditsWithConfirm, openOrderDetailModal, closeOrderDetailModal,
   togglePersonPaid, printCurrentOrderTicket, printKitchenChit,
   toggleQuickConfigMod, closeItemQuickConfig, confirmItemQuickConfig,
-
-  // Cobro & Caja
   openCheckoutModal, closeCheckoutModal, selectCheckoutMethod,
   setCheckoutTipPct, recalcCheckoutTotals, confirmOrderCheckout,
   openCashShift, addCashMovement, closeCashShift, printShiftReport,
-
-  // Inventario
   quickStockAdjust, loadProductRecipe, addIngredientToRecipe,
   deleteRecipeIngredient, openNewSupplyModal, closeNewSupplyModal, saveNewSupply,
-
-  // Reservas & Llamadas
   renderReservationsList, createReservation, updateReservationStatus,
   resolveCall, testSimulateCall,
-
-  // Carta, 86, Modificadores & Promociones
   createCategory, deleteCategory, createType, deleteType,
   createProduct, startEditProduct, cancelEditProduct, deleteProduct,
   toggleProductAvailability, createModifier, deleteModifier,
   createPromotion, togglePromotionActive, deletePromotion,
-
-  // Analytics & Marketing
   setAnalyticsDateFilter, applyCustomDateRange, exportHistoryToCSV,
   saveGoogleMapsEmbed
 });
@@ -209,61 +189,64 @@ function renderAllViews() {
 }
 
 async function init() {
-  window.addEventListener('online', () => setConnectionBanner(true));
-  window.addEventListener('offline', () => setConnectionBanner(false, '⚠️ Sin conexión Wi-Fi. No cierres esta ventana hasta reconectar.'));
+  try {
+    window.addEventListener('online', () => setConnectionBanner(true));
+    window.addEventListener('offline', () => setConnectionBanner(false, '⚠️ Sin conexión Wi-Fi. No cierres esta ventana hasta reconectar.'));
 
-  await fetchAllData();
-  applyActiveStaffPermissions();
-  renderAllViews();
+    await fetchAllData();
+    applyActiveStaffPermissions();
+    renderAllViews();
 
-  // REALTIME FILTRADO POR REST_ID (Aislamiento Multi-Restaurante)
-  if (client) {
-    client.channel(`kds_realtime_${REST_ID}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${REST_ID}` }, async (payload) => {
-        const { data } = await client.from('orders').select('*').eq('restaurant_id', REST_ID).order('created_at', { ascending: false });
-        if (data) {
-          if (payload.eventType === 'INSERT') playSoundByName('bell');
-          state.orders = data;
-          renderKanbanBoard();
-          renderTablesFloorPlan();
-          renderCashboxTab();
-          renderAnalyticsDashboard();
-        }
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'waiter_calls', filter: `restaurant_id=eq.${REST_ID}` }, async (payload) => {
-        const { data } = await client.from('waiter_calls').select('*').eq('restaurant_id', REST_ID).order('called_at', { ascending: false });
-        if (data) {
-          if (payload.eventType === 'INSERT') playSoundByName('dingdong');
-          state.allCalls = data;
-          state.calls = data.filter(c => c.status === 'pending');
-          renderCalls();
-          renderTablesFloorPlan();
-        }
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tables', filter: `restaurant_id=eq.${REST_ID}` }, async () => {
-        const { data } = await client.from('tables').select('*').eq('restaurant_id', REST_ID).order('table_number', { ascending: true });
-        if (data) {
-          state.tables = data;
-          renderTablesFloorPlan();
-        }
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'products', filter: `restaurant_id=eq.${REST_ID}` }, async () => {
-        const { data } = await client.from('products').select('*').eq('restaurant_id', REST_ID).order('created_at', { ascending: false });
-        if (data) {
-          state.products = data;
-          renderProducts();
-        }
-      })
-      .subscribe();
-  }
-
-  // SOLO ACTUALIZAMOS LOS RELOJES CADA SEGUNDO (SIN PARPADEO NI PÉRDIDA DE CLICS)
-  setInterval(() => {
-    updateKanbanTimers();
-    if (state.calls.length > 0 && !document.getElementById('tab-calls')?.classList.contains('hidden')) {
-      renderCalls();
+    if (client) {
+      client.channel(`kds_realtime_${REST_ID}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${REST_ID}` }, async (payload) => {
+          const { data } = await client.from('orders').select('*').eq('restaurant_id', REST_ID).order('created_at', { ascending: false });
+          if (data) {
+            if (payload.eventType === 'INSERT') playSoundByName('bell');
+            state.orders = data;
+            renderKanbanBoard();
+            renderTablesFloorPlan();
+            renderCashboxTab();
+            renderAnalyticsDashboard();
+          }
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'waiter_calls', filter: `restaurant_id=eq.${REST_ID}` }, async (payload) => {
+          const { data } = await client.from('waiter_calls').select('*').eq('restaurant_id', REST_ID).order('called_at', { ascending: false });
+          if (data) {
+            if (payload.eventType === 'INSERT') playSoundByName('dingdong');
+            state.allCalls = data;
+            state.calls = data.filter(c => c.status === 'pending');
+            renderCalls();
+            renderTablesFloorPlan();
+          }
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'tables', filter: `restaurant_id=eq.${REST_ID}` }, async () => {
+          const { data } = await client.from('tables').select('*').eq('restaurant_id', REST_ID).order('table_number', { ascending: true });
+          if (data) {
+            state.tables = data;
+            renderTablesFloorPlan();
+          }
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'products', filter: `restaurant_id=eq.${REST_ID}` }, async () => {
+          const { data } = await client.from('products').select('*').eq('restaurant_id', REST_ID).order('created_at', { ascending: false });
+          if (data) {
+            state.products = data;
+            renderProducts();
+          }
+        })
+        .subscribe();
     }
-  }, 1000);
+
+    setInterval(() => {
+      updateKanbanTimers();
+      if (state.calls.length > 0 && !document.getElementById('tab-calls')?.classList.contains('hidden')) {
+        renderCalls();
+      }
+    }, 1000);
+  } catch (err) {
+    console.error('Error crítico al iniciar Admin:', err);
+    setConnectionBanner(false, `Error al iniciar: ${err.message || err}`);
+  }
 }
 
 init();

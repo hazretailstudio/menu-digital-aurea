@@ -91,10 +91,7 @@ export function requestRetrocesoOrder(orderId) {
     document.getElementById('retrocesoStep2').classList.add('hidden');
     document.getElementById('retrocesoModal').classList.remove('hidden');
   } else if (order.status === 'delivered') {
-    const rePrep = confirm("¿Se preparará en cocina algún producto nuevo o modificación?
-
-• [Aceptar]: Regresar a 'En Preparación' e iniciar nuevo contador.
-• [Cancelar]: Regresar normalmente.");
+    const rePrep = confirm("¿Se preparará en cocina algún producto nuevo o modificación?\n\n• [Aceptar]: Regresar a 'En Preparación' e iniciar nuevo contador.\n• [Cancelar]: Regresar normalmente.");
     order.status = 'preparing';
     if (rePrep) order.kitchen_cycle_started_at = new Date().toISOString();
     renderKanbanBoard();
@@ -206,7 +203,6 @@ export async function finalizeRetrocesoOrderAction(orderAction) {
         'cancelar comanda'
       );
 
-      // Liberar mesa si era dine_in
       if (!order.order_channel || order.order_channel === 'dine_in') {
         const tbl = state.tables.find(t => normalizeTableNumber(t.table_number) === normalizeTableNumber(order.table_number));
         if (tbl?.id) {

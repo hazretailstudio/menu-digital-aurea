@@ -17,18 +17,15 @@ let selectedTypeId = 'all';
 let searchQuery = '';
 let currentView = 'menu';
 
-// Estado modal producto
 let currentModalProduct = null;
 let selectedModIds = new Set();
 let modalQty = 1;
 
-// Estado cooldown mesero
 let waiterCooldownTimer = null;
 let waiterCooldownSecs = 0;
 
-// Estado Split Bill
 let splitMode = 'equal';
-let splitPersons = []; // [{ name, amount, items: [], paid: false }]
+let splitPersons = [];
 
 const STATUS_LABELS = {
   pending: { text: 'Recibido en Cocina', cls: 'bg-amber-100 text-amber-900 border-amber-200' },
@@ -37,7 +34,6 @@ const STATUS_LABELS = {
   paid: { text: '✓ Pagado', cls: 'bg-emerald-100 text-emerald-900 border-emerald-200' }
 };
 
-// Exposición a window para eventos HTML
 window.connectWifi = connectWifi;
 window.callWaiter = callWaiter;
 window.requestBillFromTable = requestBillFromTable;
@@ -258,7 +254,6 @@ function renderCatalog() {
     return;
   }
 
-  // Agrupar por categoría
   const sections = [];
   categories.forEach(cat => {
     const items = filtered.filter(p => p.category_id === cat.id);
@@ -353,7 +348,6 @@ function openProductModal(prodId) {
   const stLabel = p.station === 'barra' ? '☕ Barra' : (p.station === 'panaderia' ? '🥐 Panadería' : '🍳 Cocina');
   document.getElementById('modalTags').innerHTML = `<span class="text-[10px] font-bold bg-stone-100 text-stone-600 px-2 py-0.5 rounded-full">${stLabel}</span>`;
 
-  // Modificadores aplicables (globales si applies_to_products está vacío, o específicos)
   const applicableMods = modifiers.filter(m => !m.applies_to_products || m.applies_to_products.length === 0 || m.applies_to_products.includes(p.id));
   const modSec = document.getElementById('modalModifiersSection');
   const modList = document.getElementById('modifiersList');
@@ -372,7 +366,6 @@ function openProductModal(prodId) {
     modSec.classList.add('hidden');
   }
 
-  // Cross-sell
   const crossSec = document.getElementById('modalCrossSellSection');
   const crossCont = document.getElementById('crossSellContainer');
   const recommended = products.filter(x => x.id !== p.id && x.is_available !== false).slice(0, 4);
@@ -471,7 +464,6 @@ function calculatePromosForCart() {
         applied.push(`${pr.title} (-$${d.toFixed(2)})`);
       }
     } else if (pr.promo_type === '2x1') {
-      // 2x1 aplica a pares del mismo producto
       let pairSavings = 0;
       cart.forEach(it => {
         const freeUnits = Math.floor(Number(it.qty) / 2);
@@ -565,7 +557,6 @@ async function sendOrder() {
   const notes = document.getElementById('orderCustomerNotes')?.value?.trim() || '';
   const { subtotal, discount, total, applied } = calculatePromosForCart();
 
-  // Si ya hay cuenta activa en la mesa, unificamos automáticamente
   if (activeOrder) {
     const newItemsTagged = cart.map(it => ({ ...it, is_new: true, done: false, inventory_deducted: false }));
     const mergedItems = [...newItemsTagged, ...(activeOrder.items || [])];
@@ -602,7 +593,6 @@ async function sendOrder() {
     return;
   }
 
-  // Nueva orden con UUID válido
   const newOrder = {
     id: generateUUID(),
     restaurant_id: REST_ID,
@@ -625,7 +615,6 @@ async function sendOrder() {
   if (btn) btn.disabled = false;
   if (error) return;
 
-  // Marcar mesa como ocupada si existe en tabla tables
   await client.from('tables').update({ status: 'occupied' }).eq('restaurant_id', REST_ID).eq('table_number', currentTable);
 
   activeOrder = newOrder;
@@ -695,12 +684,7 @@ function connectWifi() {
   if (navigator.clipboard) {
     navigator.clipboard.writeText(pass).catch(() => {});
   }
-  alert(`📶 Red Wi-Fi del Restaurante:
-
-Red: ${ssid}
-Contraseña: ${pass}
-
-(Contraseña copiada al portapapeles)`);
+  alert(`📶 Red Wi-Fi del Restaurante:\n\nRed: ${ssid}\nContraseña: ${pass}\n\n(Contraseña copiada al portapapeles)`);
 }
 
 async function callWaiter() {
@@ -754,14 +738,11 @@ async function handleClientModifyOrder() {
       }
     }
   } else {
-    const wantWaiter = confirm('Tu orden ya está en preparación o servida. Para cambios o cancelaciones debemos avisar al mesero.
-
-¿Quieres llamar al mesero ahora? (Para agregar más platillos simplemente añádelos desde el menú).');
+    const wantWaiter = confirm('Tu orden ya está en preparación o servida. Para cambios o cancelaciones debemos avisar al mesero.\n\n¿Quieres llamar al mesero ahora? (Para agregar más platillos simplemente añádelos desde el menú).');
     if (wantWaiter) callWaiter();
   }
 }
 
-// SPLIT BILL
 function openSplitBillModal() {
   if (!activeOrder) return;
   document.getElementById('splitModalTableBadge').innerText = currentTable;
@@ -891,8 +872,7 @@ function sendTicketToMyWhatsApp() {
     `----------------------------`,
     `*TOTAL: $${Number(activeOrder.total || 0).toFixed(2)} MXN*`
   ];
-  const url = `https://wa.me/?text=${encodeURIComponent(lines.join('
-'))}`;
+  const url = `https://wa.me/?text=${encodeURIComponent(lines.join('\n'))}`;
   window.open(url, '_blank');
 }
 
