@@ -18,12 +18,17 @@
 </head>
 <body class="bg-[#F8F7F4] text-stone-900 pb-28 select-none">
 
+  <!-- BANNER OFFLINE -->
+  <div id="offlineAlertBanner" class="hidden bg-rose-600 text-white text-xs font-bold px-4 py-2 text-center sticky top-0 z-50">
+    <span id="offlineAlertText">Sin conexión a internet. Verifica tu Wi-Fi.</span>
+  </div>
+
   <!-- CABECERA -->
   <header class="relative bg-stone-900 text-white overflow-hidden shadow-md">
     <div class="h-52 w-full relative">
-      <img id="restBanner" 
-           src="https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=1200&q=80" 
-           alt="Banner Restaurante" 
+      <img id="restBanner"
+           src="https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=1200&q=80"
+           alt="Banner Restaurante"
            class="w-full h-full object-cover opacity-60">
       <div class="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/50 to-stone-900/30"></div>
     </div>
@@ -52,9 +57,9 @@
     <!-- Info Negocio y Logotipo -->
     <div class="px-5 pb-5 -mt-14 relative z-10 max-w-lg mx-auto flex gap-4 items-end">
       <div class="w-20 h-20 rounded-2xl bg-stone-900 p-1 border-2 border-amber-500/60 shadow-xl flex-shrink-0 overflow-hidden backdrop-blur-md">
-        <img id="restLogo" 
-             src="https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=250&q=80" 
-             alt="Logotipo" 
+        <img id="restLogo"
+             src="https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=250&q=80"
+             alt="Logotipo"
              class="w-full h-full object-cover rounded-xl bg-stone-800">
       </div>
 
@@ -75,7 +80,7 @@
     </div>
   </header>
 
-  <!-- TRACKER DE PEDIDO EN CURSO (SI YA EXISTE PEDIDO EN ESTA MESA) -->
+  <!-- TRACKER DE PEDIDO EN CURSO -->
   <div id="liveOrderTracker" class="hidden px-4 pt-4 max-w-lg mx-auto">
     <div class="bg-white border-2 border-amber-500/40 rounded-3xl p-4 shadow-md space-y-3 relative overflow-hidden">
       <div class="flex justify-between items-start border-b border-stone-100 pb-2.5">
@@ -91,10 +96,8 @@
         </span>
       </div>
 
-      <!-- Resumen de platillos de la mesa -->
-      <div id="trackerItemsList" class="space-y-1.5 text-xs divide-y divide-stone-100 max-h-36 overflow-y-auto pr-1"></div>
+      <div id="trackerItemsList" class="space-y-1.5 text-xs divide-y divide-stone-100 max-h-40 overflow-y-auto pr-1"></div>
 
-      <!-- Totales y División de cuenta activa si la hay -->
       <div class="border-t border-stone-100 pt-2 flex justify-between items-center text-xs">
         <div>
           <span class="text-[10px] text-stone-400 block">Total consumido:</span>
@@ -106,13 +109,15 @@
         </div>
       </div>
 
-      <!-- BOTONES DE ACCIÓN: MODIFICAR / DIVIDIR / WHATSAPP -->
-      <div class="grid grid-cols-2 gap-2 pt-1 text-xs font-bold">
-        <button id="btnClientModifyOrder" onclick="window.handleClientModifyOrder()" class="p-2.5 rounded-xl border border-stone-300 bg-stone-50 hover:bg-stone-100 text-stone-800 transition flex items-center justify-center gap-1.5 shadow-xs">
+      <div class="grid grid-cols-3 gap-2 pt-1 text-[11px] font-bold">
+        <button id="btnClientModifyOrder" onclick="window.handleClientModifyOrder()" class="p-2.5 rounded-xl border border-stone-300 bg-stone-50 hover:bg-stone-100 text-stone-800 transition flex items-center justify-center gap-1">
           <span>✏️ Modificar</span>
         </button>
-        <button onclick="window.openSplitBillModal()" class="p-2.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-950 transition flex items-center justify-center gap-1.5 shadow-xs">
-          <span>👥 Dividir Cuenta</span>
+        <button onclick="window.openSplitBillModal()" class="p-2.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-950 transition flex items-center justify-center gap-1">
+          <span>👥 Dividir</span>
+        </button>
+        <button onclick="window.requestBillFromTable()" class="p-2.5 rounded-xl border border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-900 transition flex items-center justify-center gap-1">
+          <span>💳 Pedir Cuenta</span>
         </button>
       </div>
 
@@ -123,27 +128,31 @@
   </div>
 
   <!-- BUSCADOR -->
-  <div class="px-4 pt-4 max-w-lg mx-auto">
-    <div class="relative flex items-center bg-white rounded-2xl shadow-sm border border-stone-200/80 px-3.5 py-2.5">
-      <span class="text-stone-400 mr-2.5 text-sm">🔍</span>
-      <input type="text" id="searchInput" oninput="window.handleSearch(this.value)" placeholder="Busca por platillo o ingrediente..." class="w-full text-sm bg-transparent outline-none placeholder-stone-400">
-      <button id="clearSearch" onclick="window.clearSearchInput()" class="hidden text-stone-400 hover:text-stone-600 font-bold px-1">✕</button>
+  <div id="menuToolsWrapper">
+    <div class="px-4 pt-4 max-w-lg mx-auto">
+      <div class="relative flex items-center bg-white rounded-2xl shadow-sm border border-stone-200/80 px-3.5 py-2.5">
+        <span class="text-stone-400 mr-2.5 text-sm">🔍</span>
+        <input type="text" id="searchInput" oninput="window.handleSearch(this.value)" placeholder="Busca por platillo o ingrediente..." class="w-full text-sm bg-transparent outline-none placeholder-stone-400">
+        <button id="clearSearch" onclick="window.clearSearchInput()" class="hidden text-stone-400 hover:text-stone-600 font-bold px-1">✕</button>
+      </div>
+      <div id="predictiveBox" class="hidden mt-1.5 bg-white rounded-xl shadow-lg border border-stone-100 p-2 text-xs divide-y divide-stone-100 z-30 relative"></div>
     </div>
-    <div id="predictiveBox" class="hidden mt-1.5 bg-white rounded-xl shadow-lg border border-stone-100 p-2 text-xs divide-y divide-stone-100 z-30 relative"></div>
-  </div>
 
-  <!-- FILTROS POR TIPO -->
-  <div class="px-4 pt-3 max-w-lg mx-auto">
-    <div id="typesFilterContainer" class="flex gap-2 overflow-x-auto no-scrollbar py-1"></div>
-  </div>
+    <!-- FILTROS POR TIPO -->
+    <div class="px-4 pt-3 max-w-lg mx-auto">
+      <div id="typesFilterContainer" class="flex gap-2 overflow-x-auto no-scrollbar py-1"></div>
+    </div>
 
-  <!-- CATEGORÍAS TABS -->
-  <nav class="sticky top-0 z-30 bg-[#F8F7F4]/95 backdrop-blur-md border-b border-stone-200/70 py-2.5 px-4 mt-2 shadow-sm">
-    <div id="categoryTabs" class="flex gap-2 overflow-x-auto no-scrollbar max-w-lg mx-auto"></div>
-  </nav>
+    <!-- CATEGORÍAS TABS -->
+    <nav class="sticky top-0 z-30 bg-[#F8F7F4]/95 backdrop-blur-md border-b border-stone-200/70 py-2.5 px-4 mt-2 shadow-sm">
+      <div id="categoryTabs" class="flex gap-2 overflow-x-auto no-scrollbar max-w-lg mx-auto"></div>
+    </nav>
+  </div>
 
   <!-- CATÁLOGO -->
-  <main id="menuContainer" class="px-4 mt-5 space-y-7 max-w-lg mx-auto"></main>
+  <main id="menuContainer" class="px-4 mt-5 space-y-7 max-w-lg mx-auto">
+    <div class="text-center py-12 text-xs text-stone-400">Cargando carta del día...</div>
+  </main>
 
   <!-- VISTA PROMOCIONES -->
   <section id="promosView" class="hidden px-4 mt-5 space-y-4 max-w-lg mx-auto">
@@ -160,7 +169,6 @@
 
     <div id="orderItemsList" class="bg-white rounded-2xl p-4 shadow-sm border border-stone-100 divide-y divide-stone-100"></div>
 
-    <!-- Desglose de Descuentos -->
     <div id="appliedDiscountsBox" class="hidden bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 space-y-2">
       <div class="flex items-center gap-1.5 text-xs font-bold text-emerald-900">
         <span>🎉</span>
@@ -169,10 +177,9 @@
       <div id="appliedDiscountsList" class="text-xs text-emerald-800 space-y-1"></div>
     </div>
 
-    <!-- Notas de comanda -->
     <div class="bg-white rounded-2xl p-3.5 shadow-sm border border-stone-100 space-y-1.5">
-      <label class="block text-xs font-bold text-stone-700">Notas para Cocina (Opcional):</label>
-      <input type="text" id="orderCustomerNotes" placeholder="Ej: Sin cebolla, término medio, aderezo aparte..." class="w-full text-xs border rounded-xl p-2.5 outline-none focus:border-amber-600 bg-stone-50">
+      <label class="block text-xs font-bold text-stone-700">Notas generales para Cocina (Opcional):</label>
+      <input type="text" id="orderCustomerNotes" placeholder="Ej: Traer bebidas primero, servilletas extra..." class="w-full text-xs border rounded-xl p-2.5 outline-none focus:border-amber-600 bg-stone-50">
     </div>
 
     <div class="bg-white rounded-2xl p-4 shadow-sm border border-stone-100 space-y-2.5">
@@ -189,9 +196,8 @@
         <span id="orderTotal">$0.00 MXN</span>
       </div>
 
-      <!-- BOTÓN DIRECTO AL PANEL KDS DE COCINA -->
       <button onclick="window.sendOrder()" id="btnSendOrder" class="w-full mt-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition shadow-md">
-        <span>Confirmar Pedido al Mesero 🛎️</span>
+        <span>Confirmar Pedido a Cocina 🛎️</span>
       </button>
     </div>
   </section>
@@ -203,35 +209,45 @@
         ✕
       </button>
 
-      <div class="relative h-64 bg-stone-900 w-full overflow-hidden flex-shrink-0">
+      <div class="relative h-60 bg-stone-900 w-full overflow-hidden flex-shrink-0">
         <div id="modalMediaCarousel" class="h-full w-full flex overflow-x-auto snap-x snap-mandatory no-scrollbar"></div>
       </div>
 
-      <div class="p-5 flex-grow space-y-5">
+      <div class="p-5 flex-grow space-y-4">
         <div>
           <div class="flex items-start justify-between gap-3">
             <h2 id="modalTitle" class="text-xl font-bold text-stone-900 leading-tight"></h2>
             <span id="modalPrice" class="text-lg font-bold text-stone-900 font-mono"></span>
           </div>
           <div id="modalTags" class="flex flex-wrap gap-1.5 mt-2"></div>
-          <p id="modalDesc" class="text-sm text-stone-600 mt-3 leading-relaxed"></p>
+          <p id="modalDesc" class="text-sm text-stone-600 mt-2.5 leading-relaxed"></p>
         </div>
 
-        <div id="modalModifiersSection" class="border-t border-stone-100 pt-4 space-y-3">
+        <div id="modalModifiersSection" class="border-t border-stone-100 pt-3 space-y-2">
           <h4 class="text-xs font-bold uppercase tracking-wider text-stone-400">Personaliza tu plato</h4>
           <div id="modifiersList" class="space-y-2"></div>
         </div>
 
-        <div id="modalCrossSellSection" class="border-t border-stone-100 pt-4 space-y-3">
+        <div class="border-t border-stone-100 pt-3 space-y-1.5">
+          <label class="block text-xs font-bold uppercase tracking-wider text-stone-400">Nota para este platillo (Opcional)</label>
+          <input type="text" id="modalItemNote" placeholder="Ej: Sin cebolla, poco hielo, leche muy caliente..." class="w-full border rounded-xl p-2.5 text-xs bg-stone-50 outline-none focus:border-amber-600">
+        </div>
+
+        <div id="modalCrossSellSection" class="border-t border-stone-100 pt-3 space-y-2">
           <h4 id="crossSellTitle" class="text-xs font-bold uppercase tracking-wider text-amber-800">Frecuentemente pedidos juntos</h4>
           <div id="crossSellContainer" class="flex gap-3 overflow-x-auto no-scrollbar py-1"></div>
         </div>
       </div>
 
-      <div class="p-4 border-t border-stone-100 bg-white sticky bottom-0 z-20">
-        <button id="modalAddBtn" class="w-full bg-stone-900 hover:bg-stone-800 active:scale-95 text-white font-bold py-3.5 rounded-2xl flex items-center justify-between px-5 transition shadow-lg">
-          <span>Agregar a la Orden</span>
-          <span id="modalFinalPrice">$0.00</span>
+      <div class="p-4 border-t border-stone-100 bg-white sticky bottom-0 z-20 flex items-center gap-3">
+        <div class="flex items-center border border-stone-200 rounded-2xl bg-stone-50 px-2 py-1.5 gap-3">
+          <button onclick="window.changeModalQty(-1)" class="w-7 h-7 rounded-xl bg-white shadow-xs font-black text-stone-700">−</button>
+          <span id="modalQtyDisplay" class="font-mono font-black text-sm w-4 text-center">1</span>
+          <button onclick="window.changeModalQty(1)" class="w-7 h-7 rounded-xl bg-white shadow-xs font-black text-stone-700">+</button>
+        </div>
+        <button id="modalAddBtn" onclick="window.addCurrentModalToCart()" class="flex-grow bg-stone-900 hover:bg-stone-800 active:scale-95 text-white font-bold py-3.5 rounded-2xl flex items-center justify-between px-4 transition shadow-lg text-sm">
+          <span>Agregar</span>
+          <span id="modalFinalPrice" class="font-mono">$0.00</span>
         </button>
       </div>
     </div>
@@ -259,11 +275,10 @@
         </button>
       </div>
 
-      <!-- MODO 1: PARTES IGUALES -->
       <div id="splitEqualArea" class="space-y-3 pt-1 text-xs">
         <label class="block font-semibold text-stone-700">¿Entre cuántas personas se divide?</label>
         <div class="flex items-center gap-3">
-          <input type="number" id="splitCountInput" value="3" min="2" max="30" oninput="window.calculateEqualSplit()" class="border-2 rounded-2xl p-2.5 text-center font-black text-lg w-24 bg-stone-50 outline-none focus:border-amber-600">
+          <input type="number" id="splitCountInput" value="2" min="2" max="30" oninput="window.calculateEqualSplit()" class="border-2 rounded-2xl p-2.5 text-center font-black text-lg w-24 bg-stone-50 outline-none focus:border-amber-600">
           <div>
             <span class="text-stone-400 block text-[11px]">Le toca a cada uno:</span>
             <span id="equalSplitPerPerson" class="text-xl font-black font-mono text-emerald-700">$0.00 MXN</span>
@@ -272,7 +287,6 @@
         <div id="equalPersonsBreakdown" class="space-y-1.5 pt-2 border-t text-[11px] text-stone-600"></div>
       </div>
 
-      <!-- MODO 2: POR COMENSAL -->
       <div id="splitByPersonArea" class="hidden space-y-3 pt-1 text-xs">
         <div class="flex gap-2">
           <input type="text" id="splitPersonNameInput" placeholder="Nombre del comensal (ej. Sofía)..." class="border rounded-xl px-3 py-2 text-xs flex-grow outline-none focus:border-amber-600">
@@ -303,7 +317,7 @@
     </div>
   </div>
 
-  <!-- NAVEGACIÓN INFERIOR (3 SECCIONES) -->
+  <!-- NAVEGACIÓN INFERIOR -->
   <nav class="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-stone-200 max-w-lg mx-auto">
     <div class="grid grid-cols-3 h-16 items-center text-center">
       <button id="navLeftBtn" onclick="window.handleNavLeft()" class="flex flex-col items-center justify-center gap-1 text-stone-500 hover:text-amber-600 transition">
@@ -326,7 +340,7 @@
     </div>
   </nav>
 
-  <!-- CONEXIÓN A LA NUEVA ESTRUCTURA MODULAR -->
-  <script type="module" src="JS/menu-main.js"></script>
+  <!-- CONEXIÓN A LA ESTRUCTURA MODULAR -->
+  <script type="module" src="js/menu-main.js"></script>
 </body>
 </html>

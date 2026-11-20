@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin POS & KDS - Café & Bistro Áurea</title>
+  <title>Admin POS & KDS v2 - Café & Bistro Áurea</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,23 +20,11 @@
     }
     body.focus-mode #appSidebar,
     body.focus-mode #appHeader,
-    body.focus-mode #kdsFilterBar {
-      display: none !important;
-    }
-    body.focus-mode #mainContentArea {
-      margin-left: 0 !important;
-      padding: 1rem !important;
-      max-width: 100% !important;
-    }
-    body.focus-mode #exitFocusBtn {
-      display: flex !important;
-    }
-    #appSidebar.sidebar-hidden {
-      transform: translateX(-100%);
-    }
-    #mainContentArea.sidebar-collapsed {
-      margin-left: 0 !important;
-    }
+    body.focus-mode #kdsFilterBar { display: none !important; }
+    body.focus-mode #mainContentArea { margin-left: 0 !important; padding: 1rem !important; max-width: 100% !important; }
+    body.focus-mode #exitFocusBtn { display: flex !important; }
+    #appSidebar.sidebar-hidden { transform: translateX(-100%); }
+    #mainContentArea.sidebar-collapsed { margin-left: 0 !important; }
   </style>
 </head>
 <body class="bg-stone-100 text-stone-900 min-h-screen flex antialiased">
@@ -65,61 +53,77 @@
         <button onclick="window.toggleSidebar(false)" class="md:hidden text-stone-400 hover:text-white p-1 text-lg">✕</button>
       </div>
 
-      <!-- Selector de Modo / Rol -->
-      <div class="px-4 py-3 bg-stone-950/60 border-b border-stone-800/80">
-        <label class="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">Estación Operativa:</label>
-        <select id="roleModeSelector" onchange="window.switchStationRole(this.value)" class="w-full bg-stone-800 border border-stone-700 text-amber-300 font-bold text-xs rounded-xl p-2 outline-none cursor-pointer focus:border-amber-500">
-          <option value="all">👑 Administrador (Todo)</option>
-          <option value="kitchen">🍳 Modo Cocina / KDS</option>
-          <option value="waiter">🛎️ Modo Meseros & Sala</option>
-          <option value="management">📊 Modo Gerencia & Costes</option>
-        </select>
+      <!-- ESTACIÓN / SESIÓN POR PIN -->
+      <div class="px-4 py-3 bg-stone-950/60 border-b border-stone-800/80 space-y-2">
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="block text-[10px] font-bold uppercase tracking-wider text-stone-500">Operador en Turno:</span>
+            <span id="activeStaffDisplay" class="text-xs font-extrabold text-white block">Admin General</span>
+            <span id="activeRoleDisplay" class="text-[10px] text-amber-400 font-semibold">👑 Administrador</span>
+          </div>
+          <button onclick="window.openSwitchStaffPinModal()" class="bg-amber-600 hover:bg-amber-500 text-white font-bold text-[11px] px-3 py-1.5 rounded-xl transition shadow-sm">
+            🔐 PIN
+          </button>
+        </div>
       </div>
 
-      <!-- Navegación -->
-      <nav class="flex-grow p-3 space-y-6 overflow-y-auto no-scrollbar text-xs">
+      <!-- NAVEGACIÓN -->
+      <nav class="flex-grow p-3 space-y-5 overflow-y-auto no-scrollbar text-xs">
         <div id="navGroup-live" class="space-y-1">
           <div class="px-3 py-1 text-[10px] font-extrabold text-stone-500 uppercase tracking-wider flex justify-between items-center">
             <span>⚡ Operación en Vivo</span>
             <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           </div>
-          <button onclick="window.switchTab('orders')" id="tabBtn-orders" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold bg-amber-600 text-white shadow-sm transition">
-            <span class="flex items-center gap-2.5">📋 Tablero Kanban</span>
+          <button data-tab-id="tables" onclick="window.switchTab('tables')" id="tabBtn-tables" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold bg-amber-600 text-white shadow-sm transition">
+            <span class="flex items-center gap-2.5">🪑 Mapa de Mesas</span>
+            <span id="tablesOccupiedBadge" class="bg-black/30 text-white text-[10px] px-2 py-0.5 rounded-full font-mono font-bold">0/0</span>
+          </button>
+          <button data-tab-id="orders" onclick="window.switchTab('orders')" id="tabBtn-orders" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
+            <span class="flex items-center gap-2.5">📋 Tablero Kanban KDS</span>
             <span id="badgeLiveOrders" class="bg-black/30 text-white text-[10px] px-2 py-0.5 rounded-full font-mono font-bold">0</span>
           </button>
-          <button onclick="window.switchTab('calls')" id="tabBtn-calls" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
+          <button data-tab-id="calls" onclick="window.switchTab('calls')" id="tabBtn-calls" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
             <span class="flex items-center gap-2.5">🔔 Llamadas Mesero</span>
             <span id="pendingCallsBadge" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">0</span>
           </button>
-          <button onclick="window.switchTab('reservations')" id="tabBtn-reservations" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
+          <button data-tab-id="reservations" onclick="window.switchTab('reservations')" id="tabBtn-reservations" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
             <span class="flex items-center gap-2.5">📅 Agenda Reservas</span>
             <span id="badgeReservationsCount" class="bg-stone-800 text-stone-300 text-[10px] px-2 py-0.5 rounded-full font-mono">0</span>
+          </button>
+          <button data-tab-id="cashbox" onclick="window.switchTab('cashbox')" id="tabBtn-cashbox" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
+            <span class="flex items-center gap-2.5">💵 Caja & Cortes X/Z</span>
           </button>
         </div>
 
         <div id="navGroup-management" class="space-y-1">
           <div class="px-3 py-1 text-[10px] font-extrabold text-stone-500 uppercase tracking-wider">
-            📦 Gestión & Almacén
+            📦 Carta & Almacén
           </div>
-          <button onclick="window.switchTab('inventory')" id="tabBtn-inventory" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
-            <span class="flex items-center gap-2.5">🥫 Stock, Mermas & Recetas</span>
+          <button data-tab-id="products" onclick="window.switchTab('products')" id="tabBtn-products" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
+            <span class="flex items-center gap-2.5">🍽️ Carta, Botón 86 & Mods</span>
           </button>
-          <button onclick="window.switchTab('products')" id="tabBtn-products" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
-            <span class="flex items-center gap-2.5">🍽️ Carta y Platillos</span>
+          <button data-tab-id="promos" onclick="window.switchTab('promos')" id="tabBtn-promos" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
+            <span class="flex items-center gap-2.5">🏷️ Promociones Activas</span>
           </button>
-          <button onclick="window.switchTab('taxonomies')" id="tabBtn-taxonomies" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
+          <button data-tab-id="taxonomies" onclick="window.switchTab('taxonomies')" id="tabBtn-taxonomies" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
             <span class="flex items-center gap-2.5">📑 Categorías & Tipos</span>
+          </button>
+          <button data-tab-id="inventory" onclick="window.switchTab('inventory')" id="tabBtn-inventory" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
+            <span class="flex items-center gap-2.5">🥫 Stock, Mermas & Recetas</span>
           </button>
         </div>
 
         <div id="navGroup-analytics" class="space-y-1">
           <div class="px-3 py-1 text-[10px] font-extrabold text-stone-500 uppercase tracking-wider">
-            📊 Gerencia & Dirección
+            📊 Gerencia & Control
           </div>
-          <button onclick="window.switchTab('analytics')" id="tabBtn-analytics" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
+          <button data-tab-id="analytics" onclick="window.switchTab('analytics')" id="tabBtn-analytics" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
             <span class="flex items-center gap-2.5">📈 Métricas, Food Cost & Boston</span>
           </button>
-          <button onclick="window.switchTab('marketing')" id="tabBtn-marketing" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
+          <button data-tab-id="staff" onclick="window.switchTab('staff')" id="tabBtn-staff" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
+            <span class="flex items-center gap-2.5">🛡️ Personal, PINs & Auditoría</span>
+          </button>
+          <button data-tab-id="marketing" onclick="window.switchTab('marketing')" id="tabBtn-marketing" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
             <span class="flex items-center gap-2.5">⭐ Google Maps & Fidelidad</span>
           </button>
         </div>
@@ -138,20 +142,30 @@
 
   <!-- CONTENIDO PRINCIPAL -->
   <div id="mainContentArea" class="flex-grow ml-0 md:ml-64 flex flex-col min-h-screen transition-all duration-300">
+
+    <!-- ALERTA OFFLINE / ERROR DE RED -->
+    <div id="offlineAlertBanner" class="hidden bg-rose-600 text-white text-xs font-bold px-4 py-2.5 flex items-center justify-center gap-2 sticky top-0 z-50">
+      <span>⚠️</span>
+      <span id="offlineAlertText">Sin conexión a internet. Verifica tu Wi-Fi.</span>
+    </div>
+
     <header id="appHeader" class="bg-white border-b border-stone-200 px-4 sm:px-6 py-3.5 flex flex-wrap justify-between items-center gap-3 sticky top-0 z-30 shadow-xs">
       <div class="flex items-center gap-3">
         <button onclick="window.toggleSidebar()" class="p-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-sm transition" title="Mostrar/Ocultar Menú">
           ☰
         </button>
-        <h2 id="topbarTitle" class="text-base font-extrabold text-stone-900">Tablero Kanban KDS</h2>
+        <h2 id="topbarTitle" class="text-base font-extrabold text-stone-900">Mapa Visual de Mesas</h2>
         <span id="topbarRoleBadge" class="hidden sm:inline-block bg-stone-100 text-stone-700 border border-stone-200 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase font-mono">
-          👑 Todo Administrador
+          👑 Administrador • Admin General
         </span>
       </div>
 
       <div class="flex items-center gap-2 sm:gap-3 text-xs">
+        <button onclick="window.openNewOrderModal()" class="bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-bold px-3.5 py-1.5 rounded-xl shadow-xs transition">
+          ➕ Pedido Rápido
+        </button>
         <button onclick="window.openStatusConfigModal()" class="flex items-center gap-1.5 bg-stone-100 hover:bg-stone-200 border border-stone-300 px-3 py-1.5 rounded-xl font-bold text-stone-700 transition">
-          <span>⚙️ Configurar Estatus y Sonidos</span>
+          <span>⚙️ Flujo y Sonidos</span>
         </button>
         <span id="kdsActiveCount" class="bg-amber-100 text-amber-900 border border-amber-200 px-3 py-1.5 rounded-xl font-bold font-mono">
           0 activas
@@ -160,34 +174,93 @@
     </header>
 
     <main class="p-4 sm:p-6 max-w-[1600px] w-full mx-auto space-y-6 flex-grow">
-      
-      <!-- 1. KANBAN -->
-      <section id="tab-orders" class="tab-panel space-y-5">
-        <div id="kdsFilterBar" class="bg-white rounded-2xl p-4 shadow-sm border border-stone-200 flex flex-wrap justify-between items-center gap-4">
-          <div class="flex flex-wrap items-center gap-3">
-            <div class="flex items-center gap-1.5 bg-stone-100 p-1 rounded-2xl border border-stone-200 text-xs font-bold">
-              <button onclick="window.filterByChannel('all')" id="btnChannel-all" class="px-3 py-1.5 rounded-xl bg-stone-900 text-white shadow-sm transition">Todos</button>
-              <button onclick="window.filterByChannel('dine_in')" id="btnChannel-dine_in" class="px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 transition">🍽️ En Mesa</button>
-              <button onclick="window.filterByChannel('takeout')" id="btnChannel-takeout" class="px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 transition">🛍️ Para Llevar</button>
-              <button onclick="window.filterByChannel('delivery')" id="btnChannel-delivery" class="px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 transition">🛵 Delivery</button>
+
+      <!-- 0. MAPA DE MESAS (NUEVO) -->
+      <section id="tab-tables" class="tab-panel space-y-5">
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-stone-200 flex flex-wrap justify-between items-center gap-3 text-xs">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold">🟢 Libre</span>
+            <span class="px-2.5 py-1 rounded-full bg-amber-200 text-amber-950 font-bold">🟠 Ocupada</span>
+            <span class="px-2.5 py-1 rounded-full bg-blue-600 text-white font-bold">💳 Pidió Cuenta</span>
+            <span class="px-2.5 py-1 rounded-full bg-stone-700 text-white font-bold">🧹 Por Limpiar</span>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <input type="text" id="newTableNumberInput" placeholder="Mesa # (ej: 09)" class="w-28 border rounded-xl px-2.5 py-1.5 font-bold bg-stone-50">
+            <input type="text" id="newTableZoneInput" placeholder="Zona (Salón/Terraza)" value="Salón Principal" class="w-36 border rounded-xl px-2.5 py-1.5 bg-stone-50">
+            <input type="number" id="newTableCapInput" value="4" min="1" max="20" class="w-16 border rounded-xl px-2 py-1.5 font-mono text-center bg-stone-50" title="Capacidad">
+            <button onclick="window.createNewTableRecord()" class="bg-stone-900 hover:bg-stone-800 text-white font-bold px-3.5 py-1.5 rounded-xl transition">
+              + Agregar Mesa
+            </button>
+          </div>
+        </div>
+
+        <div id="tablesFloorContainer" class="space-y-6"></div>
+      </section>
+
+      <!-- 1. KANBAN KDS -->
+      <section id="tab-orders" class="tab-panel hidden space-y-4">
+        <div id="kdsFilterBar" class="bg-white rounded-2xl p-4 shadow-sm border border-stone-200 space-y-3">
+          <div class="flex flex-wrap justify-between items-center gap-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="flex items-center gap-1 bg-stone-100 p-1 rounded-2xl border border-stone-200 text-xs font-bold">
+                <button onclick="window.filterByChannel('all')" id="btnChannel-all" class="px-3 py-1.5 rounded-xl bg-stone-900 text-white shadow-sm transition">Todos</button>
+                <button onclick="window.filterByChannel('dine_in')" id="btnChannel-dine_in" class="px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 transition">🍽️ Mesa</button>
+                <button onclick="window.filterByChannel('takeout')" id="btnChannel-takeout" class="px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 transition">🛍️ Llevar</button>
+                <button onclick="window.filterByChannel('delivery')" id="btnChannel-delivery" class="px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 transition">🛵 Delivery</button>
+              </div>
+
+              <!-- FILTRO POR ESTACIÓN DE PRODUCCIÓN -->
+              <div class="flex items-center gap-1 bg-amber-50 p-1 rounded-2xl border border-amber-200 text-xs font-bold">
+                <button onclick="window.filterByStation('all')" id="btnStation-all" class="px-3 py-1.5 rounded-xl bg-amber-600 text-white shadow-sm transition">Todas Estaciones</button>
+                <button onclick="window.filterByStation('cocina')" id="btnStation-cocina" class="px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 transition">🍳 Cocina</button>
+                <button onclick="window.filterByStation('barra')" id="btnStation-barra" class="px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 transition">☕ Barra</button>
+                <button onclick="window.filterByStation('panaderia')" id="btnStation-panaderia" class="px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 transition">🥐 Panadería</button>
+              </div>
             </div>
 
-            <div class="inline-flex p-1 bg-stone-100 rounded-2xl border border-stone-200 text-xs font-bold">
-              <button onclick="window.setKanbanDisplayMode('all')" id="btnViewMode-all" class="px-3.5 py-1.5 rounded-xl transition bg-stone-900 text-white shadow-sm">🗂️ Todas</button>
-              <button onclick="window.setKanbanDisplayMode('single')" id="btnViewMode-single" class="px-3.5 py-1.5 rounded-xl transition text-stone-600 hover:text-stone-900">🎯 Columna Única</button>
+            <div class="flex items-center gap-2">
+              <div class="inline-flex p-1 bg-stone-100 rounded-2xl border border-stone-200 text-xs font-bold">
+                <button onclick="window.setKanbanDisplayMode('all')" id="btnViewMode-all" class="px-3.5 py-1.5 rounded-xl transition bg-stone-900 text-white shadow-sm">🗂️ Todas</button>
+                <button onclick="window.setKanbanDisplayMode('single')" id="btnViewMode-single" class="px-3.5 py-1.5 rounded-xl transition text-stone-600 hover:text-stone-900">🎯 Columna Única</button>
+              </div>
+              <button onclick="window.openNewOrderModal()" class="bg-amber-600 hover:bg-amber-500 active:scale-95 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-md transition">
+                ➕ Nuevo Pedido
+              </button>
             </div>
           </div>
 
-          <button onclick="window.openNewOrderModal()" class="bg-amber-600 hover:bg-amber-500 active:scale-95 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-md transition flex items-center gap-2">
-            <span>➕</span>
-            <span>Nuevo Pedido Manual</span>
-          </button>
+          <div id="singleStageSelectorBar" class="hidden flex flex-wrap gap-2 pt-2 border-t border-stone-100"></div>
         </div>
 
         <div id="kanbanBoardContainer" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start"></div>
       </section>
 
-      <!-- 2. ANALYTICS -->
+      <!-- 2. CAJA & CORTES (NUEVO) -->
+      <section id="tab-cashbox" class="tab-panel hidden space-y-6">
+        <div id="cashboxActiveArea"></div>
+
+        <div class="bg-white rounded-3xl p-5 shadow-sm border border-stone-200 space-y-3">
+          <h3 class="font-extrabold text-sm text-stone-900 border-b pb-2.5">📑 Historial de Cortes Z Cerrados</h3>
+          <div class="overflow-x-auto no-scrollbar">
+            <table class="w-full text-left text-xs">
+              <thead>
+                <tr class="border-b text-stone-400 font-bold uppercase text-[10px]">
+                  <th class="pb-2">Fecha Cierre</th>
+                  <th class="pb-2">Cerró</th>
+                  <th class="pb-2">Efec. Esperado</th>
+                  <th class="pb-2">Efec. Contado</th>
+                  <th class="pb-2">Diferencia</th>
+                  <th class="pb-2">Tarj. + Transf.</th>
+                  <th class="pb-2">Ticket</th>
+                </tr>
+              </thead>
+              <tbody id="cashboxHistoryBody" class="divide-y divide-stone-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. ANALYTICS -->
       <section id="tab-analytics" class="tab-panel hidden space-y-6">
         <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-stone-200 flex flex-wrap justify-between items-center gap-4">
           <div class="flex flex-wrap items-center gap-2">
@@ -204,22 +277,22 @@
             <span class="text-stone-400">a</span>
             <input type="date" id="analyticsDateTo" onchange="window.applyCustomDateRange()" class="border border-stone-200 rounded-xl px-2.5 py-1.5 bg-stone-50 text-stone-800 font-medium outline-none focus:border-amber-600">
             <button onclick="window.applyCustomDateRange()" class="bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-xl font-bold shadow-sm transition">Filtrar</button>
-            <button onclick="window.exportHistoryToCSV()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3.5 py-1.5 rounded-xl transition shadow-sm flex items-center gap-1.5 ml-2">
-              <span>📥 Exportar CSV</span>
+            <button onclick="window.exportHistoryToCSV()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3.5 py-1.5 rounded-xl transition shadow-sm ml-2">
+              📥 Exportar CSV
             </button>
           </div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm">
-            <span class="text-xs font-bold text-stone-400 uppercase tracking-wider" id="kpiRevLabel">Venta Neta del Periodo</span>
+            <span class="text-xs font-bold text-stone-400 uppercase tracking-wider">Venta Neta del Periodo</span>
             <h3 class="text-2xl font-black font-mono text-stone-900 mt-1" id="kpiRevenue">$0.00 MXN</h3>
-            <p class="text-[11px] text-emerald-600 font-semibold mt-1">✓ Cobrado y liquidado</p>
+            <p class="text-[10px] text-emerald-700 font-semibold mt-1" id="kpiPaymentBreakdown">✓ Cobrado y liquidado</p>
           </div>
           <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm">
             <div class="flex justify-between items-start">
               <span class="text-xs font-bold text-stone-400 uppercase tracking-wider">Food Cost Teórico</span>
-              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800" id="badgeFoodCostStatus">Óptimo</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">Escandallos</span>
             </div>
             <h3 class="text-2xl font-black font-mono text-stone-900 mt-1" id="kpiFoodCostPct">0.0%</h3>
             <p class="text-[11px] text-stone-500 mt-1" id="kpiFoodCostAmount">Costo insumos: $0.00</p>
@@ -244,7 +317,7 @@
             <div class="flex justify-between items-center border-b pb-3">
               <div>
                 <h3 class="font-extrabold text-sm text-stone-900">Ingeniería de Menús (Matriz Boston / Miller)</h3>
-                <p class="text-xs text-stone-400">Clasificación estratégica para optimizar tu carta.</p>
+                <p class="text-xs text-stone-400">Clasificación basada en tus ventas y escandallos reales.</p>
               </div>
               <span class="text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-1 rounded-xl">Rentabilidad</span>
             </div>
@@ -283,9 +356,7 @@
 
           <div class="lg:col-span-5 bg-white rounded-3xl p-6 border border-stone-200 shadow-sm space-y-4">
             <h3 class="font-extrabold text-sm text-stone-900 border-b pb-3">Top 5 Platillos Populares</h3>
-            <div id="topProductsList" class="space-y-2.5">
-              <p class="text-xs text-stone-400 text-center py-6">Sin registros de ventas.</p>
-            </div>
+            <div id="topProductsList" class="space-y-2.5"></div>
           </div>
         </div>
 
@@ -312,7 +383,7 @@
           </div>
 
           <div class="lg:col-span-7 bg-white rounded-3xl p-6 border border-stone-200 shadow-sm space-y-4">
-            <h3 class="font-extrabold text-sm text-stone-900 border-b pb-3">Rendimiento por Mesero</h3>
+            <h3 class="font-extrabold text-sm text-stone-900 border-b pb-3">Rendimiento por Mesero (Tiempo de Respuesta Real)</h3>
             <div class="overflow-x-auto no-scrollbar">
               <table class="w-full text-left text-xs">
                 <thead>
@@ -320,8 +391,8 @@
                     <th class="pb-2">Mesero</th>
                     <th class="pb-2">Comandas</th>
                     <th class="pb-2">Total Cobrado</th>
-                    <th class="pb-2">Ticket Promedio</th>
-                    <th class="pb-2">Tiempo Respuesta</th>
+                    <th class="pb-2">Ticket Prom. (Propinas)</th>
+                    <th class="pb-2">Resp. Llamados</th>
                   </tr>
                 </thead>
                 <tbody id="waitersPerformanceBody" class="divide-y divide-stone-100"></tbody>
@@ -334,7 +405,7 @@
           <div class="flex justify-between items-center border-b pb-3">
             <div>
               <h3 class="font-extrabold text-base text-stone-900">Historial Detallado de Comandas</h3>
-              <p class="text-xs text-stone-400">Haz clic en cualquier comanda para consultar recibo o imprimir ticket.</p>
+              <p class="text-xs text-stone-400">Haz clic en cualquier comanda para consultar recibo o imprimir ticket/comanda.</p>
             </div>
             <span id="historyOrdersCount" class="text-xs font-mono font-bold bg-stone-100 text-stone-700 px-2.5 py-1 rounded-xl">0 comandas</span>
           </div>
@@ -348,6 +419,7 @@
                   <th class="pb-2.5">Platillos</th>
                   <th class="pb-2.5">Descuento</th>
                   <th class="pb-2.5">Total</th>
+                  <th class="pb-2.5">Pago</th>
                   <th class="pb-2.5">Estatus</th>
                 </tr>
               </thead>
@@ -357,7 +429,7 @@
         </div>
       </section>
 
-      <!-- 3. INVENTARIO & ESCANDALLOS -->
+      <!-- 4. INVENTARIO & ESCANDALLOS -->
       <section id="tab-inventory" class="tab-panel hidden space-y-6">
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div class="bg-white rounded-3xl p-5 border border-stone-200 shadow-sm">
@@ -408,7 +480,7 @@
           <div class="lg:col-span-5 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-4">
             <div class="border-b pb-3">
               <h3 class="font-bold text-sm text-stone-900">Escandallo por Platillo (Receta)</h3>
-              <p class="text-xs text-stone-500">Insumos descontados al cocinar cada porción.</p>
+              <p class="text-xs text-stone-500">Insumos descontados una sola vez al cocinar cada porción.</p>
             </div>
             <select id="recipeProductSelect" onchange="window.loadProductRecipe(this.value)" class="w-full border rounded-xl p-2.5 text-xs bg-stone-50 font-semibold"></select>
             <div id="recipeIngredientsList" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
@@ -443,7 +515,7 @@
         </div>
       </section>
 
-      <!-- 4. RESERVAS -->
+      <!-- 5. RESERVAS -->
       <section id="tab-reservations" class="tab-panel hidden space-y-6">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           <div class="lg:col-span-4 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-3">
@@ -497,12 +569,12 @@
         </div>
       </section>
 
-      <!-- 5. MESERO EN VIVO -->
+      <!-- 6. MESERO EN VIVO -->
       <section id="tab-calls" class="tab-panel hidden space-y-4">
         <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200 flex justify-between items-center">
           <div>
             <h2 class="font-bold text-base text-stone-900">Llamadas Activas de Mesa</h2>
-            <p class="text-xs text-stone-500">Alertas de atención solicitadas por comensales desde el menú QR.</p>
+            <p class="text-xs text-stone-500">Alertas de atención solicitadas desde el menú QR. Al marcar atendida se mide tu tiempo real de respuesta.</p>
           </div>
           <button onclick="window.testSimulateCall()" class="text-xs bg-stone-100 hover:bg-stone-200 text-stone-700 px-3 py-1.5 rounded-xl border border-stone-300 font-semibold transition">
             + Simular llamada
@@ -511,7 +583,7 @@
         <div id="waiterCallsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
       </section>
 
-      <!-- 6. TAXONOMÍAS -->
+      <!-- 7. TAXONOMÍAS -->
       <section id="tab-taxonomies" class="tab-panel hidden space-y-5">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="bg-white rounded-2xl p-4 shadow-sm border border-stone-200 space-y-2">
@@ -545,59 +617,194 @@
         </div>
       </section>
 
-      <!-- 7. PLATILLOS -->
+      <!-- 8. PLATILLOS, BOTÓN 86 & MODIFICADORES -->
       <section id="tab-products" class="tab-panel hidden space-y-5">
-        <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-4">
-          <h3 class="font-bold text-sm text-stone-900 border-b pb-3">Crear Nuevo Producto</h3>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-            <div>
-              <label class="block font-semibold mb-1 text-stone-700">Título</label>
-              <input type="text" id="newProdTitle" placeholder="Ej: Toast de Salmón" class="w-full border rounded-xl p-2.5 outline-none focus:border-amber-600">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+          <div class="lg:col-span-8 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+              <h3 id="prodFormTitle" class="font-bold text-sm text-stone-900">Crear Nuevo Producto</h3>
+              <button id="btnCancelEditProduct" onclick="window.cancelEditProduct()" class="hidden text-xs font-bold text-rose-600 hover:underline">Cancelar edición</button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+              <div>
+                <label class="block font-semibold mb-1 text-stone-700">Título</label>
+                <input type="text" id="newProdTitle" placeholder="Ej: Toast de Salmón" class="w-full border rounded-xl p-2.5 outline-none focus:border-amber-600">
+              </div>
+              <div>
+                <label class="block font-semibold mb-1 text-stone-700">Precio ($ MXN)</label>
+                <input type="number" step="0.5" placeholder="165.00" id="newProdPrice" class="w-full border rounded-xl p-2.5 outline-none focus:border-amber-600 font-mono">
+              </div>
+              <div>
+                <label class="block font-semibold mb-1 text-stone-700">Estación de Preparación</label>
+                <select id="newProdStation" class="w-full border rounded-xl p-2.5 outline-none bg-white font-bold">
+                  <option value="cocina">🍳 Cocina</option>
+                  <option value="barra">☕ Barra / Bebidas</option>
+                  <option value="panaderia">🥐 Panadería / Postres</option>
+                </select>
+              </div>
+              <div>
+                <label class="block font-semibold mb-1 text-stone-700">Categoría</label>
+                <select id="newProdCategory" class="w-full border rounded-xl p-2.5 outline-none bg-white"></select>
+              </div>
+              <div>
+                <label class="block font-semibold mb-1 text-stone-700">Tipo de Platillo</label>
+                <select id="newProdType" class="w-full border rounded-xl p-2.5 outline-none bg-white"></select>
+              </div>
+              <div>
+                <label class="block font-semibold mb-1 text-stone-700">URL Imagen (Opcional)</label>
+                <input type="url" id="newProdImgUrl" placeholder="https://..." class="w-full border rounded-xl p-2.5 outline-none">
+              </div>
             </div>
             <div>
-              <label class="block font-semibold mb-1 text-stone-700">Precio ($ MXN)</label>
-              <input type="number" step="0.5" placeholder="165.00" id="newProdPrice" class="w-full border rounded-xl p-2.5 outline-none focus:border-amber-600 font-mono">
+              <label class="block font-semibold mb-1 text-xs text-stone-700">Descripción o Ingredientes</label>
+              <textarea id="newProdDesc" rows="2" placeholder="Detalles de preparación..." class="w-full text-xs border rounded-xl p-2.5 outline-none focus:border-amber-600"></textarea>
             </div>
-            <div>
-              <label class="block font-semibold mb-1 text-stone-700">Categoría</label>
-              <select id="newProdCategory" class="w-full border rounded-xl p-2.5 outline-none focus:border-amber-600 bg-white"></select>
-            </div>
-            <div>
-              <label class="block font-semibold mb-1 text-stone-700">Tipo de Platillo</label>
-              <select id="newProdType" class="w-full border rounded-xl p-2.5 outline-none focus:border-amber-600 bg-white"></select>
+            <div class="border-t border-stone-100 pt-3 flex justify-end">
+              <button id="btnSaveProduct" onclick="window.createProduct()" class="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs px-6 py-2.5 rounded-xl transition active:scale-95 shadow-sm">
+                Guardar Platillo
+              </button>
             </div>
           </div>
-          <div>
-            <label class="block font-semibold mb-1 text-xs text-stone-700">Descripción o Ingredientes</label>
-            <textarea id="newProdDesc" rows="2" placeholder="Detalles de preparación..." class="w-full text-xs border rounded-xl p-2.5 outline-none focus:border-amber-600"></textarea>
-          </div>
-          <div class="border-t border-stone-100 pt-3 flex justify-end">
-            <button onclick="window.createProduct()" class="bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs px-6 py-2.5 rounded-xl transition active:scale-95 shadow-sm">
-              Guardar Platillo
-            </button>
+
+          <!-- GESTIÓN DE MODIFICADORES -->
+          <div class="lg:col-span-4 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-3">
+            <h3 class="font-bold text-sm text-stone-900 border-b pb-2.5">✨ Modificadores & Extras</h3>
+            <div class="flex gap-2 text-xs">
+              <input type="text" id="newModName" placeholder="Ej: Leche Avena, Sin Cebolla" class="flex-grow border rounded-xl px-2.5 py-2 outline-none">
+              <input type="number" step="1" min="0" id="newModPrice" value="0" placeholder="$" class="w-16 border rounded-xl px-2 py-2 font-mono text-center">
+              <button onclick="window.createModifier()" class="bg-amber-600 hover:bg-amber-500 text-white font-bold px-3 rounded-xl">+</button>
+            </div>
+            <div id="adminModifiersList" class="space-y-1.5 max-h-64 overflow-y-auto pr-1"></div>
           </div>
         </div>
 
         <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-3">
           <div class="flex justify-between items-center mb-2">
-            <h3 class="font-bold text-base text-stone-900">Carta Activa</h3>
-            <span class="text-xs text-stone-400" id="prodCount">0 platillos</span>
+            <div>
+              <h3 class="font-bold text-base text-stone-900">Carta Activa & Control Rápido "86" (Agotados)</h3>
+              <p class="text-xs text-stone-400">Al marcar un platillo como 86 se bloquea al instante tanto en el Menú QR como en el POS.</p>
+            </div>
+            <span class="text-xs text-stone-400 font-mono" id="prodCount">0 platillos</span>
           </div>
-          <div id="adminProductsList" class="space-y-3"></div>
+          <div id="adminProductsList" class="space-y-2.5"></div>
         </div>
       </section>
 
-      <!-- 8. MARKETING -->
+      <!-- 9. PROMOCIONES (NUEVO) -->
+      <section id="tab-promos" class="tab-panel hidden space-y-5">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <div class="lg:col-span-4 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-3 text-xs">
+            <h3 class="font-bold text-sm text-stone-900 border-b pb-2">+ Nueva Promoción Automática</h3>
+            <div>
+              <label class="block font-semibold mb-1">Título de la Promoción</label>
+              <input type="text" id="newPromoTitle" placeholder="Ej: Martes 2x1 en Café" class="w-full border rounded-xl p-2">
+            </div>
+            <div>
+              <label class="block font-semibold mb-1">Descripción</label>
+              <textarea id="newPromoDesc" rows="2" placeholder="Detalles que verá el cliente en su celular..." class="w-full border rounded-xl p-2"></textarea>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block font-semibold mb-1">Tipo</label>
+                <select id="newPromoType" class="w-full border rounded-xl p-2 bg-white font-bold">
+                  <option value="percentage">% Descuento</option>
+                  <option value="2x1">2x1 Automático</option>
+                </select>
+              </div>
+              <div>
+                <label class="block font-semibold mb-1">% Descuento</label>
+                <input type="number" id="newPromoPct" value="15" min="0" max="100" class="w-full border rounded-xl p-2 font-mono">
+              </div>
+            </div>
+            <div>
+              <label class="block font-semibold mb-1">Color de Tarjeta</label>
+              <input type="color" id="newPromoColor" value="#b45309" class="w-full h-9 rounded-xl border p-1 bg-white">
+            </div>
+            <button onclick="window.createPromotion()" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-2.5 rounded-xl transition shadow-sm">
+              Crear y Activar Promoción
+            </button>
+          </div>
+
+          <div class="lg:col-span-8 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-3">
+            <h3 class="font-bold text-sm text-stone-900 border-b pb-2">Promociones Configuradas (Sincronizadas con Menú QR)</h3>
+            <div id="adminPromosList" class="space-y-3"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 10. PERSONAL, PINS Y AUDITORÍA (NUEVO) -->
+      <section id="tab-staff" class="tab-panel hidden space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <div class="lg:col-span-4 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-3 text-xs">
+            <h3 class="font-bold text-sm text-stone-900 border-b pb-2">+ Nuevo Miembro del Personal</h3>
+            <div>
+              <label class="block font-semibold mb-1">Nombre</label>
+              <input type="text" id="newStaffName" placeholder="Ej: Laura G." class="w-full border rounded-xl p-2">
+            </div>
+            <div>
+              <label class="block font-semibold mb-1">Rol / Estación</label>
+              <select id="newStaffRole" class="w-full border rounded-xl p-2 bg-white font-bold">
+                <option value="waiter">🛎️ Mesero / Sala</option>
+                <option value="kitchen">🍳 Cocina / KDS</option>
+                <option value="cashier">💵 Caja & Barra</option>
+                <option value="management">📊 Gerencia</option>
+                <option value="admin">👑 Administrador</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-semibold mb-1">PIN de Acceso (4 dígitos)</label>
+              <input type="text" maxlength="4" id="newStaffPin" placeholder="Ej: 7890" class="w-full border rounded-xl p-2 font-mono font-bold tracking-widest text-center">
+            </div>
+            <button onclick="window.createStaffMember()" class="w-full bg-stone-900 hover:bg-stone-800 text-white font-bold py-2.5 rounded-xl transition">
+              Guardar Personal
+            </button>
+          </div>
+
+          <div class="lg:col-span-8 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-3">
+            <h3 class="font-bold text-sm text-stone-900 border-b pb-2">Equipo y PINs Registrados</h3>
+            <div class="overflow-x-auto no-scrollbar">
+              <table class="w-full text-left text-xs">
+                <thead>
+                  <tr class="border-b text-stone-400 font-bold uppercase text-[10px]">
+                    <th class="pb-2">Nombre</th>
+                    <th class="pb-2">Rol</th>
+                    <th class="pb-2">PIN</th>
+                    <th class="pb-2">Estado</th>
+                    <th class="pb-2">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="staffTableBody" class="divide-y divide-stone-100"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-3">
+          <h3 class="font-bold text-sm text-stone-900 border-b pb-2">🛡️ Bitácora de Auditoría (Cancelaciones, Cortesías, Cambios de Mesa y Cortes)</h3>
+          <div class="overflow-x-auto no-scrollbar">
+            <table class="w-full text-left text-xs">
+              <thead>
+                <tr class="border-b text-stone-400 font-bold uppercase text-[10px]">
+                  <th class="pb-2">Fecha</th>
+                  <th class="pb-2">Personal</th>
+                  <th class="pb-2">Acción</th>
+                  <th class="pb-2">Detalle</th>
+                </tr>
+              </thead>
+              <tbody id="auditLogsBody" class="divide-y divide-stone-100"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 11. MARKETING -->
       <section id="tab-marketing" class="tab-panel hidden space-y-6">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           <div class="lg:col-span-7 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-4">
             <div class="border-b pb-3">
-              <h3 class="font-bold text-base text-stone-900 flex items-center gap-2">
-                <span>📍 Perfil de Google Maps & Reseñas</span>
-              </h3>
-              <p class="text-xs text-stone-500">Pega el código HTML (&lt;iframe&gt;) de Google Maps para consultar calificaciones y ubicación en vivo.</p>
+              <h3 class="font-bold text-base text-stone-900">📍 Perfil de Google Maps & Reseñas</h3>
+              <p class="text-xs text-stone-500">Pega el código HTML (&lt;iframe&gt;) de Google Maps para consultar ubicación y reseñas.</p>
             </div>
-
             <div class="space-y-2">
               <label class="block text-xs font-semibold text-stone-700">Código &lt;iframe&gt; de Google Maps:</label>
               <div class="flex gap-2">
@@ -607,7 +814,6 @@
                 </button>
               </div>
             </div>
-
             <div id="gmapsPreviewContainer" class="rounded-2xl overflow-hidden border border-stone-200 shadow-inner min-h-[250px] bg-stone-50 flex items-center justify-center text-stone-400 text-xs">
               Sin mapa configurado aún
             </div>
@@ -615,12 +821,9 @@
 
           <div class="lg:col-span-5 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-4">
             <div class="border-b pb-3">
-              <h3 class="font-bold text-base text-stone-900 flex items-center gap-2">
-                <span>💎 Programa de Lealtad & Visitas</span>
-              </h3>
-              <p class="text-xs text-stone-500">Módulo listo para vincular con tu PWA de tarjetas de sellos y fidelidad.</p>
+              <h3 class="font-bold text-base text-stone-900">💎 Programa de Lealtad & Visitas</h3>
+              <p class="text-xs text-stone-500">Módulo listo para vincular con tarjetas digitales de sellos.</p>
             </div>
-
             <div class="bg-gradient-to-br from-amber-900 to-stone-900 text-white rounded-2xl p-5 space-y-4 shadow-md">
               <div class="flex justify-between items-start">
                 <div>
@@ -629,20 +832,10 @@
                 </div>
                 <span class="bg-white/20 text-white text-[10px] font-bold px-2 py-1 rounded-lg">PWA Link</span>
               </div>
-
               <div class="grid grid-cols-3 gap-2 text-center pt-1 border-t border-white/10 text-xs">
-                <div>
-                  <span class="text-[10px] text-stone-300 block">Miembros</span>
-                  <span class="font-mono font-bold text-sm">342</span>
-                </div>
-                <div>
-                  <span class="text-[10px] text-stone-300 block">Tasa Retorno</span>
-                  <span class="font-mono font-bold text-sm text-emerald-400">41%</span>
-                </div>
-                <div>
-                  <span class="text-[10px] text-stone-300 block">Recompensas</span>
-                  <span class="font-mono font-bold text-sm text-amber-300">89</span>
-                </div>
+                <div><span class="text-[10px] text-stone-300 block">Miembros</span><span class="font-mono font-bold text-sm">342</span></div>
+                <div><span class="text-[10px] text-stone-300 block">Tasa Retorno</span><span class="font-mono font-bold text-sm text-emerald-400">41%</span></div>
+                <div><span class="text-[10px] text-stone-300 block">Recompensas</span><span class="font-mono font-bold text-sm text-amber-300">89</span></div>
               </div>
             </div>
           </div>
@@ -653,6 +846,6 @@
   </div>
 
   <!-- SCRIPT MODULAR PRINCIPAL -->
-  <script type="module" src="JS/admin-main.js"></script>
+  <script type="module" src="js/admin-main.js"></script>
 </body>
 </html>
