@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin POS & KDS v2 - Café & Bistro Áurea</title>
+  <title>Panel POS & KDS - Café & Bistro Áurea</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,165 +18,138 @@
       0%, 100% { border-color: #ef4444; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
       50% { border-color: #b91c1c; box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
     }
-    body.focus-mode #appSidebar,
-    body.focus-mode #appHeader,
+    body.focus-mode #topHubHeader,
+    body.focus-mode #moduleSubHeader,
     body.focus-mode #kdsFilterBar { display: none !important; }
-    body.focus-mode #mainContentArea { margin-left: 0 !important; padding: 1rem !important; max-width: 100% !important; }
+    body.focus-mode #appMainContainer { padding: 1rem !important; max-width: 100% !important; }
     body.focus-mode #exitFocusBtn { display: flex !important; }
-    #appSidebar.sidebar-hidden { transform: translateX(-100%); }
-    #mainContentArea.sidebar-collapsed { margin-left: 0 !important; }
   </style>
 </head>
-<body class="bg-stone-100 text-stone-900 min-h-screen flex antialiased">
+<body class="bg-[#F6F5F2] text-stone-900 min-h-screen flex flex-col antialiased">
 
-  <!-- OVERLAY MÓVIL PARA SIDEBAR -->
-  <div id="sidebarBackdrop" onclick="window.toggleSidebar(false)" class="fixed inset-0 bg-black/50 z-30 hidden md:hidden"></div>
-
-  <!-- BOTÓN SALIR MODO FOCUS -->
+  <!-- BOTÓN SALIR MODO FOCUS (PANTALLA COMPLETA KDS) -->
   <button id="exitFocusBtn" onclick="window.toggleFocusMode()" class="hidden fixed bottom-5 right-5 z-50 bg-stone-900/90 text-white border border-stone-700 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-2xl font-bold text-xs items-center gap-2 hover:bg-stone-800 transition active:scale-95">
     <span>✕ Salir de Pantalla Completa</span>
   </button>
 
-  <!-- BARRA LATERAL -->
-  <aside id="appSidebar" class="w-64 bg-stone-900 text-stone-300 flex-shrink-0 flex flex-col justify-between fixed top-0 bottom-0 left-0 z-40 transition-transform duration-300 border-r border-stone-800 shadow-xl">
-    <div class="flex flex-col h-full">
-      <div class="p-5 border-b border-stone-800 flex items-center justify-between">
+  <!-- ALERTA OFFLINE / ERROR DE RED -->
+  <div id="offlineAlertBanner" class="hidden bg-rose-600 text-white text-xs font-bold px-4 py-2.5 flex items-center justify-center gap-2 sticky top-0 z-50">
+    <span>⚠️</span>
+    <span id="offlineAlertText">Sin conexión a internet. Verifica tu Wi-Fi.</span>
+  </div>
+
+  <!-- CABECERA PRINCIPAL (ESTILO BOCETO: LOGO CIRCULAR + INFO RELEVANTE) -->
+  <header id="topHubHeader" class="sticky top-0 z-30 bg-[#F6F5F2]/95 backdrop-blur-md border-b border-stone-200/80">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center gap-3 sm:gap-5">
+
+      <!-- LOGO CIRCULAR (SIEMPRE REGRESA AL INICIO) -->
+      <button onclick="window.goHome()" title="Volver a la Pantalla de Inicio" class="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-stone-900 hover:bg-stone-800 text-white flex flex-col items-center justify-center shadow-md ring-2 ring-amber-500/40 flex-shrink-0 transition active:scale-95 group">
+        <span class="text-xl sm:text-2xl leading-none">☕</span>
+        <span class="text-[9px] font-extrabold tracking-wider uppercase text-amber-300 mt-0.5">Áurea</span>
+        <span id="connDot" class="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-amber-400 border-2 border-[#F6F5F2]" title="Estado de sincronización"></span>
+      </button>
+
+      <!-- BARRA DE INFO RELEVANTE DINÁMICA POR ROL + BOTÓN PIN -->
+      <div class="flex-1 bg-white border border-stone-200/90 rounded-3xl px-3.5 sm:px-5 py-2.5 sm:py-3 shadow-xs flex items-center justify-between gap-3 min-w-0">
+        <div id="topRelevantMetrics" class="grid grid-cols-3 gap-2 sm:gap-5 flex-1 min-w-0">
+          <!-- Inyectado dinámicamente según el rol activo -->
+          <div class="min-w-0">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-stone-400 block truncate">Estado</span>
+            <span class="text-sm sm:text-base font-black text-stone-900 font-mono">...</span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 pl-2 sm:pl-4 border-l border-stone-200 flex-shrink-0">
+          <div class="hidden md:block text-right">
+            <span id="activeStaffDisplay" class="text-xs font-extrabold text-stone-900 block leading-tight">Admin General</span>
+            <span id="activeRoleDisplay" class="text-[10px] font-bold text-amber-700 block">👑 Administrador</span>
+          </div>
+          <button onclick="window.openSwitchStaffPinModal()" class="bg-stone-900 hover:bg-amber-600 active:scale-95 text-white font-extrabold text-xs px-3.5 py-2.5 rounded-2xl transition shadow-xs flex items-center gap-1.5" title="Cambiar operador con PIN">
+            <span>🔐</span>
+            <span class="hidden sm:inline">PIN</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- CONTENEDOR PRINCIPAL -->
+  <main id="appMainContainer" class="flex-grow w-full max-w-5xl mx-auto px-4 sm:px-6 py-5 sm:py-7 transition-all">
+
+    <!-- ================================================================ -->
+    <!-- PANTALLA DE INICIO (CUADRÍCULA LIMPIA DE TARJETAS POR ROL)       -->
+    <!-- ================================================================ -->
+    <section id="homeHubView" class="space-y-5">
+
+      <!-- Barra discreta de estado y acciones rápidas -->
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5">
+          <span id="topbarRoleBadge" class="bg-white border border-stone-200 text-stone-800 text-xs font-extrabold px-3 py-1.5 rounded-2xl shadow-2xs">
+            👑 Administrador • Admin General
+          </span>
+          <span id="connStatus" class="text-[11px] text-amber-600 font-mono font-semibold">Sincronizando...</span>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2 text-xs">
+          <button id="homeQuickOrderBtn" onclick="window.openNewOrderModal()" class="bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-bold px-3.5 py-2 rounded-2xl shadow-xs transition">
+            ➕ Pedido Rápido
+          </button>
+          <button id="homeFlowConfigBtn" onclick="window.openStatusConfigModal()" class="bg-white hover:bg-stone-100 border border-stone-200 text-stone-700 font-bold px-3 py-2 rounded-2xl transition">
+            ⚙️ Flujo y Sonidos
+          </button>
+          <a href="index.html?mesa=01" target="_blank" class="bg-white hover:bg-stone-100 border border-stone-200 text-stone-700 font-bold px-3 py-2 rounded-2xl transition">
+            📱 Menú QR ↗
+          </a>
+        </div>
+      </div>
+
+      <!-- CUADRÍCULA PRINCIPAL DE TARJETAS (3 POR FILA COMO EL BOCETO) -->
+      <div id="homeCardsGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-3.5 sm:gap-5">
+        <!-- Generado dinámicamente por renderHomeHub() según el rol -->
+      </div>
+
+    </section>
+
+    <!-- ================================================================ -->
+    <!-- VISTA DE MÓDULO ACTIVO (CON BOTÓN VOLVER AL INICIO)              -->
+    <!-- ================================================================ -->
+    <div id="moduleViewWrapper" class="hidden space-y-5">
+
+      <!-- Subcabecera de navegación del módulo -->
+      <div id="moduleSubHeader" class="bg-white rounded-3xl border border-stone-200/90 px-4 py-3 shadow-xs flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-600 to-amber-400 text-white font-black flex items-center justify-center text-sm shadow-md">
-            ☕
-          </div>
-          <div>
-            <h2 class="text-sm font-extrabold text-white leading-tight">Áurea Bistro</h2>
-            <p class="text-[10px] text-amber-400 font-mono font-semibold" id="connStatus">Sincronizando...</p>
-          </div>
-        </div>
-        <button onclick="window.toggleSidebar(false)" class="md:hidden text-stone-400 hover:text-white p-1 text-lg">✕</button>
-      </div>
-
-      <!-- ESTACIÓN / SESIÓN POR PIN -->
-      <div class="px-4 py-3 bg-stone-950/60 border-b border-stone-800/80 space-y-2">
-        <div class="flex items-center justify-between">
-          <div>
-            <span class="block text-[10px] font-bold uppercase tracking-wider text-stone-500">Operador en Turno:</span>
-            <span id="activeStaffDisplay" class="text-xs font-extrabold text-white block">Admin General</span>
-            <span id="activeRoleDisplay" class="text-[10px] text-amber-400 font-semibold">👑 Administrador</span>
-          </div>
-          <button onclick="window.openSwitchStaffPinModal()" class="bg-amber-600 hover:bg-amber-500 text-white font-bold text-[11px] px-3 py-1.5 rounded-xl transition shadow-sm">
-            🔐 PIN
+          <button onclick="window.goHome()" class="bg-stone-900 hover:bg-amber-600 active:scale-95 text-white font-bold text-xs px-4 py-2 rounded-2xl transition flex items-center gap-1.5 shadow-xs">
+            <span>←</span>
+            <span>Inicio</span>
           </button>
+          <h2 id="topbarTitle" class="text-sm sm:text-base font-extrabold text-stone-900">Módulo</h2>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2 text-xs">
+          <button id="modQuickOrderBtn" onclick="window.openNewOrderModal()" class="bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-bold px-3.5 py-1.5 rounded-xl shadow-xs transition">
+            ➕ Pedido Rápido
+          </button>
+          <button id="modFocusBtn" onclick="window.toggleFocusMode()" class="hidden bg-stone-800 hover:bg-stone-700 text-amber-300 font-bold px-3 py-1.5 rounded-xl transition">
+            🖥️ Pantalla Completa
+          </button>
+          <button id="modFlowBtn" onclick="window.openStatusConfigModal()" class="hidden bg-stone-100 hover:bg-stone-200 border border-stone-300 text-stone-700 font-bold px-3 py-1.5 rounded-xl transition">
+            ⚙️ Flujo y Sonidos
+          </button>
+          <span id="kdsActiveCount" class="bg-amber-100 text-amber-900 border border-amber-200 px-3 py-1.5 rounded-xl font-bold font-mono">
+            0 activas
+          </span>
         </div>
       </div>
 
-      <!-- NAVEGACIÓN -->
-      <nav class="flex-grow p-3 space-y-5 overflow-y-auto no-scrollbar text-xs">
-        <div id="navGroup-live" class="space-y-1">
-          <div class="px-3 py-1 text-[10px] font-extrabold text-stone-500 uppercase tracking-wider flex justify-between items-center">
-            <span>⚡ Operación en Vivo</span>
-            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          </div>
-          <button data-tab-id="tables" onclick="window.switchTab('tables')" id="tabBtn-tables" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold bg-amber-600 text-white shadow-sm transition">
-            <span class="flex items-center gap-2.5">🪑 Mapa de Mesas</span>
-            <span id="tablesOccupiedBadge" class="bg-black/30 text-white text-[10px] px-2 py-0.5 rounded-full font-mono font-bold">0/0</span>
-          </button>
-          <button data-tab-id="orders" onclick="window.switchTab('orders')" id="tabBtn-orders" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
-            <span class="flex items-center gap-2.5">📋 Tablero Kanban KDS</span>
-            <span id="badgeLiveOrders" class="bg-black/30 text-white text-[10px] px-2 py-0.5 rounded-full font-mono font-bold">0</span>
-          </button>
-          <button data-tab-id="calls" onclick="window.switchTab('calls')" id="tabBtn-calls" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
-            <span class="flex items-center gap-2.5">🔔 Llamadas Mesero</span>
-            <span id="pendingCallsBadge" class="bg-rose-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">0</span>
-          </button>
-          <button data-tab-id="reservations" onclick="window.switchTab('reservations')" id="tabBtn-reservations" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
-            <span class="flex items-center gap-2.5">📅 Agenda Reservas</span>
-            <span id="badgeReservationsCount" class="bg-stone-800 text-stone-300 text-[10px] px-2 py-0.5 rounded-full font-mono">0</span>
-          </button>
-          <button data-tab-id="cashbox" onclick="window.switchTab('cashbox')" id="tabBtn-cashbox" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
-            <span class="flex items-center gap-2.5">💵 Caja & Cortes X/Z</span>
-          </button>
-        </div>
+      <!-- Contadores ocultos de compatibilidad para módulos existentes -->
+      <span id="tablesOccupiedBadge" class="hidden">0/0</span>
+      <span id="badgeLiveOrders" class="hidden">0</span>
+      <span id="pendingCallsBadge" class="hidden">0</span>
+      <span id="badgeReservationsCount" class="hidden">0</span>
 
-        <div id="navGroup-management" class="space-y-1">
-          <div class="px-3 py-1 text-[10px] font-extrabold text-stone-500 uppercase tracking-wider">
-            📦 Carta & Almacén
-          </div>
-          <button data-tab-id="products" onclick="window.switchTab('products')" id="tabBtn-products" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
-            <span class="flex items-center gap-2.5">🍽️ Carta, Botón 86 & Mods</span>
-          </button>
-          <button data-tab-id="promos" onclick="window.switchTab('promos')" id="tabBtn-promos" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
-            <span class="flex items-center gap-2.5">🏷️ Promociones Activas</span>
-          </button>
-          <button data-tab-id="taxonomies" onclick="window.switchTab('taxonomies')" id="tabBtn-taxonomies" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
-            <span class="flex items-center gap-2.5">📑 Categorías & Tipos</span>
-          </button>
-          <button data-tab-id="inventory" onclick="window.switchTab('inventory')" id="tabBtn-inventory" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
-            <span class="flex items-center gap-2.5">🥫 Stock, Mermas & Recetas</span>
-          </button>
-        </div>
-
-        <div id="navGroup-analytics" class="space-y-1">
-          <div class="px-3 py-1 text-[10px] font-extrabold text-stone-500 uppercase tracking-wider">
-            📊 Gerencia & Control
-          </div>
-          <button data-tab-id="analytics" onclick="window.switchTab('analytics')" id="tabBtn-analytics" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
-            <span class="flex items-center gap-2.5">📈 Métricas, Food Cost & Boston</span>
-          </button>
-          <button data-tab-id="staff" onclick="window.switchTab('staff')" id="tabBtn-staff" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
-            <span class="flex items-center gap-2.5">🛡️ Personal, PINs & Auditoría</span>
-          </button>
-          <button data-tab-id="marketing" onclick="window.switchTab('marketing')" id="tabBtn-marketing" class="tab-btn w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-stone-400 hover:text-white hover:bg-stone-800/60 transition">
-            <span class="flex items-center gap-2.5">⭐ Google Maps & Fidelidad</span>
-          </button>
-        </div>
-      </nav>
-
-      <div class="p-4 border-t border-stone-800 bg-stone-950/80 space-y-2">
-        <button onclick="window.toggleFocusMode()" class="w-full bg-stone-800 hover:bg-stone-700 text-amber-300 font-bold text-xs py-2.5 px-3 rounded-xl transition flex items-center justify-center gap-2 border border-stone-700 shadow-sm">
-          <span>🖥️ Modo Pantalla Completa</span>
-        </button>
-        <a href="index.html?mesa=01" target="_blank" class="w-full bg-stone-900 hover:bg-stone-800 text-stone-300 hover:text-white text-[11px] font-semibold py-2 px-3 rounded-xl transition flex items-center justify-center gap-1.5 border border-stone-800">
-          <span>Abrir Menú QR Móvil ↗</span>
-        </a>
-      </div>
-    </div>
-  </aside>
-
-  <!-- CONTENIDO PRINCIPAL -->
-  <div id="mainContentArea" class="flex-grow ml-0 md:ml-64 flex flex-col min-h-screen transition-all duration-300">
-
-    <!-- ALERTA OFFLINE / ERROR DE RED -->
-    <div id="offlineAlertBanner" class="hidden bg-rose-600 text-white text-xs font-bold px-4 py-2.5 flex items-center justify-center gap-2 sticky top-0 z-50">
-      <span>⚠️</span>
-      <span id="offlineAlertText">Sin conexión a internet. Verifica tu Wi-Fi.</span>
-    </div>
-
-    <header id="appHeader" class="bg-white border-b border-stone-200 px-4 sm:px-6 py-3.5 flex flex-wrap justify-between items-center gap-3 sticky top-0 z-30 shadow-xs">
-      <div class="flex items-center gap-3">
-        <button onclick="window.toggleSidebar()" class="p-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-sm transition" title="Mostrar/Ocultar Menú">
-          ☰
-        </button>
-        <h2 id="topbarTitle" class="text-base font-extrabold text-stone-900">Mapa Visual de Mesas</h2>
-        <span id="topbarRoleBadge" class="hidden sm:inline-block bg-stone-100 text-stone-700 border border-stone-200 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase font-mono">
-          👑 Administrador • Admin General
-        </span>
-      </div>
-
-      <div class="flex items-center gap-2 sm:gap-3 text-xs">
-        <button onclick="window.openNewOrderModal()" class="bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-bold px-3.5 py-1.5 rounded-xl shadow-xs transition">
-          ➕ Pedido Rápido
-        </button>
-        <button onclick="window.openStatusConfigModal()" class="flex items-center gap-1.5 bg-stone-100 hover:bg-stone-200 border border-stone-300 px-3 py-1.5 rounded-xl font-bold text-stone-700 transition">
-          <span>⚙️ Flujo y Sonidos</span>
-        </button>
-        <span id="kdsActiveCount" class="bg-amber-100 text-amber-900 border border-amber-200 px-3 py-1.5 rounded-xl font-bold font-mono">
-          0 activas
-        </span>
-      </div>
-    </header>
-
-    <main class="p-4 sm:p-6 max-w-[1600px] w-full mx-auto space-y-6 flex-grow">
-
-      <!-- 0. MAPA DE MESAS (NUEVO) -->
-      <section id="tab-tables" class="tab-panel space-y-5">
+      <!-- 0. MAPA DE MESAS -->
+      <section id="tab-tables" class="tab-panel hidden space-y-5">
         <div class="bg-white rounded-2xl p-4 shadow-sm border border-stone-200 flex flex-wrap justify-between items-center gap-3 text-xs">
           <div class="flex flex-wrap items-center gap-2">
             <span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold">🟢 Libre</span>
@@ -197,7 +170,7 @@
         <div id="tablesFloorContainer" class="space-y-6"></div>
       </section>
 
-      <!-- 1. KANBAN KDS -->
+      <!-- 1. KANBAN KDS (COMANDAS) -->
       <section id="tab-orders" class="tab-panel hidden space-y-4">
         <div id="kdsFilterBar" class="bg-white rounded-2xl p-4 shadow-sm border border-stone-200 space-y-3">
           <div class="flex flex-wrap justify-between items-center gap-3">
@@ -209,7 +182,6 @@
                 <button onclick="window.filterByChannel('delivery')" id="btnChannel-delivery" class="px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 transition">🛵 Delivery</button>
               </div>
 
-              <!-- FILTRO POR ESTACIÓN DE PRODUCCIÓN -->
               <div class="flex items-center gap-1 bg-amber-50 p-1 rounded-2xl border border-amber-200 text-xs font-bold">
                 <button onclick="window.filterByStation('all')" id="btnStation-all" class="px-3 py-1.5 rounded-xl bg-amber-600 text-white shadow-sm transition">Todas Estaciones</button>
                 <button onclick="window.filterByStation('cocina')" id="btnStation-cocina" class="px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 transition">🍳 Cocina</button>
@@ -235,7 +207,7 @@
         <div id="kanbanBoardContainer" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start"></div>
       </section>
 
-      <!-- 2. CAJA & CORTES (NUEVO) -->
+      <!-- 2. CAJA & CORTES X/Z -->
       <section id="tab-cashbox" class="tab-panel hidden space-y-6">
         <div id="cashboxActiveArea"></div>
 
@@ -260,7 +232,7 @@
         </div>
       </section>
 
-      <!-- 3. ANALYTICS -->
+      <!-- 3. ANALYTICS & GERENCIA -->
       <section id="tab-analytics" class="tab-panel hidden space-y-6">
         <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-stone-200 flex flex-wrap justify-between items-center gap-4">
           <div class="flex flex-wrap items-center gap-2">
@@ -569,7 +541,7 @@
         </div>
       </section>
 
-      <!-- 6. MESERO EN VIVO -->
+      <!-- 6. LLAMADAS DE MESERO -->
       <section id="tab-calls" class="tab-panel hidden space-y-4">
         <div class="bg-white rounded-2xl p-5 shadow-sm border border-stone-200 flex justify-between items-center">
           <div>
@@ -583,7 +555,7 @@
         <div id="waiterCallsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
       </section>
 
-      <!-- 7. TAXONOMÍAS -->
+      <!-- 7. CATEGORÍAS & TIPOS -->
       <section id="tab-taxonomies" class="tab-panel hidden space-y-5">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="bg-white rounded-2xl p-4 shadow-sm border border-stone-200 space-y-2">
@@ -617,7 +589,7 @@
         </div>
       </section>
 
-      <!-- 8. PLATILLOS, BOTÓN 86 & MODIFICADORES -->
+      <!-- 8. CARTA, BOTÓN 86 & MODIFICADORES -->
       <section id="tab-products" class="tab-panel hidden space-y-5">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
           <div class="lg:col-span-8 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-4">
@@ -666,7 +638,6 @@
             </div>
           </div>
 
-          <!-- GESTIÓN DE MODIFICADORES -->
           <div class="lg:col-span-4 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-3">
             <h3 class="font-bold text-sm text-stone-900 border-b pb-2.5">✨ Modificadores & Extras</h3>
             <div class="flex gap-2 text-xs">
@@ -690,7 +661,7 @@
         </div>
       </section>
 
-      <!-- 9. PROMOCIONES (NUEVO) -->
+      <!-- 9. PROMOCIONES -->
       <section id="tab-promos" class="tab-panel hidden space-y-5">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           <div class="lg:col-span-4 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-3 text-xs">
@@ -732,7 +703,7 @@
         </div>
       </section>
 
-      <!-- 10. PERSONAL, PINS Y AUDITORÍA (NUEVO) -->
+      <!-- 10. PERSONAL, PINS Y AUDITORÍA -->
       <section id="tab-staff" class="tab-panel hidden space-y-6">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           <div class="lg:col-span-4 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-3 text-xs">
@@ -797,7 +768,7 @@
         </div>
       </section>
 
-      <!-- 11. MARKETING -->
+      <!-- 11. MARKETING & LEALTAD -->
       <section id="tab-marketing" class="tab-panel hidden space-y-6">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           <div class="lg:col-span-7 bg-white rounded-2xl p-5 shadow-sm border border-stone-200 space-y-4">
@@ -842,8 +813,8 @@
         </div>
       </section>
 
-    </main>
-  </div>
+    </div>
+  </main>
 
   <!-- SCRIPT MODULAR PRINCIPAL -->
   <script type="module" src="js/admin-main.js"></script>

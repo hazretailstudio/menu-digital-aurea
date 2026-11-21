@@ -2,17 +2,41 @@ import { REST_ID, generateUUID, escapeHtml, showToast } from '../config.js';
 import { state, client, dbWrite, logAudit } from '../state.js';
 
 let pinBuffer = '';
-let pinMode = 'switch'; // 'switch' | 'authorize'
+let pinMode = 'switch';
 let pinRequiredRoles = [];
 let pinCallback = null;
-let pinSubtitle = '';
 
 export const ROLE_META = {
-  admin: { label: '👑 Administrador', tabs: ['tables', 'orders', 'calls', 'reservations', 'cashbox', 'inventory', 'products', 'taxonomies', 'promos', 'analytics', 'marketing', 'staff'] },
-  management: { label: '📊 Gerencia & Costes', tabs: ['tables', 'orders', 'cashbox', 'inventory', 'products', 'taxonomies', 'promos', 'analytics', 'marketing', 'staff'] },
-  cashier: { label: '💵 Caja & Barra', tabs: ['tables', 'orders', 'calls', 'cashbox', 'reservations'] },
-  waiter: { label: '🛎️ Mesero / Sala', tabs: ['tables', 'orders', 'calls', 'reservations'] },
-  kitchen: { label: '🍳 Cocina / KDS', tabs: ['orders', 'inventory'] }
+  admin: {
+    label: '👑 Administrador',
+    canQuickOrder: true,
+    canConfigFlow: true,
+    tabs: ['tables', 'orders', 'inventory', 'promos', 'products', 'cashbox', 'calls', 'reservations', 'analytics', 'taxonomies', 'staff', 'marketing']
+  },
+  management: {
+    label: '📊 Gerencia & Costes',
+    canQuickOrder: true,
+    canConfigFlow: true,
+    tabs: ['analytics', 'cashbox', 'inventory', 'products', 'promos', 'staff', 'tables', 'orders', 'taxonomies', 'marketing']
+  },
+  cashier: {
+    label: '💵 Caja & Barra',
+    canQuickOrder: true,
+    canConfigFlow: false,
+    tabs: ['tables', 'orders', 'cashbox', 'calls', 'reservations', 'products']
+  },
+  waiter: {
+    label: '🛎️ Mesero / Sala',
+    canQuickOrder: true,
+    canConfigFlow: false,
+    tabs: ['tables', 'orders', 'calls', 'reservations']
+  },
+  kitchen: {
+    label: '🍳 Cocina / KDS',
+    canQuickOrder: false,
+    canConfigFlow: true,
+    tabs: ['orders', 'products', 'inventory']
+  }
 };
 
 export function ensurePinModal() {
@@ -31,7 +55,7 @@ export function ensurePinModal() {
       </div>
 
       <div class="bg-stone-100 rounded-2xl p-3 text-center">
-        <div id="pinDotsDisplay" class="text-2xl tracking-[0.6em] font-mono font-black text-stone-900 h-8 flex items-center justify-center">••••</div>
+        <div id="pinDotsDisplay" class="text-2xl tracking-[0.6em] font-mono font-black text-stone-900 h-8 flex items-center justify-center">○○○○</div>
         <p id="pinErrorMsg" class="text-[11px] text-rose-600 font-bold min-h-[16px] mt-1"></p>
       </div>
 
@@ -65,12 +89,8 @@ export function openSwitchStaffPinModal() {
   document.getElementById('pinPadModal').classList.remove('hidden');
 }
 
-/**
- * Solicita autorización por PIN (Admin o Gerente) antes de ejecutar una acción sensible
- */
 export function requirePinAuthorization(reasonText, allowedRoles, onAuthorized) {
   const curRole = state.activeStaff?.role;
-  // Si el usuario actual ya tiene privilegio suficiente y solo queremos registrar auditoría rápida
   if (allowedRoles.includes(curRole)) {
     onAuthorized(state.activeStaff);
     return;
@@ -80,7 +100,6 @@ export function requirePinAuthorization(reasonText, allowedRoles, onAuthorized) 
   pinMode = 'authorize';
   pinRequiredRoles = allowedRoles;
   pinCallback = onAuthorized;
-  pinSubtitle = reasonText;
   document.getElementById('pinModalTitle').innerText = '🛡️ Autorización Requerida';
   document.getElementById('pinModalSub').innerText = reasonText;
   document.getElementById('pinErrorMsg').innerText = '';
@@ -106,7 +125,8 @@ export function pressPinDigit(d) {
 
 export function clearPinInput() {
   pinBuffer = '';
-  document.getElementById('pinErrorMsg').innerText = '';
+  const errEl = document.getElementById('pinErrorMsg');
+  if (errEl) errEl.innerText = '';
   updatePinDots();
 }
 
@@ -119,7 +139,8 @@ function updatePinDots() {
 export function submitPinCode() {
   const staff = state.staff.find(s => s.is_active !== false && String(s.pin) === pinBuffer);
   if (!staff) {
-    document.getElementById('pinErrorMsg').innerText = 'PIN incorrecto. Intenta de nuevo.';
+    const errEl = document.getElementById('pinErrorMsg');
+    if (errEl) errEl.innerText = 'PIN incorrecto. Intenta de nuevo.';
     pinBuffer = '';
     updatePinDots();
     return;
@@ -127,7 +148,8 @@ export function submitPinCode() {
 
   if (pinMode === 'authorize') {
     if (pinRequiredRoles.length > 0 && !pinRequiredRoles.includes(staff.role)) {
-      document.getElementById('pinErrorMsg').innerText = `${staff.name} no tiene permiso para autorizar esto.`;
+      const errEl = document.getElementById('pinErrorMsg');
+      if (errEl) errEl.innerText = `${staff.name} no tiene permiso para autorizar esto.`;
       pinBuffer = '';
       updatePinDots();
       return;
@@ -139,15 +161,14 @@ export function submitPinCode() {
     return;
   }
 
-  // Modo cambio de usuario / estación
   state.activeStaff = staff;
   sessionStorage.setItem('aurea_active_staff_id', staff.id);
-  applyActiveStaffPermissions();
+  applyActiveStaffPermissions(true);
   closePinModal();
   showToast(`Sesión activa: ${staff.name} (${ROLE_META[staff.role]?.label || staff.role})`, 'success');
 }
 
-export function applyActiveStaffPermissions() {
+export function applyActiveStaffPermissions(returnToHome = false) {
   const staff = state.activeStaff || state.staff[0];
   if (!staff) return;
   const meta = ROLE_META[staff.role] || ROLE_META.admin;
@@ -156,27 +177,30 @@ export function applyActiveStaffPermissions() {
   if (badge) badge.innerText = `${meta.label} • ${staff.name}`;
 
   const sideUser = document.getElementById('activeStaffDisplay');
-  if (sideUser) sideUser.innerText = `${staff.name}`;
+  if (sideUser) sideUser.innerText = staff.name;
 
   const sideRole = document.getElementById('activeRoleDisplay');
   if (sideRole) sideRole.innerText = meta.label;
 
-  // Mostrar/ocultar botones de navegación según permisos
-  document.querySelectorAll('[data-tab-id]').forEach(btn => {
-    const tId = btn.getAttribute('data-tab-id');
-    const allowed = meta.tabs.includes(tId);
-    btn.classList.toggle('hidden', !allowed);
-  });
+  const quickBtnHome = document.getElementById('homeQuickOrderBtn');
+  const quickBtnMod = document.getElementById('modQuickOrderBtn');
+  if (quickBtnHome) quickBtnHome.classList.toggle('hidden', !meta.canQuickOrder);
+  if (quickBtnMod) quickBtnMod.classList.toggle('hidden', !meta.canQuickOrder);
 
-  // Si la pestaña visible ya no está permitida, saltar a la primera permitida
+  const flowBtnHome = document.getElementById('homeFlowConfigBtn');
+  if (flowBtnHome) flowBtnHome.classList.toggle('hidden', !meta.canConfigFlow);
+
+  if (window.renderHomeHub) window.renderHomeHub();
+
+  // Al cambiar de PIN siempre regresamos al Inicio personalizado del operador;
+  // o si el módulo actual ya no está permitido para su rol.
   const currentActivePanel = document.querySelector('.tab-panel:not(.hidden)');
   const currentTabId = currentActivePanel ? currentActivePanel.id.replace('tab-', '') : null;
-  if (!currentTabId || !meta.tabs.includes(currentTabId)) {
-    if (window.switchTab) window.switchTab(meta.tabs[0]);
+  if (returnToHome || (currentTabId && !meta.tabs.includes(currentTabId))) {
+    if (window.goHome) window.goHome();
   }
 }
 
-// GESTIÓN DE PERSONAL (TAB STAFF)
 export function renderStaffTab() {
   const tbody = document.getElementById('staffTableBody');
   if (!tbody) return;
@@ -201,7 +225,6 @@ export function renderStaffTab() {
     </tr>
   `).join('');
 
-  // Bitácora de auditoría reciente
   const auditBody = document.getElementById('auditLogsBody');
   if (auditBody) {
     if (state.auditLogs.length === 0) {
