@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Master SaaS — Gestión Multi-Restaurante</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="bg-[#F5F4F0] text-stone-900 min-h-screen antialiased">
+
+  <!-- PANTALLA DE LOGIN EXCLUSIVO MASTER (SUPABASE AUTH) -->
+  <section id="masterLoginView" class="min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-3xl p-7 sm:p-8 shadow-xl border border-stone-200 space-y-6">
+      <div class="text-center space-y-2">
+        <div class="w-16 h-16 rounded-2xl bg-stone-900 text-amber-400 mx-auto flex items-center justify-center text-3xl shadow-md">
+          👑
+        </div>
+        <h1 class="text-xl font-extrabold text-stone-900">Panel Master SaaS</h1>
+        <p class="text-xs text-stone-500">Acceso exclusivo para el administrador de la plataforma.</p>
+      </div>
+
+      <form id="masterLoginForm" onsubmit="window.handleMasterLogin(event)" class="space-y-4 text-xs">
+        <div>
+          <label class="block font-bold text-stone-700 mb-1.5">Correo de Administrador</label>
+          <input type="email" id="masterEmailInput" required placeholder="tu-correo@ejemplo.com" class="w-full border border-stone-300 rounded-2xl px-3.5 py-3 text-sm outline-none focus:border-amber-600 bg-stone-50">
+        </div>
+        <div>
+          <label class="block font-bold text-stone-700 mb-1.5">Contraseña</label>
+          <input type="password" id="masterPasswordInput" required placeholder="••••••••" class="w-full border border-stone-300 rounded-2xl px-3.5 py-3 text-sm outline-none focus:border-amber-600 bg-stone-50">
+        </div>
+
+        <p id="masterLoginError" class="hidden text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl p-2.5 text-center"></p>
+
+        <button type="submit" id="btnMasterLogin" class="w-full bg-stone-900 hover:bg-amber-600 active:scale-[0.99] text-white font-extrabold text-sm py-3.5 rounded-2xl shadow-md transition">
+          Iniciar Sesión Master
+        </button>
+      </form>
+    </div>
+  </section>
+
+  <!-- PANEL MASTER PRINCIPAL -->
+  <div id="masterAppView" class="hidden min-h-screen flex flex-col">
+
+    <header class="sticky top-0 z-30 bg-stone-950 text-white border-b border-stone-800 shadow-md">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-amber-500 text-stone-950 flex items-center justify-center font-black text-lg shadow">
+            👑
+          </div>
+          <div>
+            <h1 class="font-extrabold text-sm sm:text-base leading-tight">Panel Master SaaS</h1>
+            <p class="text-[11px] text-stone-400">Control Multi-Restaurante • <span id="masterUserEmail" class="text-amber-300 font-mono">...</span></p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button onclick="window.openTenantModal(null)" class="bg-amber-500 hover:bg-amber-400 active:scale-95 text-stone-950 font-extrabold text-xs px-4 py-2.5 rounded-xl shadow transition">
+            + Nuevo Restaurante
+          </button>
+          <button onclick="window.handleMasterLogout()" class="bg-stone-800 hover:bg-stone-700 text-stone-200 font-bold text-xs px-3.5 py-2.5 rounded-xl border border-stone-700 transition">
+            Salir
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6 flex-grow">
+
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+        <div class="bg-white rounded-2xl p-4 border border-stone-200 shadow-2xs">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-stone-400">Total Negocios</span>
+          <h2 id="kpiTotalTenants" class="text-2xl font-black font-mono text-stone-900 mt-1">0</h2>
+        </div>
+        <div class="bg-white rounded-2xl p-4 border border-stone-200 shadow-2xs">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-stone-400">Activos</span>
+          <h2 id="kpiActiveTenants" class="text-2xl font-black font-mono text-emerald-700 mt-1">0</h2>
+        </div>
+        <div class="bg-white rounded-2xl p-4 border border-stone-200 shadow-2xs">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-stone-400">Suspendidos</span>
+          <h2 id="kpiSuspendedTenants" class="text-2xl font-black font-mono text-rose-600 mt-1">0</h2>
+        </div>
+        <div class="bg-white rounded-2xl p-4 border border-stone-200 shadow-2xs">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-stone-400">URL Base</span>
+          <p id="kpiBaseDomain" class="text-xs font-mono font-bold text-amber-800 mt-2 truncate">...</p>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl p-4 border border-stone-200 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-2 bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 flex-1 min-w-[220px]">
+          <span class="text-stone-400 text-sm">🔍</span>
+          <input type="text" id="tenantSearchInput" oninput="window.renderTenantsGrid()" placeholder="Buscar por nombre, slug o plan..." class="bg-transparent w-full text-xs outline-none">
+        </div>
+        <div class="flex items-center gap-2 text-xs">
+          <select id="tenantStatusFilter" onchange="window.renderTenantsGrid()" class="border border-stone-200 rounded-xl px-3 py-2 bg-stone-50 font-bold text-stone-700">
+            <option value="all">Todos los estados</option>
+            <option value="active">Solo activos</option>
+            <option value="suspended">Solo suspendidos</option>
+          </select>
+          <button onclick="window.loadTenants()" class="bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold px-3.5 py-2 rounded-xl border border-stone-200 transition">
+            ↻ Actualizar
+          </button>
+        </div>
+      </div>
+
+      <div id="tenantsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    </main>
+  </div>
+
+  <!-- MODAL CREAR / CONFIGURAR RESTAURANTE -->
+  <div id="tenantEditorModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-3 sm:p-5">
+    <div class="bg-white w-full max-w-3xl rounded-3xl shadow-2xl max-h-[92vh] flex flex-col overflow-hidden">
+
+      <div class="px-6 py-4 border-b border-stone-200 flex items-center justify-between bg-stone-50">
+        <div>
+          <h2 id="tenantModalTitle" class="font-extrabold text-base text-stone-900">Nuevo Restaurante</h2>
+          <p class="text-[11px] text-stone-500">Configura identidad, logotipo, parámetros y módulos activos.</p>
+        </div>
+        <button onclick="window.closeTenantModal()" class="text-stone-400 hover:text-stone-800 font-bold text-lg px-2">✕</button>
+      </div>
+
+      <div class="p-6 overflow-y-auto space-y-6 text-xs flex-grow">
+        <input type="hidden" id="editTenantId">
+
+        <div class="space-y-3">
+          <h3 class="font-extrabold text-xs uppercase tracking-wider text-amber-800 border-b pb-1.5">1. Identidad del Negocio</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block font-bold text-stone-700 mb-1">Nombre del Restaurante *</label>
+              <input type="text" id="tenName" oninput="window.autoGenerateSlugIfNew()" placeholder="Ej: Tacos El Güero" class="w-full border rounded-xl p-2.5 outline-none focus:border-amber-600">
+            </div>
+            <div>
+              <label class="block font-bold text-stone-700 mb-1">Slug URL (sin espacios) *</label>
+              <input type="text" id="tenSlug" placeholder="tacos-el-guero" class="w-full border rounded-xl p-2.5 font-mono outline-none focus:border-amber-600 bg-stone-50">
+            </div>
+            <div>
+              <label class="block font-bold text-stone-700 mb-1">Nombre Corto (para logo circular)</label>
+              <input type="text" id="tenBrandShort" maxlength="10" placeholder="El Güero" class="w-full border rounded-xl p-2.5 outline-none">
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block font-bold text-stone-700 mb-1">Plan</label>
+                <select id="tenPlan" class="w-full border rounded-xl p-2.5 bg-white font-bold">
+                  <option value="Básico">Básico</option>
+                  <option value="Pro" selected>Pro</option>
+                  <option value="Enterprise">Enterprise</option>
+                </select>
+              </div>
+              <div>
+                <label class="block font-bold text-stone-700 mb-1">Emoji Respaldo</label>
+                <input type="text" id="tenEmoji" value="🍽️" class="w-full border rounded-xl p-2.5 text-center text-base">
+              </div>
+            </div>
+          </div>
+          <div>
+            <label class="block font-bold text-stone-700 mb-1">Descripción corta (Menú QR)</label>
+            <textarea id="tenDesc" rows="2" placeholder="Cocina artesanal, especialidad de la casa..." class="w-full border rounded-xl p-2.5 outline-none"></textarea>
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <h3 class="font-extrabold text-xs uppercase tracking-wider text-amber-800 border-b pb-1.5">2. Logotipo, Banner y Colores</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="bg-stone-50 border border-stone-200 rounded-2xl p-3.5 space-y-2.5">
+              <div class="flex items-center gap-3">
+                <img id="previewLogoImg" src="" alt="Logo" class="hidden w-14 h-14 rounded-2xl object-cover border border-stone-300 bg-white">
+                <div id="previewLogoEmpty" class="w-14 h-14 rounded-2xl bg-stone-200 flex items-center justify-center text-xl">🖼️</div>
+                <div class="flex-1 min-w-0">
+                  <label class="block font-bold text-stone-800">Logotipo del Restaurante</label>
+                  <input type="file" id="tenLogoFile" accept="image/*" onchange="window.uploadTenantAsset('logo', this)" class="mt-1 block w-full text-[11px] text-stone-600 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[11px] file:font-bold file:bg-stone-900 file:text-white hover:file:bg-amber-600">
+                </div>
+              </div>
+              <input type="url" id="tenLogoUrl" oninput="window.syncBrandingPreview()" placeholder="O pega URL directa del logotipo..." class="w-full border rounded-xl px-2.5 py-1.5 text-[11px] bg-white font-mono">
+            </div>
+
+            <div class="bg-stone-50 border border-stone-200 rounded-2xl p-3.5 space-y-2.5">
+              <div class="flex items-center gap-3">
+                <img id="previewBannerImg" src="" alt="Banner" class="hidden w-20 h-14 rounded-xl object-cover border border-stone-300 bg-white">
+                <div id="previewBannerEmpty" class="w-20 h-14 rounded-xl bg-stone-200 flex items-center justify-center text-xl">🌄</div>
+                <div class="flex-1 min-w-0">
+                  <label class="block font-bold text-stone-800">Banner de Cabecera (Menú QR)</label>
+                  <input type="file" id="tenBannerFile" accept="image/*" onchange="window.uploadTenantAsset('banner', this)" class="mt-1 block w-full text-[11px] text-stone-600 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[11px] file:font-bold file:bg-stone-900 file:text-white hover:file:bg-amber-600">
+                </div>
+              </div>
+              <input type="url" id="tenBannerUrl" oninput="window.syncBrandingPreview()" placeholder="O pega URL directa del banner..." class="w-full border rounded-xl px-2.5 py-1.5 text-[11px] bg-white font-mono">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div>
+              <label class="block font-bold text-stone-700 mb-1">Color Primario</label>
+              <input type="color" id="tenPrimaryColor" value="#d97706" class="w-full h-10 rounded-xl border p-1 bg-white">
+            </div>
+            <div>
+              <label class="block font-bold text-stone-700 mb-1">Color Base Oscuro</label>
+              <input type="color" id="tenAccentColor" value="#1c1917" class="w-full h-10 rounded-xl border p-1 bg-white">
+            </div>
+            <div>
+              <label class="block font-bold text-stone-700 mb-1">Moneda</label>
+              <select id="tenCurrency" class="w-full border rounded-xl p-2.5 bg-white font-mono font-bold">
+                <option value="MXN">MXN ($)</option>
+                <option value="USD">USD ($)</option>
+                <option value="COP">COP ($)</option>
+                <option value="ARS">ARS ($)</option>
+                <option value="EUR">EUR (€)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-bold text-stone-700 mb-1">IVA / Impuesto (%)</label>
+              <input type="number" id="tenTaxRate" value="0" min="0" max="50" step="0.5" class="w-full border rounded-xl p-2.5 font-mono">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block font-bold text-stone-700 mb-1">WhatsApp del Negocio</label>
+              <input type="text" id="tenWhatsapp" placeholder="523312345678" class="w-full border rounded-xl p-2.5 font-mono">
+            </div>
+            <div>
+              <label class="block font-bold text-stone-700 mb-1">Nombre Red Wi-Fi</label>
+              <input type="text" id="tenWifiSsid" placeholder="Wifi_Restaurante" class="w-full border rounded-xl p-2.5">
+            </div>
+            <div>
+              <label class="block font-bold text-stone-700 mb-1">Contraseña Wi-Fi</label>
+              <input type="text" id="tenWifiPass" placeholder="clave123" class="w-full border rounded-xl p-2.5 font-mono">
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b pb-1.5">
+            <h3 class="font-extrabold text-xs uppercase tracking-wider text-amber-800">3. Módulos Habilitados para este Negocio</h3>
+            <div class="flex gap-1.5 text-[11px]">
+              <button type="button" onclick="window.applyModulePreset('basic')" class="px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-stone-200 font-bold text-stone-700">Preset Básico</button>
+              <button type="button" onclick="window.applyModulePreset('pro')" class="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 font-bold text-amber-900">Preset Pro</button>
+              <button type="button" onclick="window.applyModulePreset('full')" class="px-2.5 py-1 rounded-lg bg-emerald-100 hover:bg-emerald-200 font-bold text-emerald-900">Activar Todos</button>
+            </div>
+          </div>
+          <div id="modulesCheckboxesGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5"></div>
+        </div>
+
+        <div id="onboardingSection" class="bg-amber-50/70 border border-amber-200 rounded-2xl p-4 space-y-3">
+          <h3 class="font-extrabold text-xs uppercase tracking-wider text-amber-900">4. Arranque Automático (Solo al crear)</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block font-bold text-stone-700 mb-1">Mesas Iniciales</label>
+              <input type="number" id="onboardTablesCount" value="8" min="0" max="60" class="w-full border rounded-xl p-2 bg-white font-mono">
+            </div>
+            <div>
+              <label class="block font-bold text-stone-700 mb-1">Nombre Admin Inicial</label>
+              <input type="text" id="onboardAdminName" value="Admin General" class="w-full border rounded-xl p-2 bg-white">
+            </div>
+            <div>
+              <label class="block font-bold text-stone-700 mb-1">PIN Inicial (4 dígitos)</label>
+              <input type="text" id="onboardAdminPin" value="1234" maxlength="4" class="w-full border rounded-xl p-2 bg-white font-mono font-bold tracking-widest text-center">
+            </div>
+          </div>
+          <label class="flex items-center gap-2 font-semibold text-stone-700 cursor-pointer">
+            <input type="checkbox" id="onboardCreateBaseCategories" checked class="w-4 h-4 accent-amber-600 rounded">
+            <span>Crear 3 categorías base (Alimentos, Bebidas, Postres) para empezar de inmediato</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="px-6 py-4 border-t border-stone-200 bg-stone-50 flex items-center justify-between gap-3">
+        <label class="flex items-center gap-2 text-xs font-bold text-stone-700 cursor-pointer">
+          <input type="checkbox" id="tenIsActive" checked class="w-4 h-4 accent-emerald-600 rounded">
+          <span>Restaurante Activo (Operando)</span>
+        </label>
+
+        <div class="flex items-center gap-2">
+          <button onclick="window.closeTenantModal()" class="px-4 py-2.5 rounded-xl border border-stone-300 text-stone-700 font-bold text-xs hover:bg-stone-100 transition">
+            Cancelar
+          </button>
+          <button id="btnSaveTenant" onclick="window.saveTenantForm()" class="px-5 py-2.5 rounded-xl bg-stone-900 hover:bg-amber-600 text-white font-extrabold text-xs shadow transition">
+            Guardar Restaurante ✓
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/master-main.js"></script>
+</body>
+</html>

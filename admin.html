@@ -38,21 +38,23 @@
     <span id="offlineAlertText">Sin conexión a internet. Verifica tu Wi-Fi.</span>
   </div>
 
-  <!-- CABECERA PRINCIPAL (ESTILO BOCETO: LOGO CIRCULAR + INFO RELEVANTE) -->
+  <!-- CABECERA PRINCIPAL (LOGO CIRCULAR DINÁMICO + INFO RELEVANTE) -->
   <header id="topHubHeader" class="sticky top-0 z-30 bg-[#F6F5F2]/95 backdrop-blur-md border-b border-stone-200/80">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center gap-3 sm:gap-5">
 
-      <!-- LOGO CIRCULAR (SIEMPRE REGRESA AL INICIO) -->
-      <button onclick="window.goHome()" title="Volver a la Pantalla de Inicio" class="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-stone-900 hover:bg-stone-800 text-white flex flex-col items-center justify-center shadow-md ring-2 ring-amber-500/40 flex-shrink-0 transition active:scale-95 group">
-        <span class="text-xl sm:text-2xl leading-none">☕</span>
-        <span class="text-[9px] font-extrabold tracking-wider uppercase text-amber-300 mt-0.5">Áurea</span>
+      <!-- LOGO CIRCULAR DINÁMICO POR NEGOCIO -->
+      <button id="brandLogoBtn" onclick="window.goHome()" title="Volver a la Pantalla de Inicio" class="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-stone-900 hover:bg-stone-800 text-white flex flex-col items-center justify-center shadow-md ring-2 ring-amber-500/40 flex-shrink-0 transition active:scale-95 group overflow-hidden">
+        <img id="brandLogoImg" src="" alt="Logo" class="hidden w-full h-full object-cover">
+        <div id="brandLogoFallback" class="flex flex-col items-center justify-center">
+          <span id="brandEmoji" class="text-xl sm:text-2xl leading-none">☕</span>
+          <span id="brandShortName" class="text-[9px] font-extrabold tracking-wider uppercase text-amber-300 mt-0.5">Áurea</span>
+        </div>
         <span id="connDot" class="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-amber-400 border-2 border-[#F6F5F2]" title="Estado de sincronización"></span>
       </button>
 
       <!-- BARRA DE INFO RELEVANTE DINÁMICA POR ROL + BOTÓN PIN -->
       <div class="flex-1 bg-white border border-stone-200/90 rounded-3xl px-3.5 sm:px-5 py-2.5 sm:py-3 shadow-xs flex items-center justify-between gap-3 min-w-0">
         <div id="topRelevantMetrics" class="grid grid-cols-3 gap-2 sm:gap-5 flex-1 min-w-0">
-          <!-- Inyectado dinámicamente según el rol activo -->
           <div class="min-w-0">
             <span class="text-[10px] font-bold uppercase tracking-wider text-stone-400 block truncate">Estado</span>
             <span class="text-sm sm:text-base font-black text-stone-900 font-mono">...</span>
@@ -77,12 +79,8 @@
   <!-- CONTENEDOR PRINCIPAL -->
   <main id="appMainContainer" class="flex-grow w-full max-w-5xl mx-auto px-4 sm:px-6 py-5 sm:py-7 transition-all">
 
-    <!-- ================================================================ -->
-    <!-- PANTALLA DE INICIO (CUADRÍCULA LIMPIA DE TARJETAS POR ROL)       -->
-    <!-- ================================================================ -->
+    <!-- PANTALLA DE INICIO (TARJETAS POR ROL + MÓDULOS HABILITADOS) -->
     <section id="homeHubView" class="space-y-5">
-
-      <!-- Barra discreta de estado y acciones rápidas -->
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-2.5">
           <span id="topbarRoleBadge" class="bg-white border border-stone-200 text-stone-800 text-xs font-extrabold px-3 py-1.5 rounded-2xl shadow-2xs">
@@ -98,25 +96,17 @@
           <button id="homeFlowConfigBtn" onclick="window.openStatusConfigModal()" class="bg-white hover:bg-stone-100 border border-stone-200 text-stone-700 font-bold px-3 py-2 rounded-2xl transition">
             ⚙️ Flujo y Sonidos
           </button>
-          <a href="index.html?mesa=01" target="_blank" class="bg-white hover:bg-stone-100 border border-stone-200 text-stone-700 font-bold px-3 py-2 rounded-2xl transition">
+          <a id="homeMenuQrLink" href="index.html?mesa=01" target="_blank" class="bg-white hover:bg-stone-100 border border-stone-200 text-stone-700 font-bold px-3 py-2 rounded-2xl transition">
             📱 Menú QR ↗
           </a>
         </div>
       </div>
 
-      <!-- CUADRÍCULA PRINCIPAL DE TARJETAS (3 POR FILA COMO EL BOCETO) -->
-      <div id="homeCardsGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-3.5 sm:gap-5">
-        <!-- Generado dinámicamente por renderHomeHub() según el rol -->
-      </div>
-
+      <div id="homeCardsGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-3.5 sm:gap-5"></div>
     </section>
 
-    <!-- ================================================================ -->
-    <!-- VISTA DE MÓDULO ACTIVO (CON BOTÓN VOLVER AL INICIO)              -->
-    <!-- ================================================================ -->
+    <!-- VISTA DE MÓDULO ACTIVO -->
     <div id="moduleViewWrapper" class="hidden space-y-5">
-
-      <!-- Subcabecera de navegación del módulo -->
       <div id="moduleSubHeader" class="bg-white rounded-3xl border border-stone-200/90 px-4 py-3 shadow-xs flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-3">
           <button onclick="window.goHome()" class="bg-stone-900 hover:bg-amber-600 active:scale-95 text-white font-bold text-xs px-4 py-2 rounded-2xl transition flex items-center gap-1.5 shadow-xs">
@@ -142,7 +132,6 @@
         </div>
       </div>
 
-      <!-- Contadores ocultos de compatibilidad para módulos existentes -->
       <span id="tablesOccupiedBadge" class="hidden">0/0</span>
       <span id="badgeLiveOrders" class="hidden">0</span>
       <span id="pendingCallsBadge" class="hidden">0</span>
@@ -166,11 +155,10 @@
             </button>
           </div>
         </div>
-
         <div id="tablesFloorContainer" class="space-y-6"></div>
       </section>
 
-      <!-- 1. KANBAN KDS (COMANDAS) -->
+      <!-- 1. KANBAN KDS -->
       <section id="tab-orders" class="tab-panel hidden space-y-4">
         <div id="kdsFilterBar" class="bg-white rounded-2xl p-4 shadow-sm border border-stone-200 space-y-3">
           <div class="flex flex-wrap justify-between items-center gap-3">
@@ -181,7 +169,6 @@
                 <button onclick="window.filterByChannel('takeout')" id="btnChannel-takeout" class="px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 transition">🛍️ Llevar</button>
                 <button onclick="window.filterByChannel('delivery')" id="btnChannel-delivery" class="px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 transition">🛵 Delivery</button>
               </div>
-
               <div class="flex items-center gap-1 bg-amber-50 p-1 rounded-2xl border border-amber-200 text-xs font-bold">
                 <button onclick="window.filterByStation('all')" id="btnStation-all" class="px-3 py-1.5 rounded-xl bg-amber-600 text-white shadow-sm transition">Todas Estaciones</button>
                 <button onclick="window.filterByStation('cocina')" id="btnStation-cocina" class="px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 transition">🍳 Cocina</button>
@@ -200,17 +187,14 @@
               </button>
             </div>
           </div>
-
           <div id="singleStageSelectorBar" class="hidden flex flex-wrap gap-2 pt-2 border-t border-stone-100"></div>
         </div>
-
         <div id="kanbanBoardContainer" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start"></div>
       </section>
 
       <!-- 2. CAJA & CORTES X/Z -->
       <section id="tab-cashbox" class="tab-panel hidden space-y-6">
         <div id="cashboxActiveArea"></div>
-
         <div class="bg-white rounded-3xl p-5 shadow-sm border border-stone-200 space-y-3">
           <h3 class="font-extrabold text-sm text-stone-900 border-b pb-2.5">📑 Historial de Cortes Z Cerrados</h3>
           <div class="overflow-x-auto no-scrollbar">
@@ -799,7 +783,7 @@
               <div class="flex justify-between items-start">
                 <div>
                   <span class="text-[10px] uppercase tracking-wider text-amber-300 font-bold">Tarjeta Digital VIP</span>
-                  <h4 class="font-extrabold text-lg mt-0.5">Café Áurea Rewards</h4>
+                  <h4 class="font-extrabold text-lg mt-0.5">Rewards Club</h4>
                 </div>
                 <span class="bg-white/20 text-white text-[10px] font-bold px-2 py-1 rounded-lg">PWA Link</span>
               </div>
@@ -816,7 +800,6 @@
     </div>
   </main>
 
-  <!-- SCRIPT MODULAR PRINCIPAL -->
   <script type="module" src="js/admin-main.js"></script>
 </body>
 </html>

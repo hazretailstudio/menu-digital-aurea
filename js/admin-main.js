@@ -1,6 +1,12 @@
 import { REST_ID, escapeHtml, normalizeTableNumber } from './config.js';
 import { state, client, fetchAllData, setConnectionBanner, getActiveShift } from './state.js';
 import { playSoundByName } from './audio.js';
+import {
+  resolveTenant,
+  applyTenantBrandingToAdmin,
+  isTenantModuleEnabled,
+  showTenantBlockOverlay
+} from './tenant.js';
 
 import {
   ROLE_META, openSwitchStaffPinModal, closePinModal, pressPinDigit, clearPinInput,
@@ -66,7 +72,7 @@ import {
 
 import { saveGoogleMapsEmbed } from './modules/marketing.js';
 
-let currentOpenTab = null; // null = Pantalla de Inicio (Home Hub)
+let currentOpenTab = null;
 
 const CARD_CATALOG = {
   tables:       { title: 'Mesas',          icon: '🪑', tint: 'bg-amber-50 text-amber-700' },
@@ -98,8 +104,8 @@ const TAB_TITLES = {
   marketing: 'Google Maps & Lealtad'
 };
 
-// EXPOSICIÓN INMEDIATA A WINDOW
 Object.assign(window, {
+  isTenantModuleEnabled,
   goHome, renderHomeHub, switchTab, toggleFocusMode, toggleSidebar, playSoundByName,
   openSwitchStaffPinModal, closePinModal, pressPinDigit, clearPinInput,
   submitPinCode, createStaffMember, toggleStaffActive, deleteStaffMember,
@@ -135,9 +141,7 @@ Object.assign(window, {
   saveGoogleMapsEmbed
 });
 
-export function toggleSidebar() {
-  // Mantenido por compatibilidad con llamadas legadas
-}
+export function toggleSidebar() {}
 
 export function toggleFocusMode() {
   document.body.classList.toggle('focus-mode');
@@ -213,7 +217,6 @@ function getRoleTopMetrics(role, st) {
       { label: 'Ventas Hoy', value: `$${st.salesToday.toFixed(0)}`, cls: 'text-stone-900' }
     ];
   }
-  // Admin y Gerencia
   return [
     { label: 'Ventas Hoy', value: `$${st.salesToday.toFixed(0)}`, cls: 'text-emerald-700' },
     { label: 'Mesas', value: `${st.occupiedTables}/${st.totalTables}`, cls: 'text-stone-900' },
@@ -263,8 +266,9 @@ export function renderHomeHub() {
   const role = state.activeStaff?.role || 'admin';
   const meta = ROLE_META[role] || ROLE_META.admin;
   const st = getLiveStatsSnapshot();
+  const allowedTabs = meta.tabs.filter(tabId => isTenantModuleEnabled(tabId));
 
-  grid.innerHTML = meta.tabs.map(tabId => {
+  grid.innerHTML = allowedTabs.map(tabId => {
     const card = CARD_CATALOG[tabId];
     if (!card) return '';
     const badge = getCardBadge(tabId, st);
@@ -302,7 +306,7 @@ export function goHome() {
 export function switchTab(tabId) {
   const role = state.activeStaff?.role || 'admin';
   const meta = ROLE_META[role] || ROLE_META.admin;
-  if (!meta.tabs.includes(tabId)) {
+  if (!meta.tabs.includes(tabId) || !isTenantModuleEnabled(tabId)) {
     goHome();
     return;
   }
@@ -315,7 +319,6 @@ export function switchTab(tabId) {
   if (homeView) homeView.classList.add('hidden');
   if (modWrap) modWrap.classList.remove('hidden');
 
-  // Ampliar ancho en KDS, Métricas, Inventario y Mesas para aprovechar la pantalla completa
   const wideTabs = ['orders', 'analytics', 'inventory', 'tables', 'cashbox'];
   if (mainCont) {
     if (wideTabs.includes(tabId)) {
@@ -375,7 +378,33 @@ async function init() {
     window.addEventListener('online', () => { setConnectionBanner(true); renderTopRelevantBar(); });
     window.addEventListener('offline', () => { setConnectionBanner(false, '⚠️ Sin conexión Wi-Fi. No cierres esta ventana hasta reconectar.'); renderTopRelevantBar(); });
 
+    // 1. Resolver restaurante activo por ?r=slug ANTES de cargar datos
+    const resolved = await resolveTenant(client);
+    if (resolved.notFound) {
+      showTenantBlockOverlay(
+        'Restaurante no encontrado',
+        `No existe ningún negocio registrado con el identificador "${resolved.slug}". Verifica el enlace con tu administrador.`
+      );
+      return;
+    }
+    if (resolved.tenant && resolved.tenant.is_active === false) {
+      showTenantBlockOverlay(
+        'Servicio Suspendido Temporalmente',
+        `El acceso para "${resolved.tenant.name}" se encuentra pausado. Contacta al administrador de la plataforma.`
+      );
+      return;
+    }
+    applyTenantBrandingToAdmin(resolved.tenant);
+
+    // 2. Cargar toda la operación del restaurante resuelto
     await fetchAllData();
+
+    const savedStaffId = sessionStorage.getItem(`aurea_active_staff_id_${REST_ID}`);
+    if (savedStaffId && state.staff?.length) {
+      const found = state.staff.find(s => s.id === savedStaffId && s.is_active !== false);
+      if (found) state.activeStaff = found;
+    }
+
     applyActiveStaffPermissions(false);
     renderAllViews();
     goHome();
@@ -432,7 +461,6 @@ async function init() {
         .subscribe();
     }
 
-    // Relojes KDS cada segundo sin reconstruir DOM + refresco sutil de Info Relevante
     setInterval(() => {
       if (currentOpenTab === 'orders') {
         updateKanbanTimers();

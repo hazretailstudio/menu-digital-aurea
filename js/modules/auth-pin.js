@@ -69,7 +69,7 @@ export function ensurePinModal() {
       </div>
 
       <div id="pinDemoHint" class="bg-stone-50 border border-stone-200 rounded-xl p-2 text-[10px] text-stone-500 leading-relaxed">
-        <b>PINs iniciales:</b> Admin <code>1234</code> • Gerente <code>2222</code> • Cocina <code>3333</code> • Mesero <code>4444</code> • Caja <code>6666</code>
+        <b>PIN inicial Admin:</b> <code>1234</code> (configurable en Personal y PIN)
       </div>
     </div>
   `;
@@ -162,7 +162,7 @@ export function submitPinCode() {
   }
 
   state.activeStaff = staff;
-  sessionStorage.setItem('aurea_active_staff_id', staff.id);
+  sessionStorage.setItem(`aurea_active_staff_id_${REST_ID}`, staff.id);
   applyActiveStaffPermissions(true);
   closePinModal();
   showToast(`Sesión activa: ${staff.name} (${ROLE_META[staff.role]?.label || staff.role})`, 'success');
@@ -192,11 +192,10 @@ export function applyActiveStaffPermissions(returnToHome = false) {
 
   if (window.renderHomeHub) window.renderHomeHub();
 
-  // Al cambiar de PIN siempre regresamos al Inicio personalizado del operador;
-  // o si el módulo actual ya no está permitido para su rol.
   const currentActivePanel = document.querySelector('.tab-panel:not(.hidden)');
   const currentTabId = currentActivePanel ? currentActivePanel.id.replace('tab-', '') : null;
-  if (returnToHome || (currentTabId && !meta.tabs.includes(currentTabId))) {
+  const modAllowed = !window.isTenantModuleEnabled || window.isTenantModuleEnabled(currentTabId);
+  if (returnToHome || (currentTabId && (!meta.tabs.includes(currentTabId) || !modAllowed))) {
     if (window.goHome) window.goHome();
   }
 }
