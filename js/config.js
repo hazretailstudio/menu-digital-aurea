@@ -22,9 +22,24 @@ export function getRequestedRestaurantSlug() {
   }
 }
 
-export const WAITERS_LIST = ['Carlos M.', 'Sofía R.', 'Barra / Caja', 'Admin General'];
+export const WAITERS_LIST = ['Carlos M.', 'Sofía R.', 'Miguel A.', 'Barra / Mostrador'];
 export const WAITERS = WAITERS_LIST;
-export const KDS_STATUS_STORAGE_KEY = 'kds_status_config';
+export const KDS_STATUS_STORAGE_KEY = 'kds_status_config_v2';
+
+export const STATIONS = [
+  { id: 'cocina', name: 'Cocina', icon: '🍳', badgeClass: 'bg-orange-100 text-orange-900 border-orange-200' },
+  { id: 'barra', name: 'Barra / Bebidas', icon: '☕', badgeClass: 'bg-blue-100 text-blue-900 border-blue-200' },
+  { id: 'panaderia', name: 'Panadería / Postres', icon: '🥐', badgeClass: 'bg-amber-100 text-amber-900 border-amber-200' }
+];
+
+export const DEFAULT_STAFF = [
+  { id: '00000000-0000-4000-8000-000000000001', name: 'Admin General', role: 'admin', pin: '1234', is_active: true },
+  { id: '00000000-0000-4000-8000-000000000002', name: 'Gerente Turno', role: 'management', pin: '2222', is_active: true },
+  { id: '00000000-0000-4000-8000-000000000003', name: 'Chef Cocina', role: 'kitchen', pin: '3333', is_active: true },
+  { id: '00000000-0000-4000-8000-000000000004', name: 'Carlos M.', role: 'waiter', pin: '4444', is_active: true },
+  { id: '00000000-0000-4000-8000-000000000005', name: 'Sofía R.', role: 'waiter', pin: '5555', is_active: true },
+  { id: '00000000-0000-4000-8000-000000000006', name: 'Barra / Caja', role: 'cashier', pin: '6666', is_active: true }
+];
 
 export const DEFAULT_STATUS_CONFIG = [
   { id: 'pending', key: 'pending', name: '1. Recibida en Cocina', label: 'Recibido', color: '#f59e0b', sound_in: 'bell', sound_out: 'arcade', sound: 'bell', enabled: true },
@@ -34,14 +49,24 @@ export const DEFAULT_STATUS_CONFIG = [
 ];
 
 export function generateUUID() {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
   }
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
     const r = (Math.random() * 16) | 0;
     const v = c === 'x' ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
+}
+
+export function normalizeTableNumber(raw) {
+  if (raw === null || raw === undefined) return '01';
+  const cleaned = String(raw).trim().replace(/^mesa\s*/i, '');
+  if (!cleaned) return '01';
+  if (/^\d+$/.test(cleaned)) {
+    return cleaned.length === 1 ? '0' + cleaned : cleaned;
+  }
+  return cleaned;
 }
 
 export function escapeHtml(str) {
@@ -54,37 +79,32 @@ export function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
-export function normalizeTableNumber(val) {
-  const raw = String(val || '').trim();
-  if (!raw) return '01';
-  if (/^\d+$/.test(raw)) return raw.padStart(2, '0');
-  return raw;
+export function formatMoney(val) {
+  const num = Number(val || 0);
+  return `$${num.toFixed(2)}`;
 }
 
 export function showToast(message, type = 'info') {
-  let container = document.getElementById('globalToastContainer');
+  let container = document.getElementById('toastContainer');
   if (!container) {
     container = document.createElement('div');
-    container.id = 'globalToastContainer';
-    container.className = 'fixed bottom-5 left-1/2 -translate-x-1/2 z-[120] flex flex-col gap-2 items-center pointer-events-none px-4 w-full max-w-sm';
+    container.id = 'toastContainer';
+    container.className = 'fixed bottom-5 right-5 z-[100] flex flex-col gap-2 max-w-sm pointer-events-none';
     document.body.appendChild(container);
   }
-
-  const palette = {
+  const colors = {
     success: 'bg-emerald-700 text-white border-emerald-500',
     error: 'bg-rose-700 text-white border-rose-500',
     warning: 'bg-amber-600 text-white border-amber-400',
     info: 'bg-stone-900 text-white border-stone-700'
   };
-
   const toast = document.createElement('div');
-  toast.className = `pointer-events-auto border px-4 py-2.5 rounded-2xl shadow-xl text-xs font-bold text-center transition-all duration-300 ${palette[type] || palette.info}`;
-  toast.textContent = message;
+  toast.className = `pointer-events-auto px-4 py-3 rounded-2xl shadow-xl border text-xs font-bold flex items-center gap-2 transition-all duration-300 ${colors[type] || colors.info}`;
+  toast.innerHTML = `<span>${escapeHtml(message)}</span>`;
   container.appendChild(toast);
-
   setTimeout(() => {
     toast.style.opacity = '0';
     toast.style.transform = 'translateY(8px)';
     setTimeout(() => toast.remove(), 300);
-  }, 3200);
+  }, type === 'error' ? 5000 : 3200);
 }
