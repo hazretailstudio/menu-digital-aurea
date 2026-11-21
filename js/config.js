@@ -1,17 +1,9 @@
-// =========================================================================
-// IMPORTANTE: PEGA AQUÍ TUS CREDENCIALES REALES DE SUPABASE
-// (Cópialas tal cual de tu archivo js/config.js actual antes de subirlo)
-// =========================================================================
-export const SUPABASE_URL = 'PEGA_AQUI_TU_SUPABASE_URL';
-export const SUPABASE_KEY = 'PEGA_AQUI_TU_SUPABASE_ANON_KEY';
+export const SUPABASE_URL = 'https://jmqqkgshwwycercknzgy.supabase.co';
+export const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImptcXFrZ3Nod3d5Y2VyY2tuemd5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMzNzYyODUsImV4cCI6MjEwODk1MjI4NX0.tCiRMvl05IXv_IGXIeJ2h9p6AEABRgPofgIRQZMt9UE';
+export const SUPABASE_KEY = SUPABASE_ANON;
 
-// Negocio por defecto si alguien abre la URL sin ?r=slug
 export const DEFAULT_REST_ID = 'b47a9880-9fd3-4c9b-b05b-86ea8f0d014d';
 export const DEFAULT_SLUG = 'cafe-aurea';
-
-// Live binding ES Module: al actualizarlo con setActiveRestaurantId(),
-// TODOS los módulos (tables, kanban, cashbox, inventory, etc.) reciben
-// automáticamente el ID del restaurante activo sin reescribir ningún módulo.
 export let REST_ID = DEFAULT_REST_ID;
 
 export function setActiveRestaurantId(newId) {
@@ -30,15 +22,15 @@ export function getRequestedRestaurantSlug() {
   }
 }
 
-// Constantes de compatibilidad para módulos v1/v2
 export const WAITERS_LIST = ['Carlos M.', 'Sofía R.', 'Barra / Caja', 'Admin General'];
 export const WAITERS = WAITERS_LIST;
+export const KDS_STATUS_STORAGE_KEY = 'kds_status_config';
 
 export const DEFAULT_STATUS_CONFIG = [
-  { key: 'pending', label: 'Recibido', color: 'amber', sound: 'bell', enabled: true },
-  { key: 'preparing', label: 'En Cocina', color: 'orange', sound: 'pop', enabled: true },
-  { key: 'delivered', label: 'En Mesa / Servido', color: 'blue', sound: 'chime', enabled: true },
-  { key: 'paid', label: 'Cobrado', color: 'emerald', sound: 'cash', enabled: true }
+  { id: 'pending', key: 'pending', name: '1. Recibida en Cocina', label: 'Recibido', color: '#f59e0b', sound_in: 'bell', sound_out: 'arcade', sound: 'bell', enabled: true },
+  { id: 'preparing', key: 'preparing', name: '2. En Preparación', label: 'En Cocina', color: '#ea580c', sound_in: 'arcade', sound_out: 'dingdong', sound: 'pop', enabled: true },
+  { id: 'delivered', key: 'delivered', name: '3. Servida en Mesa', label: 'En Mesa / Servido', color: '#2563eb', sound_in: 'dingdong', sound_out: 'reward', sound: 'chime', enabled: true },
+  { id: 'paid', key: 'paid', name: '4. Cobrada / Finalizada', label: 'Cobrado', color: '#16a34a', sound_in: 'reward', sound_out: 'fanfare', sound: 'cash', enabled: true }
 ];
 
 export function generateUUID() {
