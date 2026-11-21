@@ -1,3 +1,13 @@
+import { resolveTenant, applyTenantBrandingToMenu, showTenantBlockOverlay } from './tenant.js';
+
+// Dentro de tu función init() en menu-main.js, antes de consultar products/categories:
+const resolved = await resolveTenant(client);
+if (resolved.notFound || resolved.tenant?.is_active === false) {
+  showTenantBlockOverlay('Menú no disponible', 'Este establecimiento no se encuentra activo en este momento.');
+  return;
+}
+applyTenantBrandingToMenu(resolved.tenant);
+
 import { REST_ID, generateUUID, normalizeTableNumber, escapeHtml, showToast } from './config.js';
 import { client, dbWrite, setConnectionBanner } from './state.js';
 
