@@ -82,7 +82,7 @@ export function applyReadOnlyMode(restaurant) {
   return enabled;
 }
 
-export async function initTableSession(context, { onRequireGuestName, onCartChange }) {
+export async function initTableSession(context, { onRequireGuestName, onCartChange, onTableMoved }) {
   if (context.order_type !== 'DINE_IN') return null;
 
   if (!context.table_id && context.table_number) {
@@ -115,6 +115,9 @@ export async function initTableSession(context, { onRequireGuestName, onCartChan
 
   if (existing) {
     activeSession = existing;
+    if (existing.merged_into_table && existing.merged_into_table !== context.table_number && typeof onTableMoved === 'function') {
+      onTableMoved(existing.merged_into_table);
+    }
     if (!context.guest_name && typeof onRequireGuestName === 'function') {
       const name = await onRequireGuestName(true);
       context.guest_name = setGuestName(name || 'Invitado');
@@ -140,7 +143,7 @@ export async function initTableSession(context, { onRequireGuestName, onCartChan
   }
 
   await fetchSessionCart(onCartChange);
-  subscribeToTableCart(activeSession.id, onCartChange);
+  subscribeToTableCart(activeSession.id, onCartChange, onTableMoved);
   return activeSession;
 }
 
@@ -148,7 +151,7 @@ export async function fetchSessionCart(onCartChange) {
   if (!activeSession) return [];
   const { data, error } = await client
     .from('cart_items')
-    .select('*, products(title, price, media, station)')
+    .select('*, products(title, price, media, station, is_available, category_id, type_id)')
     .eq('table_session_id', activeSession.id)
     .order('created_at', { ascending: true });
 
@@ -159,7 +162,7 @@ export async function fetchSessionCart(onCartChange) {
   return groupCartItems;
 }
 
-function subscribeToTableCart(sessionId, onCartChange) {
+function subscribeToTableCart(sessionId, onCartChange, onTableMoved) {
   if (realtimeChannel) client.removeChannel(realtimeChannel);
 
   realtimeChannel = client
@@ -169,6 +172,22 @@ function subscribeToTableCart(sessionId, onCartChange) {
       { event: '*', schema: 'public', table: 'cart_items', filter: `table_session_id=eq.${sessionId}` },
       async () => {
         await fetchSessionCart(onCartChange);
+      }
+    )
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'table_sessions', filter: `id=eq.${sessionId}` },
+      (payload) => {
+        const updated = payload.new;
+        if (!updated) return;
+        activeSession = updated;
+        if (updated.merged_into_table && typeof onTableMoved === 'function') {
+          onTableMoved(updated.merged_into_table);
+        }
+        if (updated.status === 'CLOSED') {
+          groupCartItems = [];
+          if (typeof onCartChange === 'function') onCartChange(getGroupCartSummary());
+        }
       }
     )
     .subscribe();

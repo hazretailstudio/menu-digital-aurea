@@ -49,12 +49,13 @@ let deliveryState = { lat: null, lng: null, fee: 0, infoText: '' };
 let waiterCooldownTimer = null;
 let waiterCooldownSecs = 0;
 let billRequestedRecently = false;
+let guestNameResolver = null;
 
 // Estado de división de cuenta
-let splitMode = 'equal';          // 'equal' | 'by_person'
-let splitPersonSubMode = 'items'; // 'items' | 'amount'
-let splitOrderUnits = [];         // [{ unitId, title, price, guest_name }]
-let splitPersons = [];            // [{ id, name, amount, paid, unitIds: [] }]
+let splitMode = 'equal';
+let splitPersonSubMode = 'items';
+let splitOrderUnits = [];
+let splitPersons = [];
 
 const STATUS_LABELS = {
   pending: { text: '🟡 Recibido en Cocina', cls: 'bg-amber-100 text-amber-900 border-amber-200' },
@@ -64,7 +65,8 @@ const STATUS_LABELS = {
 };
 
 Object.assign(window, {
-  connectWifi, callWaiter, requestBillFromTable, handleClientModifyOrder,
+  connectWifi, callWaiter, requestBillFromTable, openPayBillChoiceModal,
+  closePayBillChoiceModal, confirmPayBillRequest, handleClientModifyOrder,
   openSplitBillModal, closeSplitBillModal, selectSplitMode, selectSplitPersonSubMode,
   calculateEqualSplit, addSplitPerson, removeSplitPerson, toggleUnitForPerson,
   updatePersonAmount, saveSplitBill,
@@ -72,7 +74,8 @@ Object.assign(window, {
   scrollToCategory, openProductModal, closeProductModal, toggleModifierOption,
   changeModalQty, addCurrentModalToCart, updateCartQty, removeCartItem,
   sendOrder, handleNavLeft, switchView, changeOrderType, captureCustomerLocation,
-  handlePaymentMethodChange, updateCashChangePreview, promptChangeGuestName
+  handlePaymentMethodChange, updateCashChangePreview, promptChangeGuestName,
+  submitGuestNameModal, closeGuestNameModal
 });
 
 async function initMenu() {
@@ -85,27 +88,33 @@ async function initMenu() {
     return;
   }
 
-  const badge = document.getElementById('tableBadge');
-  if (badge) badge.innerText = context.order_type === 'DINE_IN' ? context.table_label : (context.order_type === 'DELIVERY' ? '🛵 Domicilio' : '🛍️ Recoger');
-
+  updateTableBadgeUI();
   orderingEnabled = applyReadOnlyMode(restaurant);
   ensureCheckoutExtrasUI();
   ensurePayBillButtonInTracker();
   ensureSplitSubModeUI();
+  ensureGuestNameModal();
+  ensurePayBillChoiceModal();
   updateSendButtonLabel();
   await loadMenuData();
 
   if (orderingEnabled && context.order_type === 'DINE_IN') {
     await initTableSession(context, {
-      onRequireGuestName: async (isExisting) => {
-        const msg = isExisting
-          ? `Esta mesa ya tiene un pedido grupal abierto (${context.table_label}). ¿Cuál es tu nombre para etiquetar tus platillos?`
-          : `Bienvenido a ${context.table_label}. Ingresa tu nombre para tu cuenta:`;
-        return prompt(msg, context.guest_name || '') || 'Invitado';
-      },
+      onRequireGuestName: (isExisting) => openGuestNameModalAsync(isExisting),
       onCartChange: (summary) => {
         groupCartSummary = summary;
         renderCart();
+      },
+      onTableMoved: async (newTableNumber) => {
+        if (!newTableNumber || newTableNumber === context.table_number) return;
+        context = updateOrderContext({
+          table_number: newTableNumber,
+          table_label: `Mesa ${newTableNumber}`
+        });
+        updateTableBadgeUI();
+        showToast(`📍 Tu cuenta fue movida a la Mesa ${newTableNumber}`, 'info');
+        await loadMenuData();
+        renderLiveOrderTracker();
       }
     });
   }
@@ -114,9 +123,135 @@ async function initMenu() {
   subscribeMenuRealtime();
 }
 
-/**
- * Inyecta el botón "Pagar la Cuenta" dentro de #liveOrderTracker para llamar al mesero en automático.
- */
+function updateTableBadgeUI() {
+  const badge = document.getElementById('tableBadge');
+  if (!badge) return;
+  badge.innerText = context.order_type === 'DINE_IN'
+    ? context.table_label
+    : (context.order_type === 'DELIVERY' ? '🛵 Domicilio' : '🛍️ Recoger');
+}
+
+// ============================================================================
+// MODAL ELEGANTE PARA NOMBRE DE COMENSAL (ADIÓS prompt() NATIVO)
+// ============================================================================
+function ensureGuestNameModal() {
+  if (document.getElementById('guestNameModal')) return;
+  const m = document.createElement('div');
+  m.id = 'guestNameModal';
+  m.className = 'fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4';
+  m.innerHTML = `
+    <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl space-y-4">
+      <div class="space-y-1">
+        <span class="text-[10px] font-black uppercase tracking-wider text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full">Pedido en Mesa</span>
+        <h3 class="font-serif text-xl font-bold text-stone-900">¿Cómo te llamas?</h3>
+        <p id="guestNameModalDesc" class="text-xs text-stone-500">Etiquetamos tus platillos con tu nombre para facilitar la entrega y dividir la cuenta.</p>
+      </div>
+      <input type="text" id="guestNameModalInput" placeholder="Ej. Sofía, Carlos..."
+        class="w-full border-2 border-stone-200 focus:border-amber-600 rounded-2xl px-4 py-3 text-sm font-bold text-stone-900 outline-none bg-stone-50">
+      <div class="flex gap-2">
+        <button type="button" onclick="window.closeGuestNameModal()" class="px-4 py-3 rounded-xl border border-stone-200 text-xs font-bold text-stone-500">Omitir</button>
+        <button type="button" onclick="window.submitGuestNameModal()" class="flex-grow bg-stone-900 hover:bg-stone-800 text-white font-bold py-3 rounded-xl text-xs shadow-md transition">
+          Continuar al Menú →
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(m);
+}
+
+function openGuestNameModalAsync(isExistingSession = false) {
+  ensureGuestNameModal();
+  const modal = document.getElementById('guestNameModal');
+  const desc = document.getElementById('guestNameModalDesc');
+  const input = document.getElementById('guestNameModalInput');
+  if (desc) {
+    desc.innerText = isExistingSession
+      ? `Ya hay un pedido grupal abierto en ${context.table_label}. Escribe tu nombre para identificar tus platillos.`
+      : `Bienvenido a ${context.table_label}. Escribe tu nombre para organizar tu orden y tu cuenta.`;
+  }
+  if (input) {
+    input.value = context.guest_name || '';
+    setTimeout(() => input.focus(), 120);
+  }
+  modal.classList.remove('hidden');
+
+  return new Promise(resolve => {
+    guestNameResolver = resolve;
+  });
+}
+
+function submitGuestNameModal() {
+  const input = document.getElementById('guestNameModalInput');
+  const name = (input?.value || '').trim() || 'Invitado';
+  context.guest_name = setGuestName(name);
+  const el = document.getElementById('guestNameDisplay');
+  if (el) el.innerText = context.guest_name;
+  document.getElementById('guestNameModal')?.classList.add('hidden');
+  if (guestNameResolver) {
+    const r = guestNameResolver;
+    guestNameResolver = null;
+    r(context.guest_name);
+  }
+}
+
+function closeGuestNameModal() {
+  document.getElementById('guestNameModal')?.classList.add('hidden');
+  if (guestNameResolver) {
+    const r = guestNameResolver;
+    guestNameResolver = null;
+    r(context.guest_name || 'Invitado');
+  }
+}
+
+function promptChangeGuestName() {
+  openGuestNameModalAsync(false);
+}
+
+// ============================================================================
+// MODAL DE PAGAR LA CUENTA (CON MOTIVO PARA EL MESERO: EFECTIVO / TPV / DIVIDIDA)
+// ============================================================================
+function ensurePayBillChoiceModal() {
+  if (document.getElementById('payBillChoiceModal')) return;
+  const m = document.createElement('div');
+  m.id = 'payBillChoiceModal';
+  m.className = 'fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4';
+  m.innerHTML = `
+    <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-start border-b pb-3">
+        <div>
+          <h3 class="font-bold text-base text-stone-900">💳 Solicitar la Cuenta</h3>
+          <p class="text-xs text-stone-500">Elige cómo prefieres pagar para avisar al mesero.</p>
+        </div>
+        <button type="button" onclick="window.closePayBillChoiceModal()" class="text-stone-400 font-bold text-lg">✕</button>
+      </div>
+      <div class="space-y-2 text-xs font-bold">
+        <button type="button" onclick="window.confirmPayBillRequest('Tarjeta (Llevar Terminal TPV)')" class="w-full p-3.5 rounded-2xl border-2 border-stone-200 hover:border-amber-500 bg-stone-50 flex items-center justify-between transition">
+          <span>💳 Tarjeta (Traer Terminal TPV)</span>
+          <span>→</span>
+        </button>
+        <button type="button" onclick="window.confirmPayBillRequest('Efectivo')" class="w-full p-3.5 rounded-2xl border-2 border-stone-200 hover:border-amber-500 bg-stone-50 flex items-center justify-between transition">
+          <span>💵 Efectivo</span>
+          <span>→</span>
+        </button>
+        <button type="button" onclick="window.confirmPayBillRequest('Cuenta Dividida / Mixto')" class="w-full p-3.5 rounded-2xl border-2 border-amber-300 bg-amber-50 text-amber-950 flex items-center justify-between transition">
+          <span>👥 Cuenta Dividida / Pago Mixto</span>
+          <span>→</span>
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(m);
+}
+
+function openPayBillChoiceModal() {
+  ensurePayBillChoiceModal();
+  document.getElementById('payBillChoiceModal')?.classList.remove('hidden');
+}
+
+function closePayBillChoiceModal() {
+  document.getElementById('payBillChoiceModal')?.classList.add('hidden');
+}
+
 function ensurePayBillButtonInTracker() {
   const tracker = document.getElementById('liveOrderTracker');
   if (!tracker || document.getElementById('btnPayBillNow')) return;
@@ -136,9 +271,6 @@ function ensurePayBillButtonInTracker() {
   }
 }
 
-/**
- * Inyecta el selector "Por Artículos" vs "Por Cantidad" y el aviso de faltantes en #splitByPersonArea.
- */
 function ensureSplitSubModeUI() {
   const area = document.getElementById('splitByPersonArea');
   if (!area || document.getElementById('splitPersonSubModeBar')) return;
@@ -159,6 +291,74 @@ function ensureSplitSubModeUI() {
   `;
 
   area.prepend(bar);
+}
+
+// ============================================================================
+// MOTOR DE PROMOCIONES AUTOMÁTICAS EN UI (ESPEJO DE POSTGRESQL)
+// ============================================================================
+function evaluatePromotionsUI(items) {
+  if (!promotions || promotions.length === 0 || !items || items.length === 0) {
+    return { discount: 0, applied: [] };
+  }
+
+  const tz = restaurant?.timezone || 'America/Mexico_City';
+  const now = new Date();
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+  const parts = Object.fromEntries(fmt.formatToParts(now).map(p => [p.type, p.value]));
+  const dowMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const dow = dowMap[parts.weekday];
+  const curTime = `${parts.hour === '24' ? '00' : parts.hour}:${parts.minute}:${parts.second}`;
+
+  let totalDiscount = 0;
+  const applied = [];
+
+  for (const promo of promotions) {
+    if (Array.isArray(promo.days_of_week) && promo.days_of_week.length > 0 && !promo.days_of_week.includes(dow)) {
+      continue;
+    }
+    if (promo.start_time && promo.end_time && (curTime < promo.start_time || curTime > promo.end_time)) {
+      continue;
+    }
+
+    let promoDisc = 0;
+    for (const it of items) {
+      const prodId = it.product_id || it.id;
+      const prod = products.find(p => p.id === prodId) || it.products || {};
+      const scope = promo.scope_type || 'all';
+      let eligible = false;
+
+      if (scope === 'all') eligible = true;
+      else if (scope === 'category' && Array.isArray(promo.applied_category_ids) && promo.applied_category_ids.includes(prod.category_id)) eligible = true;
+      else if (scope === 'type' && Array.isArray(promo.applied_type_ids) && promo.applied_type_ids.includes(prod.type_id)) eligible = true;
+      else if (scope === 'product' && Array.isArray(promo.applied_product_ids) && promo.applied_product_ids.includes(prodId)) eligible = true;
+
+      if (!eligible) continue;
+
+      const qty = Math.max(1, Number(it.qty || 1));
+      const unitPrice = Number(it.unit_price || it.price || 0);
+
+      if (promo.promo_type === '2x1') {
+        const freeUnits = Math.floor(qty / 2);
+        if (freeUnits > 0) promoDisc += freeUnits * unitPrice;
+      } else if (Number(promo.discount_percentage || 0) > 0) {
+        promoDisc += (qty * unitPrice) * (Number(promo.discount_percentage) / 100);
+      }
+    }
+
+    if (promoDisc > 0) {
+      totalDiscount += promoDisc;
+      applied.push(`${promo.title} (-$${promoDisc.toFixed(2)})`);
+    }
+  }
+
+  return { discount: Number(totalDiscount.toFixed(2)), applied };
 }
 
 function updateSendButtonLabel() {
@@ -236,7 +436,19 @@ function subscribeMenuRealtime() {
     })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'products', filter: `restaurant_id=eq.${rId}` }, async () => {
       const { data } = await client.from('products').select('*').eq('restaurant_id', rId).order('created_at', { ascending: false });
-      if (data) { products = data; renderCatalog(); }
+      if (data) {
+        products = data;
+        renderCatalog();
+        renderCart(); // Refresca alertas 86 si un platillo en carrito se agotó
+      }
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'promotions', filter: `restaurant_id=eq.${rId}` }, async () => {
+      const { data } = await client.from('promotions').select('*').eq('restaurant_id', rId).eq('is_active', true);
+      if (data) {
+        promotions = data;
+        renderPromos();
+        renderCart();
+      }
     })
     .subscribe();
 }
@@ -304,18 +516,10 @@ function syncOrderTypeButtons() {
 
 function changeOrderType(type) {
   context = updateOrderContext({ order_type: type });
+  updateTableBadgeUI();
   syncOrderTypeButtons();
   updateSendButtonLabel();
   renderCart();
-}
-
-function promptChangeGuestName() {
-  const name = prompt('Ingresa tu nombre:', context.guest_name || '');
-  if (name && name.trim()) {
-    context.guest_name = setGuestName(name);
-    const el = document.getElementById('guestNameDisplay');
-    if (el) el.innerText = context.guest_name;
-  }
 }
 
 function handlePaymentMethodChange(method) {
@@ -346,8 +550,8 @@ async function captureCustomerLocation() {
     try {
       const lat = pos.coords.latitude;
       const lng = pos.coords.longitude;
-      const { subtotal } = getCurrentTotals();
-      const res = await calculateDeliveryFeeRPC(context.restaurant_id, lat, lng, subtotal);
+      const { subtotal, discount } = getCurrentTotals();
+      const res = await calculateDeliveryFeeRPC(context.restaurant_id, lat, lng, Math.max(0, subtotal - discount));
       deliveryState = {
         lat,
         lng,
@@ -410,7 +614,9 @@ function renderLiveOrderTracker() {
       </div>
     `;
   }).join('');
-  document.getElementById('trackerTotalAmount').innerText = `$${Number(activeOrder.total || 0).toFixed(2)} MXN`;
+
+  const discountTxt = Number(activeOrder.discount || 0) > 0 ? ` (Ahorro -$${Number(activeOrder.discount).toFixed(2)})` : '';
+  document.getElementById('trackerTotalAmount').innerText = `$${Number(activeOrder.total || 0).toFixed(2)} MXN${discountTxt}`;
 
   const splitBadge = document.getElementById('trackerSplitSummaryBadge');
   const splitTxt = document.getElementById('trackerSplitSummaryText');
@@ -532,9 +738,35 @@ function clearSearchInput() {
   handleSearch('');
 }
 
+function ensureModalItemNoteAndQty() {
+  const modSec = document.getElementById('modalModifiersSection');
+  if (!modSec || document.getElementById('modalItemNote')) return;
+
+  const extra = document.createElement('div');
+  extra.className = 'border-t border-stone-100 pt-4 space-y-3';
+  extra.innerHTML = `
+    <div>
+      <label class="block text-xs font-bold uppercase tracking-wider text-stone-400 mb-1.5">Indicaciones para este platillo (Opcional)</label>
+      <input type="text" id="modalItemNote" placeholder="Ej. Sin cebolla, salsa aparte, muy caliente..."
+        class="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-xs bg-stone-50 outline-none focus:border-amber-600">
+    </div>
+    <div class="flex items-center justify-between bg-stone-50 border border-stone-200 rounded-2xl px-3.5 py-2">
+      <span class="text-xs font-bold text-stone-700">Cantidad</span>
+      <div class="flex items-center gap-3">
+        <button type="button" onclick="window.changeModalQty(-1)" class="w-7 h-7 rounded-xl bg-white border font-black text-sm">−</button>
+        <span id="modalQtyDisplay" class="font-mono font-black text-sm w-5 text-center">1</span>
+        <button type="button" onclick="window.changeModalQty(1)" class="w-7 h-7 rounded-xl bg-white border font-black text-sm">+</button>
+      </div>
+    </div>
+  `;
+  modSec.insertAdjacentElement('afterend', extra);
+}
+
 function openProductModal(prodId) {
   const p = products.find(x => x.id === prodId);
   if (!p || p.is_available === false) return;
+  ensureModalItemNoteAndQty();
+
   currentModalProduct = p;
   currentModalGroups = modifierGroups.filter(g => g.product_id === p.id);
   modalSelections = [];
@@ -648,12 +880,12 @@ async function addCurrentModalToCart() {
 
   if (context.order_type === 'DINE_IN' && session) {
     if (!context.guest_name) {
-      context.guest_name = setGuestName(prompt('Ingresa tu nombre para etiquetar tu platillo:') || 'Invitado');
+      await openGuestNameModalAsync(true);
     }
     try {
       await addItemToGroupCart({
         restaurantId: context.restaurant_id,
-        guestName: context.guest_name,
+        guestName: context.guest_name || 'Invitado',
         productId: currentModalProduct.id,
         qty: modalQty,
         selectedModifiers: pricing.selectedModifiers,
@@ -689,17 +921,28 @@ function getActiveCartItems() {
   return localCart;
 }
 
+function isCartItemUnavailable(it) {
+  const prod = products.find(p => p.id === (it.product_id || it.id));
+  if (prod && prod.is_available === false) return true;
+  if (it.products && it.products.is_available === false) return true;
+  return false;
+}
+
 function getCurrentTotals() {
   const items = getActiveCartItems();
   const subtotal = items.reduce((acc, it) => acc + (Number(it.unit_price) * Number(it.qty)), 0);
+  const { discount, applied } = evaluatePromotionsUI(items);
+  const safeDiscount = Math.min(subtotal, discount);
   const deliveryFee = context.order_type === 'DELIVERY' ? Number(deliveryState.fee || 0) : 0;
-  return { subtotal, deliveryFee, total: subtotal + deliveryFee };
+  const total = Math.max(0, (subtotal - safeDiscount) + deliveryFee);
+  return { subtotal, discount: safeDiscount, appliedPromos: applied, deliveryFee, total };
 }
 
 function renderCart() {
   const items = getActiveCartItems();
   const hasItems = items.length > 0;
   const totalQty = items.reduce((acc, it) => acc + Number(it.qty), 0);
+  const hasUnavailable = items.some(isCartItemUnavailable);
 
   const navBadge = document.getElementById('navOrderBadge');
   if (navBadge) {
@@ -713,7 +956,10 @@ function renderCart() {
   const sendBtn = document.getElementById('btnSendOrder');
   const notesCard = document.getElementById('orderCustomerNotes')?.closest('.bg-white');
   if (extrasBox) extrasBox.classList.toggle('hidden', !hasItems);
-  if (sendBtn) sendBtn.classList.toggle('hidden', !hasItems || !orderingEnabled);
+  if (sendBtn) {
+    sendBtn.classList.toggle('hidden', !hasItems || !orderingEnabled);
+    sendBtn.disabled = hasUnavailable || isSubmittingOrder;
+  }
   if (notesCard) notesCard.classList.toggle('hidden', !hasItems);
 
   const list = document.getElementById('orderItemsList');
@@ -749,19 +995,21 @@ function renderCart() {
             const title = it.products?.title || it.title || 'Platillo';
             const modsTxt = (it.selected_modifiers || []).map(m => m.name).join(', ');
             const itemKey = it.id || it._idx;
+            const outOfStock = isCartItemUnavailable(it);
             return `
-              <div class="flex justify-between items-start gap-2 text-xs px-1">
+              <div class="flex justify-between items-start gap-2 text-xs px-1 ${outOfStock ? 'bg-rose-50 border border-rose-200 rounded-xl p-2' : ''}">
                 <div class="flex-grow">
-                  <h4 class="font-bold text-stone-900">${escapeHtml(title)}</h4>
+                  <h4 class="font-bold ${outOfStock ? 'text-rose-800 line-through' : 'text-stone-900'}">${escapeHtml(title)}</h4>
+                  ${outOfStock ? '<p class="text-[10px] font-black text-rose-600">⚠️ Agotado en cocina — Retira este platillo para enviar</p>' : ''}
                   ${modsTxt ? `<p class="text-[10px] text-amber-800">+ ${escapeHtml(modsTxt)}</p>` : ''}
                   ${it.notes ? `<p class="text-[10px] text-stone-500 italic">"${escapeHtml(it.notes)}"</p>` : ''}
                   <span class="font-mono font-bold text-stone-700">$${(Number(it.unit_price) * Number(it.qty)).toFixed(2)}</span>
                 </div>
                 <div class="flex items-center gap-1.5">
-                  <button onclick="window.updateCartQty('${itemKey}', -1)" class="w-6 h-6 rounded-lg bg-stone-100 font-bold">−</button>
+                  ${!outOfStock ? `<button onclick="window.updateCartQty('${itemKey}', -1)" class="w-6 h-6 rounded-lg bg-stone-100 font-bold">−</button>
                   <span class="font-mono font-bold w-4 text-center">${it.qty}</span>
-                  <button onclick="window.updateCartQty('${itemKey}', 1)" class="w-6 h-6 rounded-lg bg-stone-100 font-bold">+</button>
-                  <button onclick="window.removeCartItem('${itemKey}')" class="text-rose-500 font-bold ml-1 px-1">✕</button>
+                  <button onclick="window.updateCartQty('${itemKey}', 1)" class="w-6 h-6 rounded-lg bg-stone-100 font-bold">+</button>` : ''}
+                  <button onclick="window.removeCartItem('${itemKey}')" class="text-rose-600 font-bold ml-1 px-1.5 py-0.5 rounded bg-rose-100">✕</button>
                 </div>
               </div>
             `;
@@ -771,11 +1019,26 @@ function renderCart() {
     }).join('');
   }
 
-  const { subtotal, deliveryFee, total } = getCurrentTotals();
+  const { subtotal, discount, appliedPromos, deliveryFee, total } = getCurrentTotals();
   const subEl = document.getElementById('orderSubtotal');
   const totEl = document.getElementById('orderTotal');
+  const discBox = document.getElementById('appliedDiscountsBox');
+  const discList = document.getElementById('appliedDiscountsList');
+  const discRow = document.getElementById('orderDiscountRow');
+  const discAmt = document.getElementById('orderDiscountAmount');
+
   if (subEl) subEl.innerText = `$${subtotal.toFixed(2)}${deliveryFee > 0 ? ` (+ $${deliveryFee.toFixed(2)} envío)` : ''}`;
   if (totEl) totEl.innerText = `$${total.toFixed(2)} MXN`;
+
+  if (discBox && discList) {
+    discBox.classList.toggle('hidden', discount <= 0);
+    discList.innerHTML = appliedPromos.map(a => `<p>• ${escapeHtml(a)}</p>`).join('');
+  }
+  if (discRow && discAmt) {
+    discRow.classList.toggle('hidden', discount <= 0);
+    discAmt.innerText = `-$${discount.toFixed(2)}`;
+  }
+
   updateSendButtonLabel();
   updateCashChangePreview();
 }
@@ -803,7 +1066,7 @@ async function removeCartItem(itemKey) {
 }
 
 function buildLocalOrderSummaryForWhatsApp(items, cashTendered) {
-  const { subtotal, deliveryFee, total } = getCurrentTotals();
+  const { subtotal, discount, deliveryFee, total } = getCurrentTotals();
   const guestSubtotals = {};
   const snapshot = items.map(it => {
     const guest = it.guest_name || context.guest_name || 'General';
@@ -822,6 +1085,7 @@ function buildLocalOrderSummaryForWhatsApp(items, cashTendered) {
   return {
     order_number: null,
     subtotal,
+    discount,
     delivery_fee: deliveryFee,
     total,
     change_due: tendered > total ? tendered - total : 0,
@@ -836,6 +1100,10 @@ async function sendOrder() {
   const items = getActiveCartItems();
   if (items.length === 0) {
     showToast('No tienes platillos nuevos por enviar.', 'warning');
+    return;
+  }
+  if (items.some(isCartItemUnavailable)) {
+    showToast('Retira los platillos agotados (en rojo) antes de enviar tu orden.', 'warning');
     return;
   }
 
@@ -943,7 +1211,7 @@ function renderPromos() {
   list.innerHTML = promotions.map(p => `
     <div class="rounded-3xl p-5 shadow-md text-white space-y-1.5" style="background-color: ${p.bg_color || '#b45309'}; color: ${p.text_color || '#ffffff'}">
       <span class="text-[10px] uppercase tracking-wider font-black bg-white/20 px-2.5 py-0.5 rounded-full">
-        ${p.promo_type === '2x1' ? '2x1 Automático' : `${p.discount_percentage}% de Descuento`}
+        ${p.promo_type === '2x1' ? '2x1 Automático en Carrito' : `${p.discount_percentage}% de Descuento Automático`}
       </span>
       <h3 class="font-serif text-xl font-bold pt-1">${escapeHtml(p.title)}</h3>
       <p class="text-xs opacity-90">${escapeHtml(p.description || '')}</p>
@@ -972,7 +1240,7 @@ function connectWifi() {
   alert(`📶 Red Wi-Fi:\nRed: ${ssid}\nContraseña: ${pass}`);
 }
 
-async function callWaiter(forceImmediate = false, customToastMsg = null) {
+async function callWaiter(forceImmediate = false, customToastMsg = null, reasonText = 'Atención en mesa') {
   if (!forceImmediate && waiterCooldownSecs > 0) {
     return showToast(`Espera ${waiterCooldownSecs}s para volver a llamar.`, 'info');
   }
@@ -980,6 +1248,7 @@ async function callWaiter(forceImmediate = false, customToastMsg = null) {
     id: generateUUID(),
     restaurant_id: context.restaurant_id,
     table_number: context.table_number,
+    reason: reasonText,
     status: 'pending',
     called_at: new Date().toISOString()
   }]), 'llamar al mesero');
@@ -999,15 +1268,16 @@ async function callWaiter(forceImmediate = false, customToastMsg = null) {
   return true;
 }
 
-/**
- * Botón "Pagar la Cuenta": marca la mesa como 'bill_requested' y llama al mesero en automático.
- */
-async function requestBillFromTable() {
+function requestBillFromTable() {
   if (billRequestedRecently) {
     showToast('Ya avisamos al mesero para llevar tu cuenta. Enseguida te atiende.', 'info');
     return;
   }
+  openPayBillChoiceModal();
+}
 
+async function confirmPayBillRequest(paymentChoiceLabel) {
+  closePayBillChoiceModal();
   const payBtn = document.getElementById('btnPayBillNow');
   if (payBtn) {
     payBtn.disabled = true;
@@ -1021,7 +1291,11 @@ async function requestBillFromTable() {
       .eq('restaurant_id', context.restaurant_id)
       .eq('table_number', context.table_number);
 
-    await callWaiter(true, `💳 ¡Cuenta solicitada! El mesero va en camino a ${context.table_label}.`);
+    await callWaiter(
+      true,
+      `💳 ¡Cuenta solicitada (${paymentChoiceLabel})! El mesero va en camino.`,
+      `💳 Pagar Cuenta — ${paymentChoiceLabel}`
+    );
 
     billRequestedRecently = true;
     if (payBtn) {
@@ -1037,7 +1311,7 @@ async function requestBillFromTable() {
         payBtn.className = 'w-full bg-stone-900 hover:bg-stone-800 active:scale-95 text-white font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2 shadow-md transition';
       }
     }, 30000);
-  } catch (err) {
+  } catch {
     showToast('No se pudo solicitar la cuenta. Intenta de nuevo.', 'error');
     if (payBtn) {
       payBtn.disabled = false;
@@ -1049,13 +1323,12 @@ async function requestBillFromTable() {
 async function handleClientModifyOrder() {
   if (!activeOrder) return;
   const wantWaiter = confirm('¿Quieres avisar al mesero para modificar tu orden?');
-  if (wantWaiter) callWaiter();
+  if (wantWaiter) callWaiter(true, '🔔 Avisamos al mesero para modificar tu orden.', '✏️ Modificar orden');
 }
 
 // ============================================================================
-// DIVISIÓN DE CUENTA MEJORADA (Partes iguales | Por Artículos | Por Cantidad)
+// DIVISIÓN DE CUENTA (Partes iguales | Por Artículos | Por Cantidad)
 // ============================================================================
-
 function buildOrderUnits(order) {
   const items = (order?.items?.length ? order.items : order?.items_snapshot) || [];
   const units = [];
@@ -1091,10 +1364,8 @@ function openSplitBillModal() {
       paid: Boolean(p.paid),
       unitIds: Array.isArray(p.unitIds) ? [...p.unitIds] : []
     }));
-    const hasAssignedUnits = splitPersons.some(p => p.unitIds.length > 0);
-    splitPersonSubMode = hasAssignedUnits ? 'items' : 'amount';
+    splitPersonSubMode = splitPersons.some(p => p.unitIds.length > 0) ? 'items' : 'amount';
   } else {
-    // Pre-poblar con los nombres de los comensales del pedido grupal si existen
     const guestNames = [...new Set(splitOrderUnits.map(u => u.guest_name).filter(Boolean))];
     if (guestNames.length > 0) {
       splitPersons = guestNames.map((gName, idx) => {
@@ -1193,7 +1464,6 @@ function toggleUnitForPerson(personIdx, unitId) {
   if (!person) return;
 
   const alreadyMine = person.unitIds.includes(unitId);
-  // Quitar esta unidad de cualquier otro comensal para evitar cobro doble
   splitPersons.forEach(p => {
     p.unitIds = (p.unitIds || []).filter(id => id !== unitId);
   });
@@ -1202,7 +1472,6 @@ function toggleUnitForPerson(personIdx, unitId) {
     person.unitIds.push(unitId);
   }
 
-  // Recalcular montos desde artículos asignados
   splitPersons.forEach(p => {
     const sum = (p.unitIds || []).reduce((acc, uId) => {
       const u = splitOrderUnits.find(x => x.unitId === uId);
@@ -1382,13 +1651,15 @@ async function saveSplitBill() {
     ? Array.from({ length: count }, (_, i) => ({
         name: `Comensal ${i + 1}`,
         amount: Number((orderTotal / count).toFixed(2)),
-        paid: false
+        paid: false,
+        payment_method: 'cash'
       }))
     : splitPersons.map(p => ({
         id: p.id,
         name: p.name,
         amount: Number(Number(p.amount || 0).toFixed(2)),
         paid: Boolean(p.paid),
+        payment_method: 'cash',
         unitIds: p.unitIds || [],
         items: (p.unitIds || []).map(uId => {
           const u = splitOrderUnits.find(x => x.unitId === uId);
