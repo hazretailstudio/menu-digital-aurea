@@ -51,7 +51,6 @@ let waiterCooldownSecs = 0;
 let billRequestedRecently = false;
 let guestNameResolver = null;
 
-// Estado de división de cuenta
 let splitMode = 'equal';
 let splitPersonSubMode = 'items';
 let splitOrderUnits = [];
@@ -131,9 +130,6 @@ function updateTableBadgeUI() {
     : (context.order_type === 'DELIVERY' ? '🛵 Domicilio' : '🛍️ Recoger');
 }
 
-// ============================================================================
-// MODAL ELEGANTE PARA NOMBRE DE COMENSAL (ADIÓS prompt() NATIVO)
-// ============================================================================
 function ensureGuestNameModal() {
   if (document.getElementById('guestNameModal')) return;
   const m = document.createElement('div');
@@ -174,10 +170,7 @@ function openGuestNameModalAsync(isExistingSession = false) {
     setTimeout(() => input.focus(), 120);
   }
   modal.classList.remove('hidden');
-
-  return new Promise(resolve => {
-    guestNameResolver = resolve;
-  });
+  return new Promise(resolve => { guestNameResolver = resolve; });
 }
 
 function submitGuestNameModal() {
@@ -203,13 +196,8 @@ function closeGuestNameModal() {
   }
 }
 
-function promptChangeGuestName() {
-  openGuestNameModalAsync(false);
-}
+function promptChangeGuestName() { openGuestNameModalAsync(false); }
 
-// ============================================================================
-// MODAL DE PAGAR LA CUENTA (CON MOTIVO PARA EL MESERO: EFECTIVO / TPV / DIVIDIDA)
-// ============================================================================
 function ensurePayBillChoiceModal() {
   if (document.getElementById('payBillChoiceModal')) return;
   const m = document.createElement('div');
@@ -226,16 +214,13 @@ function ensurePayBillChoiceModal() {
       </div>
       <div class="space-y-2 text-xs font-bold">
         <button type="button" onclick="window.confirmPayBillRequest('Tarjeta (Llevar Terminal TPV)')" class="w-full p-3.5 rounded-2xl border-2 border-stone-200 hover:border-amber-500 bg-stone-50 flex items-center justify-between transition">
-          <span>💳 Tarjeta (Traer Terminal TPV)</span>
-          <span>→</span>
+          <span>💳 Tarjeta (Traer Terminal TPV)</span><span>→</span>
         </button>
         <button type="button" onclick="window.confirmPayBillRequest('Efectivo')" class="w-full p-3.5 rounded-2xl border-2 border-stone-200 hover:border-amber-500 bg-stone-50 flex items-center justify-between transition">
-          <span>💵 Efectivo</span>
-          <span>→</span>
+          <span>💵 Efectivo</span><span>→</span>
         </button>
         <button type="button" onclick="window.confirmPayBillRequest('Cuenta Dividida / Mixto')" class="w-full p-3.5 rounded-2xl border-2 border-amber-300 bg-amber-50 text-amber-950 flex items-center justify-between transition">
-          <span>👥 Cuenta Dividida / Pago Mixto</span>
-          <span>→</span>
+          <span>👥 Cuenta Dividida / Pago Mixto</span><span>→</span>
         </button>
       </div>
     </div>
@@ -264,11 +249,8 @@ function ensurePayBillButtonInTracker() {
   payBtn.className = 'w-full bg-stone-900 hover:bg-stone-800 active:scale-95 text-white font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2 shadow-md transition';
   payBtn.innerHTML = '<span>💳 Pagar la Cuenta (Llamar al Mesero)</span>';
 
-  if (waBtn && waBtn.parentNode) {
-    waBtn.parentNode.insertBefore(payBtn, waBtn);
-  } else {
-    tracker.querySelector('.bg-white')?.appendChild(payBtn);
-  }
+  if (waBtn && waBtn.parentNode) waBtn.parentNode.insertBefore(payBtn, waBtn);
+  else tracker.querySelector('.bg-white')?.appendChild(payBtn);
 }
 
 function ensureSplitSubModeUI() {
@@ -289,13 +271,9 @@ function ensureSplitSubModeUI() {
     </div>
     <div id="splitMissingBanner" class="rounded-2xl p-3 border text-xs space-y-1.5"></div>
   `;
-
   area.prepend(bar);
 }
 
-// ============================================================================
-// MOTOR DE PROMOCIONES AUTOMÁTICAS EN UI (ESPEJO DE POSTGRESQL)
-// ============================================================================
 function evaluatePromotionsUI(items) {
   if (!promotions || promotions.length === 0 || !items || items.length === 0) {
     return { discount: 0, applied: [] };
@@ -304,12 +282,7 @@ function evaluatePromotionsUI(items) {
   const tz = restaurant?.timezone || 'America/Mexico_City';
   const now = new Date();
   const fmt = new Intl.DateTimeFormat('en-US', {
-    timeZone: tz,
-    weekday: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false
+    timeZone: tz, weekday: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
   });
   const parts = Object.fromEntries(fmt.formatToParts(now).map(p => [p.type, p.value]));
   const dowMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
@@ -320,12 +293,8 @@ function evaluatePromotionsUI(items) {
   const applied = [];
 
   for (const promo of promotions) {
-    if (Array.isArray(promo.days_of_week) && promo.days_of_week.length > 0 && !promo.days_of_week.includes(dow)) {
-      continue;
-    }
-    if (promo.start_time && promo.end_time && (curTime < promo.start_time || curTime > promo.end_time)) {
-      continue;
-    }
+    if (Array.isArray(promo.days_of_week) && promo.days_of_week.length > 0 && !promo.days_of_week.includes(dow)) continue;
+    if (promo.start_time && promo.end_time && (curTime < promo.start_time || curTime > promo.end_time)) continue;
 
     let promoDisc = 0;
     for (const it of items) {
@@ -367,13 +336,9 @@ function updateSendButtonLabel() {
   const mode = restaurant?.order_delivery_mode || 'KDS';
   const hasActiveTicket = Boolean(activeOrder && context.order_type === 'DINE_IN');
 
-  if (mode === 'WHATSAPP') {
-    btn.innerText = '💬 Enviar Pedido por WhatsApp';
-  } else if (mode === 'BOTH') {
-    btn.innerText = hasActiveTicket ? '➕ Sumar a mi Ticket y Abrir WhatsApp' : '🍽️ Confirmar Pedido y Abrir WhatsApp';
-  } else {
-    btn.innerText = hasActiveTicket ? '➕ Sumar al Ticket en Cocina' : '🍽️ Enviar Pedido a Cocina';
-  }
+  if (mode === 'WHATSAPP') btn.innerText = '💬 Enviar Pedido por WhatsApp';
+  else if (mode === 'BOTH') btn.innerText = hasActiveTicket ? '➕ Sumar a mi Ticket y Abrir WhatsApp' : '🍽️ Confirmar Pedido y Abrir WhatsApp';
+  else btn.innerText = hasActiveTicket ? '➕ Sumar al Ticket en Cocina' : '🍽️ Enviar Pedido a Cocina';
 }
 
 async function loadMenuData() {
@@ -439,7 +404,7 @@ function subscribeMenuRealtime() {
       if (data) {
         products = data;
         renderCatalog();
-        renderCart(); // Refresca alertas 86 si un platillo en carrito se agotó
+        renderCart();
       }
     })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'promotions', filter: `restaurant_id=eq.${rId}` }, async () => {
@@ -449,6 +414,10 @@ function subscribeMenuRealtime() {
         renderPromos();
         renderCart();
       }
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'product_modifiers', filter: `restaurant_id=eq.${rId}` }, async () => {
+      const { data } = await client.from('product_modifiers').select('*').eq('restaurant_id', rId).order('name', { ascending: true });
+      if (data) legacyModifiers = data;
     })
     .subscribe();
 }
@@ -494,11 +463,8 @@ function ensureCheckoutExtrasUI() {
   `;
 
   const sendBtn = document.getElementById('btnSendOrder');
-  if (sendBtn && sendBtn.parentNode) {
-    sendBtn.parentNode.insertBefore(box, sendBtn);
-  } else {
-    orderView.appendChild(box);
-  }
+  if (sendBtn && sendBtn.parentNode) sendBtn.parentNode.insertBefore(box, sendBtn);
+  else orderView.appendChild(box);
   syncOrderTypeButtons();
 }
 
@@ -540,10 +506,7 @@ function updateCashChangePreview() {
 
 async function captureCustomerLocation() {
   const statusEl = document.getElementById('deliveryFeeStatus');
-  if (!navigator.geolocation) {
-    showToast('Tu navegador no soporta geolocalización.', 'error');
-    return;
-  }
+  if (!navigator.geolocation) { showToast('Tu navegador no soporta geolocalización.', 'error'); return; }
   if (statusEl) statusEl.innerText = 'Obteniendo ubicación...';
 
   navigator.geolocation.getCurrentPosition(async (pos) => {
@@ -553,9 +516,7 @@ async function captureCustomerLocation() {
       const { subtotal, discount } = getCurrentTotals();
       const res = await calculateDeliveryFeeRPC(context.restaurant_id, lat, lng, Math.max(0, subtotal - discount));
       deliveryState = {
-        lat,
-        lng,
-        fee: Number(res.fee || 0),
+        lat, lng, fee: Number(res.fee || 0),
         infoText: res.mode === 'ZONE'
           ? `✓ Zona ${res.zone_name}: Envío $${Number(res.fee).toFixed(2)} MXN`
           : `✓ Distancia ${res.distance_km} km: Envío $${Number(res.fee).toFixed(2)} MXN`
@@ -701,12 +662,15 @@ function renderCatalog() {
       </div>
       <div class="space-y-3">
         ${sec.items.map(p => {
-          const img = (p.media && p.media[0]?.url) || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80';
+          const firstImg = (p.media || []).find(m => m.type !== 'video') || p.media?.[0];
+          const img = firstImg?.url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80';
+          const hasVideo = (p.media || []).some(m => m.type === 'video');
           const disabled = p.is_available === false || !sec.inHours;
           return `
             <div onclick="${disabled ? '' : `window.openProductModal('${p.id}')`}" class="bg-white rounded-2xl p-3 border border-stone-200/80 shadow-xs flex gap-3 items-center transition ${disabled ? 'opacity-60 grayscale cursor-not-allowed' : 'cursor-pointer hover:border-amber-400'}">
               <div class="w-24 h-24 rounded-xl overflow-hidden flex-shrink-0 bg-stone-100 relative">
                 <img src="${img}" alt="${escapeHtml(p.title)}" class="w-full h-full object-cover">
+                ${hasVideo ? '<span class="absolute top-1 left-1 bg-black/70 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md">🎬 Video</span>' : ''}
                 ${p.is_available === false ? '<div class="absolute inset-0 bg-black/60 flex items-center justify-center text-[10px] font-black text-white uppercase">Agotado</div>' : ''}
               </div>
               <div class="flex-grow min-w-0">
@@ -772,8 +736,24 @@ function openProductModal(prodId) {
   modalSelections = [];
   modalQty = 1;
 
-  const imgs = (p.media && p.media.length > 0) ? p.media : [{ url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80' }];
-  document.getElementById('modalMediaCarousel').innerHTML = imgs.map(m => `<img src="${m.url}" class="w-full h-full object-cover flex-shrink-0 snap-center">`).join('');
+  const mediaItems = (p.media && p.media.length > 0)
+    ? p.media
+    : [{ type: 'image', url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80' }];
+
+  document.getElementById('modalMediaCarousel').innerHTML = mediaItems.map((m, idx) => {
+    const counter = mediaItems.length > 1
+      ? `<span class="absolute bottom-2 right-2 bg-black/65 text-white text-[10px] font-bold px-2 py-0.5 rounded-full pointer-events-none">${idx + 1}/${mediaItems.length} · Desliza →</span>`
+      : '';
+    if (m.type === 'video') {
+      const ytMatch = (m.url || '').match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([A-Za-z0-9_-]{6,})/);
+      if (ytMatch) {
+        return `<div class="relative w-full h-full flex-shrink-0 snap-center bg-black"><iframe src="https://www.youtube.com/embed/${ytMatch[1]}" class="w-full h-full" frameborder="0" allowfullscreen></iframe>${counter}</div>`;
+      }
+      return `<div class="relative w-full h-full flex-shrink-0 snap-center bg-black"><video src="${m.url}" controls playsinline preload="metadata" class="w-full h-full object-cover"></video>${counter}</div>`;
+    }
+    return `<div class="relative w-full h-full flex-shrink-0 snap-center"><img src="${m.url}" class="w-full h-full object-cover">${counter}</div>`;
+  }).join('');
+
   document.getElementById('modalTitle').innerText = p.title;
   document.getElementById('modalPrice').innerText = `$${Number(p.price).toFixed(2)}`;
   document.getElementById('modalDesc').innerText = p.description || '';
@@ -810,7 +790,10 @@ function openProductModal(prodId) {
       `).join('');
     }
   } else {
-    const applicable = legacyModifiers.filter(m => !m.applies_to_products || m.applies_to_products.length === 0 || m.applies_to_products.includes(p.id));
+    const applicable = legacyModifiers.filter(m =>
+      m.is_available !== false &&
+      (!m.applies_to_products || m.applies_to_products.length === 0 || m.applies_to_products.includes(p.id))
+    );
     if (applicable.length > 0) {
       modSec?.classList.remove('hidden');
       if (modList) {
@@ -841,14 +824,19 @@ function closeProductModal() {
   currentModalProduct = null;
 }
 
+// FIX: Normaliza groupId || null para que al deseleccionar siempre reste y nunca duplique
 function toggleModifierOption(groupId, optionId, checked, isSingle) {
+  const normGroupId = groupId || null;
   if (isSingle) {
-    modalSelections = modalSelections.filter(s => s.group_id !== groupId);
+    modalSelections = modalSelections.filter(s => (s.group_id || null) !== normGroupId);
   } else {
-    modalSelections = modalSelections.filter(s => !(s.group_id === groupId && s.option_id === optionId));
+    modalSelections = modalSelections.filter(s => !((s.group_id || null) === normGroupId && s.option_id === optionId));
   }
   if (checked) {
-    modalSelections.push({ group_id: groupId || null, option_id: optionId, qty: 1 });
+    const alreadyExists = modalSelections.some(s => (s.group_id || null) === normGroupId && s.option_id === optionId);
+    if (!alreadyExists) {
+      modalSelections.push({ group_id: normGroupId, option_id: optionId, qty: 1 });
+    }
   }
   updateModalFinalPrice();
 }
@@ -879,9 +867,7 @@ async function addCurrentModalToCart() {
   const session = getActiveTableSession();
 
   if (context.order_type === 'DINE_IN' && session) {
-    if (!context.guest_name) {
-      await openGuestNameModalAsync(true);
-    }
+    if (!context.guest_name) await openGuestNameModalAsync(true);
     try {
       await addItemToGroupCart({
         restaurantId: context.restaurant_id,
@@ -915,9 +901,7 @@ async function addCurrentModalToCart() {
 }
 
 function getActiveCartItems() {
-  if (context.order_type === 'DINE_IN' && getActiveTableSession()) {
-    return groupCartSummary.items;
-  }
+  if (context.order_type === 'DINE_IN' && getActiveTableSession()) return groupCartSummary.items;
   return localCart;
 }
 
@@ -1057,12 +1041,8 @@ async function updateCartQty(itemKey, delta) {
 }
 
 async function removeCartItem(itemKey) {
-  if (context.order_type === 'DINE_IN' && getActiveTableSession()) {
-    await removeGroupCartItem(itemKey);
-  } else {
-    localCart.splice(Number(itemKey), 1);
-    renderCart();
-  }
+  if (context.order_type === 'DINE_IN' && getActiveTableSession()) await removeGroupCartItem(itemKey);
+  else { localCart.splice(Number(itemKey), 1); renderCart(); }
 }
 
 function buildLocalOrderSummaryForWhatsApp(items, cashTendered) {
@@ -1083,33 +1063,20 @@ function buildLocalOrderSummaryForWhatsApp(items, cashTendered) {
   });
   const tendered = Number(cashTendered || 0);
   return {
-    order_number: null,
-    subtotal,
-    discount,
-    delivery_fee: deliveryFee,
-    total,
+    order_number: null, subtotal, discount, delivery_fee: deliveryFee, total,
     change_due: tendered > total ? tendered - total : 0,
-    items_snapshot: snapshot,
-    guest_subtotals: guestSubtotals
+    items_snapshot: snapshot, guest_subtotals: guestSubtotals
   };
 }
 
 async function sendOrder() {
   if (isSubmittingOrder) return;
-
   const items = getActiveCartItems();
-  if (items.length === 0) {
-    showToast('No tienes platillos nuevos por enviar.', 'warning');
-    return;
-  }
-  if (items.some(isCartItemUnavailable)) {
-    showToast('Retira los platillos agotados (en rojo) antes de enviar tu orden.', 'warning');
-    return;
-  }
+  if (items.length === 0) { showToast('No tienes platillos nuevos por enviar.', 'warning'); return; }
+  if (items.some(isCartItemUnavailable)) { showToast('Retira los platillos agotados (en rojo) antes de enviar tu orden.', 'warning'); return; }
 
   const deliveryMode = restaurant?.order_delivery_mode || 'KDS';
   const whatsappNumber = restaurant?.whatsapp_number || '';
-
   if ((deliveryMode === 'WHATSAPP' || deliveryMode === 'BOTH') && !whatsappNumber) {
     showToast('El restaurante aún no ha configurado su número de WhatsApp en el Admin.', 'error');
     return;
@@ -1128,10 +1095,7 @@ async function sendOrder() {
 
   isSubmittingOrder = true;
   const btn = document.getElementById('btnSendOrder');
-  if (btn) {
-    btn.disabled = true;
-    btn.innerText = 'Enviando...';
-  }
+  if (btn) { btn.disabled = true; btn.innerText = 'Enviando...'; }
 
   try {
     let orderResult = null;
@@ -1140,19 +1104,13 @@ async function sendOrder() {
     if (deliveryMode === 'KDS' || deliveryMode === 'BOTH') {
       const onesignalPlayerId = window.OneSignal?.User?.PushSubscription?.id || null;
       orderResult = await submitOrderViaRPC({
-        context,
-        itemsToOrder: itemsCopy,
+        context, itemsToOrder: itemsCopy,
         customerName: context.guest_name || 'Cliente',
-        customerPhone,
-        deliveryAddress,
-        deliveryLat: deliveryState.lat,
-        deliveryLng: deliveryState.lng,
-        paymentMethod,
-        cashTendered,
+        customerPhone, deliveryAddress,
+        deliveryLat: deliveryState.lat, deliveryLng: deliveryState.lng,
+        paymentMethod, cashTendered,
         requiresCardTerminal: paymentMethod === 'CARD_TERMINAL',
-        customerNotes,
-        onesignalPlayerId,
-        closeSession: false
+        customerNotes, onesignalPlayerId, closeSession: false
       });
 
       const msg = orderResult.merged
@@ -1172,19 +1130,12 @@ async function sendOrder() {
 
     if (deliveryMode === 'WHATSAPP' || deliveryMode === 'BOTH') {
       const waUrl = buildWhatsAppOrderUrl({
-        whatsappNumber,
-        restaurantName: restaurant?.name || 'Restaurante',
-        orderResult,
-        orderType: context.order_type,
-        tableLabel: context.table_label,
-        customerName: context.guest_name,
-        deliveryAddress,
-        deliveryLat: deliveryState.lat,
-        deliveryLng: deliveryState.lng,
-        paymentMethod,
-        cashTendered,
-        requiresCardTerminal: paymentMethod === 'CARD_TERMINAL',
-        customerNotes
+        whatsappNumber, restaurantName: restaurant?.name || 'Restaurante',
+        orderResult, orderType: context.order_type, tableLabel: context.table_label,
+        customerName: context.guest_name, deliveryAddress,
+        deliveryLat: deliveryState.lat, deliveryLng: deliveryState.lng,
+        paymentMethod, cashTendered,
+        requiresCardTerminal: paymentMethod === 'CARD_TERMINAL', customerNotes
       });
       window.open(waUrl, '_blank');
     }
@@ -1241,16 +1192,11 @@ function connectWifi() {
 }
 
 async function callWaiter(forceImmediate = false, customToastMsg = null, reasonText = 'Atención en mesa') {
-  if (!forceImmediate && waiterCooldownSecs > 0) {
-    return showToast(`Espera ${waiterCooldownSecs}s para volver a llamar.`, 'info');
-  }
+  if (!forceImmediate && waiterCooldownSecs > 0) return showToast(`Espera ${waiterCooldownSecs}s para volver a llamar.`, 'info');
   const { error } = await dbWrite(client.from('waiter_calls').insert([{
-    id: generateUUID(),
-    restaurant_id: context.restaurant_id,
-    table_number: context.table_number,
-    reason: reasonText,
-    status: 'pending',
-    called_at: new Date().toISOString()
+    id: generateUUID(), restaurant_id: context.restaurant_id,
+    table_number: context.table_number, reason: reasonText,
+    status: 'pending', called_at: new Date().toISOString()
   }]), 'llamar al mesero');
   if (error) return false;
 
@@ -1269,40 +1215,24 @@ async function callWaiter(forceImmediate = false, customToastMsg = null, reasonT
 }
 
 function requestBillFromTable() {
-  if (billRequestedRecently) {
-    showToast('Ya avisamos al mesero para llevar tu cuenta. Enseguida te atiende.', 'info');
-    return;
-  }
+  if (billRequestedRecently) { showToast('Ya avisamos al mesero para llevar tu cuenta. Enseguida te atiende.', 'info'); return; }
   openPayBillChoiceModal();
 }
 
 async function confirmPayBillRequest(paymentChoiceLabel) {
   closePayBillChoiceModal();
   const payBtn = document.getElementById('btnPayBillNow');
-  if (payBtn) {
-    payBtn.disabled = true;
-    payBtn.innerHTML = '<span>⏳ Avisando al mesero...</span>';
-  }
+  if (payBtn) { payBtn.disabled = true; payBtn.innerHTML = '<span>⏳ Avisando al mesero...</span>'; }
 
   try {
-    await client
-      .from('tables')
-      .update({ status: 'bill_requested' })
-      .eq('restaurant_id', context.restaurant_id)
-      .eq('table_number', context.table_number);
-
-    await callWaiter(
-      true,
-      `💳 ¡Cuenta solicitada (${paymentChoiceLabel})! El mesero va en camino.`,
-      `💳 Pagar Cuenta — ${paymentChoiceLabel}`
-    );
+    await client.from('tables').update({ status: 'bill_requested' }).eq('restaurant_id', context.restaurant_id).eq('table_number', context.table_number);
+    await callWaiter(true, `💳 ¡Cuenta solicitada (${paymentChoiceLabel})! El mesero va en camino.`, `💳 Pagar Cuenta — ${paymentChoiceLabel}`);
 
     billRequestedRecently = true;
     if (payBtn) {
       payBtn.innerHTML = '<span>✓ Cuenta Solicitada — Mesero en Camino</span>';
       payBtn.className = 'w-full bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm';
     }
-
     setTimeout(() => {
       billRequestedRecently = false;
       if (payBtn) {
@@ -1313,10 +1243,7 @@ async function confirmPayBillRequest(paymentChoiceLabel) {
     }, 30000);
   } catch {
     showToast('No se pudo solicitar la cuenta. Intenta de nuevo.', 'error');
-    if (payBtn) {
-      payBtn.disabled = false;
-      payBtn.innerHTML = '<span>💳 Pagar la Cuenta (Llamar al Mesero)</span>';
-    }
+    if (payBtn) { payBtn.disabled = false; payBtn.innerHTML = '<span>💳 Pagar la Cuenta (Llamar al Mesero)</span>'; }
   }
 }
 
@@ -1326,9 +1253,6 @@ async function handleClientModifyOrder() {
   if (wantWaiter) callWaiter(true, '🔔 Avisamos al mesero para modificar tu orden.', '✏️ Modificar orden');
 }
 
-// ============================================================================
-// DIVISIÓN DE CUENTA (Partes iguales | Por Artículos | Por Cantidad)
-// ============================================================================
 function buildOrderUnits(order) {
   const items = (order?.items?.length ? order.items : order?.items_snapshot) || [];
   const units = [];
@@ -1336,12 +1260,7 @@ function buildOrderUnits(order) {
     const qty = Math.max(1, Number(it.qty || 1));
     const unitPrice = Number(it.price || it.unit_price || 0);
     for (let q = 0; q < qty; q++) {
-      units.push({
-        unitId: `u_${idx}_${q}`,
-        title: it.title || 'Platillo',
-        price: unitPrice,
-        guest_name: it.guest_name || ''
-      });
+      units.push({ unitId: `u_${idx}_${q}`, title: it.title || 'Platillo', price: unitPrice, guest_name: it.guest_name || '' });
     }
   });
   return units;
@@ -1350,7 +1269,6 @@ function buildOrderUnits(order) {
 function openSplitBillModal() {
   if (!activeOrder) return;
   ensureSplitSubModeUI();
-
   document.getElementById('splitModalTableBadge').innerText = context.table_number;
   document.getElementById('splitModalTotalBadge').innerText = `$${Number(activeOrder.total || 0).toFixed(2)}`;
 
@@ -1358,29 +1276,23 @@ function openSplitBillModal() {
 
   if (Array.isArray(activeOrder.split_details) && activeOrder.split_details.length > 0 && activeOrder.split_type === 'by_person') {
     splitPersons = activeOrder.split_details.map((p, idx) => ({
-      id: p.id || `p_${idx}_${Date.now()}`,
-      name: p.name,
-      amount: Number(p.amount || 0),
-      paid: Boolean(p.paid),
+      id: p.id || `p_${idx}_${Date.now()}`, name: p.name,
+      amount: Number(p.amount || 0), paid: Boolean(p.paid),
       unitIds: Array.isArray(p.unitIds) ? [...p.unitIds] : []
     }));
     splitPersonSubMode = splitPersons.some(p => p.unitIds.length > 0) ? 'items' : 'amount';
   } else {
     const guestNames = [...new Set(splitOrderUnits.map(u => u.guest_name).filter(Boolean))];
-    if (guestNames.length > 0) {
-      splitPersons = guestNames.map((gName, idx) => {
-        const myUnits = splitOrderUnits.filter(u => u.guest_name === gName);
-        return {
-          id: `p_${idx}_${Date.now()}`,
-          name: gName,
-          amount: Number(myUnits.reduce((s, u) => s + u.price, 0).toFixed(2)),
-          paid: false,
-          unitIds: myUnits.map(u => u.unitId)
-        };
-      });
-    } else {
-      splitPersons = [];
-    }
+    splitPersons = guestNames.length > 0
+      ? guestNames.map((gName, idx) => {
+          const myUnits = splitOrderUnits.filter(u => u.guest_name === gName);
+          return {
+            id: `p_${idx}_${Date.now()}`, name: gName,
+            amount: Number(myUnits.reduce((s, u) => s + u.price, 0).toFixed(2)),
+            paid: false, unitIds: myUnits.map(u => u.unitId)
+          };
+        })
+      : [];
     splitPersonSubMode = 'items';
   }
 
@@ -1391,86 +1303,51 @@ function openSplitBillModal() {
   document.getElementById('splitBillModal').classList.remove('hidden');
 }
 
-function closeSplitBillModal() {
-  document.getElementById('splitBillModal')?.classList.add('hidden');
-}
+function closeSplitBillModal() { document.getElementById('splitBillModal')?.classList.add('hidden'); }
 
 function selectSplitMode(mode) {
   splitMode = mode;
   document.getElementById('splitEqualArea')?.classList.toggle('hidden', mode !== 'equal');
   document.getElementById('splitByPersonArea')?.classList.toggle('hidden', mode !== 'by_person');
-
   const btnEq = document.getElementById('btnSplitEqual');
   const btnIt = document.getElementById('btnSplitItems');
-  if (btnEq) {
-    btnEq.className = mode === 'equal'
-      ? 'p-3 border-2 border-amber-600 bg-amber-50 rounded-2xl text-amber-950 text-center transition font-bold shadow-xs'
-      : 'p-3 border-2 border-stone-200 bg-white rounded-2xl text-stone-700 text-center transition font-bold';
-  }
-  if (btnIt) {
-    btnIt.className = mode === 'by_person'
-      ? 'p-3 border-2 border-amber-600 bg-amber-50 rounded-2xl text-amber-950 text-center transition font-bold shadow-xs'
-      : 'p-3 border-2 border-stone-200 bg-white rounded-2xl text-stone-700 text-center transition font-bold';
-  }
+  if (btnEq) btnEq.className = mode === 'equal' ? 'p-3 border-2 border-amber-600 bg-amber-50 rounded-2xl text-amber-950 text-center transition font-bold shadow-xs' : 'p-3 border-2 border-stone-200 bg-white rounded-2xl text-stone-700 text-center transition font-bold';
+  if (btnIt) btnIt.className = mode === 'by_person' ? 'p-3 border-2 border-amber-600 bg-amber-50 rounded-2xl text-amber-950 text-center transition font-bold shadow-xs' : 'p-3 border-2 border-stone-200 bg-white rounded-2xl text-stone-700 text-center transition font-bold';
 }
 
 function selectSplitPersonSubMode(subMode) {
   splitPersonSubMode = subMode;
   const bItems = document.getElementById('btnSubModeItems');
   const bAmount = document.getElementById('btnSubModeAmount');
-  if (bItems) {
-    bItems.className = subMode === 'items'
-      ? 'py-1.5 rounded-lg bg-white text-stone-900 shadow-xs transition'
-      : 'py-1.5 rounded-lg text-stone-500 transition';
-  }
-  if (bAmount) {
-    bAmount.className = subMode === 'amount'
-      ? 'py-1.5 rounded-lg bg-white text-stone-900 shadow-xs transition'
-      : 'py-1.5 rounded-lg text-stone-500 transition';
-  }
+  if (bItems) bItems.className = subMode === 'items' ? 'py-1.5 rounded-lg bg-white text-stone-900 shadow-xs transition' : 'py-1.5 rounded-lg text-stone-500 transition';
+  if (bAmount) bAmount.className = subMode === 'amount' ? 'py-1.5 rounded-lg bg-white text-stone-900 shadow-xs transition' : 'py-1.5 rounded-lg text-stone-500 transition';
   renderSplitPersons();
 }
 
 function calculateEqualSplit() {
   if (!activeOrder) return;
   const count = Math.max(2, parseInt(document.getElementById('splitCountInput')?.value) || 2);
-  const per = Number(activeOrder.total || 0) / count;
   const el = document.getElementById('equalSplitPerPerson');
-  if (el) el.innerText = `$${per.toFixed(2)} MXN`;
+  if (el) el.innerText = `$${(Number(activeOrder.total || 0) / count).toFixed(2)} MXN`;
 }
 
 function addSplitPerson() {
   const inp = document.getElementById('splitPersonNameInput');
   const name = inp?.value?.trim();
   if (!name) return;
-  splitPersons.push({
-    id: `p_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-    name,
-    amount: 0,
-    paid: false,
-    unitIds: []
-  });
+  splitPersons.push({ id: `p_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, name, amount: 0, paid: false, unitIds: [] });
   inp.value = '';
   renderSplitPersons();
 }
 
-function removeSplitPerson(idx) {
-  splitPersons.splice(idx, 1);
-  renderSplitPersons();
-}
+function removeSplitPerson(idx) { splitPersons.splice(idx, 1); renderSplitPersons(); }
 
 function toggleUnitForPerson(personIdx, unitId) {
   const person = splitPersons[personIdx];
   if (!person) return;
-
   const alreadyMine = person.unitIds.includes(unitId);
-  splitPersons.forEach(p => {
-    p.unitIds = (p.unitIds || []).filter(id => id !== unitId);
-  });
-
-  if (!alreadyMine) {
-    person.unitIds.push(unitId);
-  }
+  splitPersons.forEach(p => { p.unitIds = (p.unitIds || []).filter(id => id !== unitId); });
+  if (!alreadyMine) person.unitIds.push(unitId);
 
   splitPersons.forEach(p => {
     const sum = (p.unitIds || []).reduce((acc, uId) => {
@@ -1479,7 +1356,6 @@ function toggleUnitForPerson(personIdx, unitId) {
     }, 0);
     p.amount = Number(sum.toFixed(2));
   });
-
   renderSplitPersons();
 }
 
@@ -1498,18 +1374,10 @@ function updateSplitTotalsAndBanner() {
   const elAssigned = document.getElementById('splitAssignedTotal');
   const elRemaining = document.getElementById('splitRemainingTotal');
   if (elAssigned) elAssigned.innerText = `$${assignedSum.toFixed(2)} MXN`;
-
   if (elRemaining) {
-    if (remaining > 0.01) {
-      elRemaining.innerText = `Faltan $${remaining.toFixed(2)} MXN`;
-      elRemaining.className = 'text-rose-600 font-black';
-    } else if (remaining < -0.01) {
-      elRemaining.innerText = `Excedido por $${Math.abs(remaining).toFixed(2)} MXN`;
-      elRemaining.className = 'text-rose-600 font-black';
-    } else {
-      elRemaining.innerText = '$0.00 (Cuenta cuadrada ✓)';
-      elRemaining.className = 'text-emerald-700 font-black';
-    }
+    if (remaining > 0.01) { elRemaining.innerText = `Faltan $${remaining.toFixed(2)} MXN`; elRemaining.className = 'text-rose-600 font-black'; }
+    else if (remaining < -0.01) { elRemaining.innerText = `Excedido por $${Math.abs(remaining).toFixed(2)} MXN`; elRemaining.className = 'text-rose-600 font-black'; }
+    else { elRemaining.innerText = '$0.00 (Cuenta cuadrada ✓)'; elRemaining.className = 'text-emerald-700 font-black'; }
   }
 
   const banner = document.getElementById('splitMissingBanner');
@@ -1561,9 +1429,7 @@ function renderSplitPersons() {
 
   if (splitPersonSubMode === 'items') {
     const unitOwnerMap = {};
-    splitPersons.forEach(p => {
-      (p.unitIds || []).forEach(uId => { unitOwnerMap[uId] = p.name; });
-    });
+    splitPersons.forEach(p => { (p.unitIds || []).forEach(uId => { unitOwnerMap[uId] = p.name; }); });
 
     cont.innerHTML = splitPersons.map((p, idx) => `
       <div class="p-3 rounded-2xl bg-stone-50 border border-stone-200 space-y-2">
@@ -1581,8 +1447,7 @@ function renderSplitPersons() {
             const ownedByOther = owner && !isMine;
             return `
               <label class="flex items-center justify-between gap-2 px-2 py-1.5 rounded-xl border text-[11px] cursor-pointer transition ${
-                isMine
-                  ? 'bg-amber-50 border-amber-400 font-bold text-stone-900'
+                isMine ? 'bg-amber-50 border-amber-400 font-bold text-stone-900'
                   : (ownedByOther ? 'bg-stone-100 border-stone-200 text-stone-400' : 'bg-white border-stone-200 text-stone-700 hover:border-amber-300')
               }">
                 <div class="flex items-center gap-2 min-w-0">
@@ -1620,47 +1485,27 @@ async function saveSplitBill() {
   const orderTotal = Number(activeOrder.total || 0);
 
   if (splitMode === 'by_person') {
-    if (splitPersons.length === 0) {
-      showToast('Añade al menos un comensal para dividir la cuenta.', 'warning');
-      return;
-    }
-
+    if (splitPersons.length === 0) { showToast('Añade al menos un comensal para dividir la cuenta.', 'warning'); return; }
     if (splitPersonSubMode === 'items') {
       const assignedIds = new Set(splitPersons.flatMap(p => p.unitIds || []));
       const missingCount = splitOrderUnits.filter(u => !assignedIds.has(u.unitId)).length;
-      if (missingCount > 0) {
-        showToast(`Aún faltan ${missingCount} artículo(s) por asignar a un comensal.`, 'warning');
-        return;
-      }
+      if (missingCount > 0) { showToast(`Aún faltan ${missingCount} artículo(s) por asignar a un comensal.`, 'warning'); return; }
     } else {
       const assignedSum = splitPersons.reduce((acc, p) => acc + Number(p.amount || 0), 0);
       const diff = Number((orderTotal - assignedSum).toFixed(2));
-      if (diff > 0.01) {
-        showToast(`Faltan $${diff.toFixed(2)} MXN por asignar para liquidar la cuenta.`, 'warning');
-        return;
-      }
-      if (diff < -0.01) {
-        showToast(`La suma excede la cuenta por $${Math.abs(diff).toFixed(2)} MXN.`, 'warning');
-        return;
-      }
+      if (diff > 0.01) { showToast(`Faltan $${diff.toFixed(2)} MXN por asignar para liquidar la cuenta.`, 'warning'); return; }
+      if (diff < -0.01) { showToast(`La suma excede la cuenta por $${Math.abs(diff).toFixed(2)} MXN.`, 'warning'); return; }
     }
   }
 
   const count = Math.max(2, parseInt(document.getElementById('splitCountInput')?.value) || 2);
   const details = splitMode === 'equal'
     ? Array.from({ length: count }, (_, i) => ({
-        name: `Comensal ${i + 1}`,
-        amount: Number((orderTotal / count).toFixed(2)),
-        paid: false,
-        payment_method: 'cash'
+        name: `Comensal ${i + 1}`, amount: Number((orderTotal / count).toFixed(2)), paid: false, payment_method: 'cash'
       }))
     : splitPersons.map(p => ({
-        id: p.id,
-        name: p.name,
-        amount: Number(Number(p.amount || 0).toFixed(2)),
-        paid: Boolean(p.paid),
-        payment_method: 'cash',
-        unitIds: p.unitIds || [],
+        id: p.id, name: p.name, amount: Number(Number(p.amount || 0).toFixed(2)),
+        paid: Boolean(p.paid), payment_method: 'cash', unitIds: p.unitIds || [],
         items: (p.unitIds || []).map(uId => {
           const u = splitOrderUnits.find(x => x.unitId === uId);
           return u ? { title: u.title, price: u.price } : null;

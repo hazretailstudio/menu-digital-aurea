@@ -1,6 +1,7 @@
 import { state, client } from '../state.js';
 import { REST_ID, escapeHtml, showToast } from '../config.js';
 import { playSoundByName } from '../audio.js';
+import { initCartaEnhancer } from './carta-enhancer.js';
 
 let lastClickedCheckoutOrderId = null;
 
@@ -15,9 +16,6 @@ export function saveGoogleMapsEmbed() {
   showToast('Ficha de Google Maps vinculada correctamente ✓', 'success');
 }
 
-// ============================================================================
-// 1. CONFIGURACIÓN DE RECEPCIÓN DE PEDIDOS (COMANDAS vs WHATSAPP) EN ADMIN
-// ============================================================================
 export function toggleWhatsappInputVisibility() {
   const mode = document.getElementById('adminOrderDeliveryMode')?.value || 'KDS';
   const waBox = document.getElementById('adminWhatsappNumberBox');
@@ -116,10 +114,6 @@ function injectOrderSettingsCard() {
   loadOrderChannelSettings();
 }
 
-// ============================================================================
-// 2. COBRAR CUENTA: DESGLOSE DIVIDIDO + MÉTODO POR COMENSAL + TICKET INDIVIDUAL
-//    Detección infalible por captura de clic + MutationObserver sobre el modal
-// ============================================================================
 function findVisibleCheckoutModal() {
   const candidates = [
     document.getElementById('checkoutModal'),
@@ -149,7 +143,6 @@ function resolveOrderFromCheckoutModal(modal) {
     const found = (state.orders || []).find(o => o.id === hiddenInput.value);
     if (found) return found;
   }
-  // Fallback por texto "Mesa XX" en el encabezado del modal
   const headerText = modal?.innerText || '';
   const match = headerText.match(/Mesa\s+([A-Za-z0-9-]+)/i);
   if (match) {
@@ -202,14 +195,9 @@ function renderSplitBoxInsideModal(modal, order) {
       ? `⚖️ Cuenta Dividida en Partes Iguales (${order.split_details.length})`
       : `👤 Cuenta Dividida por Comensal (${order.split_details.length})`;
 
-    const paidSum = order.split_details
-      .filter(p => p.paid)
-      .reduce((acc, p) => acc + Number(p.amount || 0), 0);
-    const pendingSum = order.split_details
-      .filter(p => !p.paid)
-      .reduce((acc, p) => acc + Number(p.amount || 0), 0);
+    const paidSum = order.split_details.filter(p => p.paid).reduce((acc, p) => acc + Number(p.amount || 0), 0);
+    const pendingSum = order.split_details.filter(p => !p.paid).reduce((acc, p) => acc + Number(p.amount || 0), 0);
 
-    // Resumen por método de pago de los comensales pagados
     const byMethod = { cash: 0, card: 0, transfer: 0 };
     order.split_details.forEach(p => {
       if (p.paid) {
@@ -415,20 +403,15 @@ export function printSplitGuestTicket(orderId, personIdx) {
   w.close();
 }
 
-// ============================================================================
-// 3. CAPTURA GLOBAL DE EVENTOS (COBRO, RESERVAS->MESA, MOTIVO EN LLAMADAS, BARRA)
-// ============================================================================
 function installGlobalOperationalHooks() {
   if (window.__aureaOpHooksInstalled) return;
   window.__aureaOpHooksInstalled = true;
 
-  // A. Capturar clic en cualquier botón que abra openCheckoutModal o siente una reserva
   document.addEventListener('click', (ev) => {
     const btn = ev.target?.closest?.('button[onclick]');
     if (!btn) return;
     const oc = btn.getAttribute('onclick') || '';
 
-    // Capturar ID de orden antes de abrir Cobrar Cuenta
     const checkoutMatch = oc.match(/openCheckoutModal\(\s*['"]([^'"]+)['"]\s*\)/);
     if (checkoutMatch) {
       lastClickedCheckoutOrderId = checkoutMatch[1];
@@ -438,7 +421,6 @@ function installGlobalOperationalHooks() {
       }, 60);
     }
 
-    // Al sentar una reserva -> marcar mesa como ocupada automáticamente
     const seatMatch = oc.match(/updateReservationStatus\(\s*['"]([^'"]+)['"]\s*,\s*['"]seated['"]\s*\)/);
     if (seatMatch && client) {
       const resId = seatMatch[1];
@@ -456,15 +438,12 @@ function installGlobalOperationalHooks() {
     }
   }, true);
 
-  // B. MutationObserver para inyectar desglose de Cuenta Dividida y motivos en Llamadas al Mesero
   const observer = new MutationObserver(() => {
-    // 1) Si el modal de Cobrar Cuenta está visible y aún no tiene el recuadro de división
     const modal = findVisibleCheckoutModal();
     if (modal && !modal.querySelector('#checkoutSplitBreakdownBox')) {
       refreshAndRenderCheckoutSplit(modal);
     }
 
-    // 2) Enriquecer tarjetas de Llamadas de Mesero con el motivo (Cuenta+TPV vs Atención)
     const callsGrid = document.getElementById('waiterCallsGrid');
     if (callsGrid && Array.isArray(state.calls) && state.calls.length > 0) {
       state.calls.forEach(c => {
@@ -479,9 +458,7 @@ function installGlobalOperationalHooks() {
           }`;
           badge.innerText = c.reason;
           const titleEl = card.querySelector('span, h3, h4');
-          if (titleEl && titleEl.parentNode) {
-            titleEl.parentNode.appendChild(badge);
-          }
+          if (titleEl && titleEl.parentNode) titleEl.parentNode.appendChild(badge);
         }
       });
     }
@@ -489,7 +466,6 @@ function installGlobalOperationalHooks() {
 
   observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
 
-  // C. Alerta en vivo cuando Barra marca una bebida como lista (done: true)
   if (client) {
     client.channel(`bar_ready_alerts_${REST_ID}`)
       .on(
@@ -523,6 +499,7 @@ window.printSplitGuestTicket = printSplitGuestTicket;
 function bootOperationalEnhancements() {
   injectOrderSettingsCard();
   installGlobalOperationalHooks();
+  initCartaEnhancer();
 }
 
 if (document.readyState === 'loading') {
