@@ -43,6 +43,8 @@ let currentModalProduct = null;
 let currentModalGroups = [];
 let modalSelections = [];
 let modalQty = 1;
+let modalSlideIndex = 0;
+let modalSlideTotal = 1;
 
 let deliveryState = { lat: null, lng: null, fee: 0, infoText: '' };
 
@@ -63,7 +65,109 @@ const STATUS_LABELS = {
   paid: { text: '✓ Pagado', cls: 'bg-emerald-100 text-emerald-900 border-emerald-200' }
 };
 
+// ============================================================================
+// MOTOR DE DISEÑO PERSONALIZABLE DEL MENÚ (menu_theme)
+// ============================================================================
+const FONT_PRESETS = {
+  editorial: {
+    url: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Playfair+Display:wght@700;800&display=swap',
+    heading: "'Playfair Display', serif",
+    body: "'Inter', sans-serif"
+  },
+  modern: {
+    url: 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap',
+    heading: "'Plus Jakarta Sans', sans-serif",
+    body: "'Plus Jakarta Sans', sans-serif"
+  },
+  classic: {
+    url: 'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Lora:wght@600;700&display=swap',
+    heading: "'Lora', serif",
+    body: "'DM Sans', sans-serif"
+  },
+  minimal: {
+    url: 'https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap',
+    heading: "'Outfit', sans-serif",
+    body: "'Outfit', sans-serif"
+  },
+  rounded: {
+    url: 'https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap',
+    heading: "'Quicksand', sans-serif",
+    body: "'Quicksand', sans-serif"
+  }
+};
+
+function getMenuTheme() {
+  const t = restaurant?.menu_theme || {};
+  return {
+    layout: t.layout || 'list',
+    image_size: t.image_size || 'md',
+    font_preset: t.font_preset || 'editorial',
+    accent_color: t.accent_color || '#b45309',
+    bg_color: t.bg_color || '#faf7f2'
+  };
+}
+
+function applyMenuTheme(theme) {
+  const font = FONT_PRESETS[theme.font_preset] || FONT_PRESETS.editorial;
+  let link = document.getElementById('dynamicMenuFontLink');
+  if (!link) {
+    link = document.createElement('link');
+    link.id = 'dynamicMenuFontLink';
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+  }
+  link.href = font.url;
+
+  const isDark = theme.bg_color === '#18181b';
+  let styleEl = document.getElementById('dynamicMenuThemeStyle');
+  if (!styleEl) {
+    styleEl = document.createElement('style');
+    styleEl.id = 'dynamicMenuThemeStyle';
+    document.head.appendChild(styleEl);
+  }
+
+  styleEl.textContent = `
+    body {
+      font-family: ${font.body} !important;
+      background-color: ${theme.bg_color} !important;
+      ${isDark ? 'color: #f4f4f5 !important;' : ''}
+    }
+    .font-serif, h1, h2 {
+      font-family: ${font.heading} !important;
+    }
+    .menu-accent-text { color: ${theme.accent_color} !important; }
+    .menu-accent-bg { background-color: ${theme.accent_color} !important; color: #ffffff !important; }
+    ${isDark ? `
+      #menuContainer h2 { color: #fafafa !important; }
+      .menu-card-surface { background-color: #27272a !important; border-color: #3f3f46 !important; color: #f4f4f5 !important; }
+      .menu-card-surface h3 { color: #ffffff !important; }
+      .menu-card-surface p { color: #a1a1aa !important; }
+    ` : ''}
+  `;
+}
+
+function goToModalSlide(idx) {
+  const track = document.getElementById('modalMediaCarousel');
+  if (!track || modalSlideTotal <= 1) return;
+  modalSlideIndex = ((idx % modalSlideTotal) + modalSlideTotal) % modalSlideTotal;
+  track.scrollTo({ left: modalSlideIndex * track.clientWidth, behavior: 'smooth' });
+  updateModalSlideDots();
+}
+
+function moveModalSlide(delta) {
+  goToModalSlide(modalSlideIndex + delta);
+}
+
+function updateModalSlideDots() {
+  document.querySelectorAll('.modal-slide-dot').forEach((dot, i) => {
+    dot.className = i === modalSlideIndex
+      ? 'modal-slide-dot w-5 h-2 rounded-full bg-white transition-all'
+      : 'modal-slide-dot w-2 h-2 rounded-full bg-white/50 transition-all';
+  });
+}
+
 Object.assign(window, {
+  goToModalSlide, moveModalSlide,
   connectWifi, callWaiter, requestBillFromTable, openPayBillChoiceModal,
   closePayBillChoiceModal, confirmPayBillRequest, handleClientModifyOrder,
   openSplitBillModal, closeSplitBillModal, selectSplitMode, selectSplitPersonSubMode,
@@ -87,6 +191,7 @@ async function initMenu() {
     return;
   }
 
+  applyMenuTheme(getMenuTheme());
   updateTableBadgeUI();
   orderingEnabled = applyReadOnlyMode(restaurant);
   ensureCheckoutExtrasUI();
@@ -366,10 +471,12 @@ async function loadMenuData() {
     const elDesc = document.getElementById('restDesc');
     const elLogo = document.getElementById('restLogo');
     const elBanner = document.getElementById('restBanner');
+    const elCrossTitle = document.getElementById('crossSellTitle');
     if (elName) elName.innerText = restaurant.name || 'Menú Digital';
     if (elDesc) elDesc.innerText = restaurant.description || '';
     if (elLogo && restaurant.logo_url) elLogo.src = restaurant.logo_url;
     if (elBanner && restaurant.banner_url) elBanner.src = restaurant.banner_url;
+    if (elCrossTitle && restaurant.cross_sell_title) elCrossTitle.innerText = restaurant.cross_sell_title;
   }
 
   categories = catRes?.data || [];
@@ -639,6 +746,7 @@ function renderCatalog() {
   if (!cont) return;
   const filtered = getFilteredProducts();
   const tz = restaurant?.timezone || 'America/Mexico_City';
+  const theme = getMenuTheme();
 
   if (filtered.length === 0) {
     cont.innerHTML = '<div class="text-center py-12 bg-white rounded-3xl border border-stone-200 text-xs text-stone-400">No encontramos platillos con ese filtro.</div>';
@@ -654,31 +762,63 @@ function renderCatalog() {
   const uncategorized = filtered.filter(p => !categories.some(c => c.id === p.category_id));
   if (uncategorized.length > 0) sections.push({ id: 'other', title: '🍽️ Especialidades', inHours: true, items: uncategorized });
 
+  const listImgClass = theme.image_size === 'sm' ? 'w-20 h-20' : (theme.image_size === 'lg' ? 'w-32 h-32' : 'w-24 h-24');
+  const gridImgClass = theme.image_size === 'sm' ? 'h-28' : (theme.image_size === 'lg' ? 'h-44' : 'h-36');
+  const largeImgClass = theme.image_size === 'sm' ? 'h-40' : (theme.image_size === 'lg' ? 'h-64' : 'h-52');
+
+  const wrapperClass = theme.layout === 'grid_cards' ? 'grid grid-cols-2 gap-3' : 'space-y-3';
+
   cont.innerHTML = sections.map(sec => `
     <section id="cat-section-${sec.id}" class="space-y-3 scroll-mt-16">
       <div class="flex items-center justify-between">
         <h2 class="font-serif text-xl font-bold text-stone-900">${escapeHtml(sec.title)}</h2>
         ${!sec.inHours ? '<span class="text-[10px] font-bold bg-stone-200 text-stone-600 px-2 py-0.5 rounded-full">Fuera de horario</span>' : ''}
       </div>
-      <div class="space-y-3">
+      <div class="${wrapperClass}">
         ${sec.items.map(p => {
           const firstImg = (p.media || []).find(m => m.type !== 'video') || p.media?.[0];
           const img = firstImg?.url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80';
           const hasVideo = (p.media || []).some(m => m.type === 'video');
+          const mediaCount = Array.isArray(p.media) ? p.media.length : 1;
           const disabled = p.is_available === false || !sec.inHours;
+
+          if (theme.layout === 'grid_cards' || theme.layout === 'large_cards') {
+            const imgHeight = theme.layout === 'grid_cards' ? gridImgClass : largeImgClass;
+            return `
+              <div onclick="${disabled ? '' : `window.openProductModal('${p.id}')`}" class="menu-card-surface bg-white rounded-2xl border border-stone-200/80 shadow-xs overflow-hidden flex flex-col justify-between transition ${disabled ? 'opacity-60 grayscale cursor-not-allowed' : 'cursor-pointer hover:border-amber-400'}">
+                <div class="w-full ${imgHeight} bg-stone-100 relative overflow-hidden">
+                  <img src="${img}" alt="${escapeHtml(p.title)}" class="w-full h-full object-cover">
+                  ${hasVideo ? '<span class="absolute top-2 left-2 bg-black/70 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md">🎬 Video</span>' : ''}
+                  ${mediaCount > 1 ? `<span class="absolute top-2 right-2 bg-black/65 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md">📸 ${mediaCount}</span>` : ''}
+                  ${p.is_available === false ? '<div class="absolute inset-0 bg-black/60 flex items-center justify-center text-[11px] font-black text-white uppercase">Agotado</div>' : ''}
+                </div>
+                <div class="p-3 flex-grow flex flex-col justify-between gap-2">
+                  <div>
+                    <h3 class="font-bold text-sm text-stone-900 leading-snug line-clamp-2">${escapeHtml(p.title)}</h3>
+                    <p class="text-[11px] text-stone-500 mt-1 line-clamp-2">${escapeHtml(p.description || '')}</p>
+                  </div>
+                  <div class="flex items-center justify-between pt-1">
+                    <span class="font-mono font-extrabold text-sm menu-accent-text">$${Number(p.price).toFixed(2)}</span>
+                    ${orderingEnabled && !disabled ? '<span class="text-[10px] font-bold menu-accent-bg px-2.5 py-1 rounded-xl">+ Agregar</span>' : ''}
+                  </div>
+                </div>
+              </div>
+            `;
+          }
+
           return `
-            <div onclick="${disabled ? '' : `window.openProductModal('${p.id}')`}" class="bg-white rounded-2xl p-3 border border-stone-200/80 shadow-xs flex gap-3 items-center transition ${disabled ? 'opacity-60 grayscale cursor-not-allowed' : 'cursor-pointer hover:border-amber-400'}">
-              <div class="w-24 h-24 rounded-xl overflow-hidden flex-shrink-0 bg-stone-100 relative">
+            <div onclick="${disabled ? '' : `window.openProductModal('${p.id}')`}" class="menu-card-surface bg-white rounded-2xl p-3 border border-stone-200/80 shadow-xs flex gap-3 items-center transition ${disabled ? 'opacity-60 grayscale cursor-not-allowed' : 'cursor-pointer hover:border-amber-400'}">
+              <div class="${listImgClass} rounded-xl overflow-hidden flex-shrink-0 bg-stone-100 relative">
                 <img src="${img}" alt="${escapeHtml(p.title)}" class="w-full h-full object-cover">
-                ${hasVideo ? '<span class="absolute top-1 left-1 bg-black/70 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md">🎬 Video</span>' : ''}
+                ${hasVideo ? '<span class="absolute top-1 left-1 bg-black/70 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md">🎬</span>' : ''}
                 ${p.is_available === false ? '<div class="absolute inset-0 bg-black/60 flex items-center justify-center text-[10px] font-black text-white uppercase">Agotado</div>' : ''}
               </div>
               <div class="flex-grow min-w-0">
                 <h3 class="font-bold text-sm text-stone-900 leading-snug">${escapeHtml(p.title)}</h3>
                 <p class="text-xs text-stone-500 mt-1 line-clamp-2">${escapeHtml(p.description || '')}</p>
                 <div class="flex items-center justify-between mt-2">
-                  <span class="font-mono font-extrabold text-sm text-amber-800">$${Number(p.price).toFixed(2)}</span>
-                  ${orderingEnabled && !disabled ? '<span class="text-[11px] font-bold bg-stone-900 text-white px-2.5 py-1 rounded-xl">+ Agregar</span>' : ''}
+                  <span class="font-mono font-extrabold text-sm menu-accent-text">$${Number(p.price).toFixed(2)}</span>
+                  ${orderingEnabled && !disabled ? '<span class="text-[11px] font-bold menu-accent-bg px-2.5 py-1 rounded-xl">+ Agregar</span>' : ''}
                 </div>
               </div>
             </div>
@@ -726,6 +866,42 @@ function ensureModalItemNoteAndQty() {
   modSec.insertAdjacentElement('afterend', extra);
 }
 
+function renderModalRelatedProducts(product) {
+  const sec = document.getElementById('modalCrossSellSection');
+  const container = document.getElementById('crossSellContainer');
+  if (!sec || !container) return;
+
+  const relIds = Array.isArray(product?.recommended_product_ids) ? product.recommended_product_ids : [];
+  const relatedItems = relIds
+    .map(id => products.find(x => x.id === id && x.is_available !== false))
+    .filter(Boolean);
+
+  if (relatedItems.length === 0) {
+    sec.classList.add('hidden');
+    container.innerHTML = '';
+    return;
+  }
+
+  sec.classList.remove('hidden');
+  container.innerHTML = relatedItems.map(rp => {
+    const rImg = ((rp.media || []).find(m => m.type !== 'video') || rp.media?.[0])?.url
+      || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=200&q=80';
+    return `
+      <div onclick="window.openProductModal('${rp.id}')"
+        class="w-36 flex-shrink-0 rounded-2xl border border-stone-200 bg-stone-50 hover:border-amber-400 overflow-hidden cursor-pointer transition">
+        <img src="${rImg}" class="w-full h-20 object-cover">
+        <div class="p-2 space-y-1">
+          <div class="font-bold text-[11px] text-stone-900 truncate">${escapeHtml(rp.title)}</div>
+          <div class="flex items-center justify-between">
+            <span class="font-mono font-bold text-[11px] menu-accent-text">$${Number(rp.price).toFixed(2)}</span>
+            <span class="text-[9px] font-bold bg-stone-900 text-white px-1.5 py-0.5 rounded-md">Ver</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
 function openProductModal(prodId) {
   const p = products.find(x => x.id === prodId);
   if (!p || p.is_available === false) return;
@@ -736,23 +912,78 @@ function openProductModal(prodId) {
   modalSelections = [];
   modalQty = 1;
 
-  const mediaItems = (p.media && p.media.length > 0)
+  // CARRUSEL INTERACTIVO DE MÚLTIPLES IMÁGENES + VIDEOS
+  const mediaItems = (Array.isArray(p.media) && p.media.length > 0)
     ? p.media
     : [{ type: 'image', url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=80' }];
 
-  document.getElementById('modalMediaCarousel').innerHTML = mediaItems.map((m, idx) => {
-    const counter = mediaItems.length > 1
-      ? `<span class="absolute bottom-2 right-2 bg-black/65 text-white text-[10px] font-bold px-2 py-0.5 rounded-full pointer-events-none">${idx + 1}/${mediaItems.length} · Desliza →</span>`
-      : '';
-    if (m.type === 'video') {
-      const ytMatch = (m.url || '').match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([A-Za-z0-9_-]{6,})/);
-      if (ytMatch) {
-        return `<div class="relative w-full h-full flex-shrink-0 snap-center bg-black"><iframe src="https://www.youtube.com/embed/${ytMatch[1]}" class="w-full h-full" frameborder="0" allowfullscreen></iframe>${counter}</div>`;
+  const carousel = document.getElementById('modalMediaCarousel');
+  if (carousel) {
+    modalSlideIndex = 0;
+    modalSlideTotal = mediaItems.length;
+
+    carousel.className = 'flex flex-row overflow-x-auto snap-x snap-mandatory scroll-smooth w-full h-full bg-stone-900 no-scrollbar';
+    carousel.style.display = 'flex';
+    carousel.style.flexWrap = 'nowrap';
+    carousel.style.overflowX = 'auto';
+    carousel.scrollLeft = 0;
+
+    carousel.innerHTML = mediaItems.map((m) => {
+      const isVid = m.type === 'video' || /\.(mp4|webm|mov|m4v)(\?|$)/i.test(m.url || '') || /youtube\.com|youtu\.be|vimeo\.com/i.test(m.url || '');
+      if (isVid) {
+        const ytMatch = (m.url || '').match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([A-Za-z0-9_-]{6,})/);
+        if (ytMatch) {
+          return `<div class="w-full h-full flex-shrink-0 snap-center bg-black flex items-center justify-center" style="min-width:100%"><iframe src="https://www.youtube.com/embed/${ytMatch[1]}" class="w-full h-full" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
+        }
+        const vimeoMatch = (m.url || '').match(/vimeo\.com\/(\d+)/);
+        if (vimeoMatch) {
+          return `<div class="w-full h-full flex-shrink-0 snap-center bg-black flex items-center justify-center" style="min-width:100%"><iframe src="https://player.vimeo.com/video/${vimeoMatch[1]}" class="w-full h-full" frameborder="0" allow="autoplay; fullscreen" allowfullscreen></iframe></div>`;
+        }
+        return `<div class="w-full h-full flex-shrink-0 snap-center bg-black flex items-center justify-center" style="min-width:100%"><video src="${m.url}" controls playsinline preload="metadata" class="w-full h-full object-contain bg-black"></video></div>`;
       }
-      return `<div class="relative w-full h-full flex-shrink-0 snap-center bg-black"><video src="${m.url}" controls playsinline preload="metadata" class="w-full h-full object-cover"></video>${counter}</div>`;
+      return `<div class="w-full h-full flex-shrink-0 snap-center bg-stone-100" style="min-width:100%"><img src="${m.url}" class="w-full h-full object-cover"></div>`;
+    }).join('');
+
+    const wrapper = carousel.parentElement;
+    if (wrapper) {
+      wrapper.classList.add('relative');
+      wrapper.querySelectorAll('.modal-carousel-ctrl').forEach(el => el.remove());
+
+      if (mediaItems.length > 1) {
+        const prevBtn = document.createElement('button');
+        prevBtn.type = 'button';
+        prevBtn.className = 'modal-carousel-ctrl absolute left-2 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white font-black text-lg flex items-center justify-center shadow';
+        prevBtn.innerHTML = '‹';
+        prevBtn.onclick = (e) => { e.stopPropagation(); moveModalSlide(-1); };
+
+        const nextBtn = document.createElement('button');
+        nextBtn.type = 'button';
+        nextBtn.className = 'modal-carousel-ctrl absolute right-2 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white font-black text-lg flex items-center justify-center shadow';
+        nextBtn.innerHTML = '›';
+        nextBtn.onclick = (e) => { e.stopPropagation(); moveModalSlide(1); };
+
+        const dotsBar = document.createElement('div');
+        dotsBar.className = 'modal-carousel-ctrl absolute bottom-2.5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 bg-black/45 px-2.5 py-1 rounded-full';
+        dotsBar.innerHTML = mediaItems.map((_, i) =>
+          `<button type="button" onclick="window.goToModalSlide(${i})" class="modal-slide-dot ${i === 0 ? 'w-5 h-2 bg-white' : 'w-2 h-2 bg-white/50'} rounded-full transition-all"></button>`
+        ).join('');
+
+        wrapper.appendChild(prevBtn);
+        wrapper.appendChild(nextBtn);
+        wrapper.appendChild(dotsBar);
+
+        carousel.onscroll = () => {
+          if (carousel.clientWidth > 0) {
+            const idx = Math.round(carousel.scrollLeft / carousel.clientWidth);
+            if (idx !== modalSlideIndex) {
+              modalSlideIndex = idx;
+              updateModalSlideDots();
+            }
+          }
+        };
+      }
     }
-    return `<div class="relative w-full h-full flex-shrink-0 snap-center"><img src="${m.url}" class="w-full h-full object-cover">${counter}</div>`;
-  }).join('');
+  }
 
   document.getElementById('modalTitle').innerText = p.title;
   document.getElementById('modalPrice').innerText = `$${Number(p.price).toFixed(2)}`;
@@ -815,16 +1046,18 @@ function openProductModal(prodId) {
   const addBtn = document.getElementById('modalAddBtn');
   if (addBtn) addBtn.onclick = addCurrentModalToCart;
 
+  renderModalRelatedProducts(p);
   updateModalFinalPrice();
   document.getElementById('productModal').classList.remove('hidden');
 }
 
 function closeProductModal() {
+  // Pausar cualquier video que estuviera reproduciéndose
+  document.querySelectorAll('#modalMediaCarousel video').forEach(v => { try { v.pause(); } catch {} });
   document.getElementById('productModal').classList.add('hidden');
   currentModalProduct = null;
 }
 
-// FIX: Normaliza groupId || null para que al deseleccionar siempre reste y nunca duplique
 function toggleModifierOption(groupId, optionId, checked, isSingle) {
   const normGroupId = groupId || null;
   if (isSingle) {
@@ -858,10 +1091,7 @@ function updateModalFinalPrice() {
 async function addCurrentModalToCart() {
   if (!currentModalProduct || !orderingEnabled) return;
   const pricing = validateAndPriceModifiers(currentModalProduct, currentModalGroups, legacyModifiers, modalSelections);
-  if (!pricing.valid) {
-    showToast(pricing.errors[0], 'warning');
-    return;
-  }
+  if (!pricing.valid) { showToast(pricing.errors[0], 'warning'); return; }
 
   const note = document.getElementById('modalItemNote')?.value?.trim() || '';
   const session = getActiveTableSession();
