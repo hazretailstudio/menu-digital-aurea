@@ -16,7 +16,8 @@ export function buildWhatsAppOrderUrl({
   const cleanPhone = String(whatsappNumber || '').replace(/\D/g, '');
   const lines = [];
 
-  lines.push(`🍽️ *NUEVO PEDIDO #${orderResult.order_number || ''}* — ${restaurantName}`);
+  const folio = orderResult.order_number ? ` #${orderResult.order_number}` : '';
+  lines.push(`🍽️ *NUEVO PEDIDO${folio}* — ${restaurantName}`);
   const modeLabel = orderType === 'DINE_IN'
     ? `En Mesa (${tableLabel})`
     : (orderType === 'DELIVERY' ? 'Envío a Domicilio' : 'Recoger en Sucursal');

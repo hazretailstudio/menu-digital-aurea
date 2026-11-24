@@ -1,15 +1,17 @@
 -- ============================================================================
--- MIGRACIÓN V3: MENÚ QR GRUPAL, MODIFICADORES AVANZADOS, POSTGIS Y RPCs
--- Seguro sobre migration_v2.sql (no borra datos ni rompe el Admin actual)
+-- MIGRACIÓN V3.1 (SIN DUPLICIDADES): MENÚ QR + COMANDAS ADMIN + WHATSAPP
+-- Compatible 100% con admin.html (Comandas Kanban) y migration_v2.sql
 -- ============================================================================
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS postgis;
 
--- 1. Columnas adicionales en tablas existentes
+-- 1. Configuración de pedidos en restaurants
 ALTER TABLE restaurants
   ADD COLUMN IF NOT EXISTS is_ordering_enabled BOOLEAN DEFAULT TRUE,
-  ADD COLUMN IF NOT EXISTS timezone TEXT DEFAULT 'America/Mexico_City',
+  ADD COLUMN IF NOT EXISTS order_delivery_mode TEXT DEFAULT 'KDS'
+    CHECK (order_delivery_mode IN ('KDS', 'WHATSAPP', 'BOTH')),
   ADD COLUMN IF NOT EXISTS whatsapp_number TEXT,
+  ADD COLUMN IF NOT EXISTS timezone TEXT DEFAULT 'America/Mexico_City',
   ADD COLUMN IF NOT EXISTS location GEOGRAPHY(Point, 4326),
   ADD COLUMN IF NOT EXISTS delivery_pricing_mode TEXT DEFAULT 'DISTANCE'
     CHECK (delivery_pricing_mode IN ('DISTANCE', 'ZONE', 'BOTH')),
@@ -44,7 +46,7 @@ ALTER TABLE orders
   ADD COLUMN IF NOT EXISTS guest_subtotals JSONB DEFAULT '{}'::jsonb,
   ADD COLUMN IF NOT EXISTS onesignal_player_id TEXT;
 
--- 2. Nuevas tablas
+-- 2. Nuevas tablas (Carrito grupal, Modificadores avanzados, Zonas PostGIS)
 CREATE TABLE IF NOT EXISTS table_sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   restaurant_id UUID NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
@@ -114,40 +116,7 @@ CREATE TABLE IF NOT EXISTS delivery_zones (
 CREATE INDEX IF NOT EXISTS idx_delivery_zones_geom
   ON delivery_zones USING GIST (zone_polygon);
 
--- 3. Máquina de estados (compatible con estados del Admin V2)
-CREATE OR REPLACE FUNCTION enforce_order_status_transition()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF OLD.status IS NOT DISTINCT FROM NEW.status THEN
-    RETURN NEW;
-  END IF;
-
-  -- Compatibilidad con flujo Kanban actual del Admin V2
-  IF OLD.status IN ('pending', 'preparing', 'delivered', 'paid', 'cancelled') THEN
-    RETURN NEW;
-  END IF;
-
-  IF OLD.status = 'PENDING_CONFIRMATION' AND NEW.status IN ('CONFIRMED_PREPARING', 'CANCELLED', 'REJECTED') THEN
-    IF NEW.status = 'CONFIRMED_PREPARING' THEN NEW.preparing_at := NOW(); END IF;
-    RETURN NEW;
-  ELSIF OLD.status = 'CONFIRMED_PREPARING' AND NEW.status IN ('READY_FOR_PICKUP', 'OUT_FOR_DELIVERY', 'CANCELLED') THEN
-    RETURN NEW;
-  ELSIF OLD.status IN ('READY_FOR_PICKUP', 'OUT_FOR_DELIVERY') AND NEW.status IN ('COMPLETED', 'CANCELLED') THEN
-    IF NEW.status = 'COMPLETED' THEN NEW.delivered_at := NOW(); END IF;
-    RETURN NEW;
-  END IF;
-
-  RAISE EXCEPTION 'Transición de estado inválida: de % a %', OLD.status, NEW.status;
-END;
-$$ LANGUAGE plpgsql;
-
-DROP TRIGGER IF EXISTS trg_enforce_order_status ON orders;
-CREATE TRIGGER trg_enforce_order_status
-  BEFORE UPDATE OF status ON orders
-  FOR EACH ROW
-  EXECUTE FUNCTION enforce_order_status_transition();
-
--- 4. Validación de horarios (America/Mexico_City)
+-- 3. Validación de horarios (America/Mexico_City)
 CREATE OR REPLACE FUNCTION is_within_schedule(p_schedule JSONB, p_tz TEXT DEFAULT 'America/Mexico_City')
 RETURNS BOOLEAN AS $$
 DECLARE
@@ -174,7 +143,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql STABLE;
 
--- 5. Cálculo de envío por Polígono (ST_Contains) o Distancia (ST_Distance)
+-- 4. Cálculo de envío por Polígono (ST_Contains) o Distancia (ST_Distance)
 CREATE OR REPLACE FUNCTION calculate_delivery_fee(
   p_restaurant_id UUID,
   p_lat DOUBLE PRECISION,
@@ -237,13 +206,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
 
--- 6. RPC Atómica create_order (soporta modifier_groups y product_modifiers legacy)
+-- 5. RPC Atómica create_order -> Inserta con status 'pending' directo al Kanban del Admin
 CREATE OR REPLACE FUNCTION create_order(
   p_restaurant_id UUID,
   p_order_type TEXT,
   p_items JSONB,
   p_table_session_id UUID DEFAULT NULL,
-  p_table_number TEXT DEFAULT 'Mostrador',
+  p_table_number TEXT DEFAULT '01',
   p_customer_name TEXT DEFAULT NULL,
   p_customer_phone TEXT DEFAULT NULL,
   p_delivery_address TEXT DEFAULT NULL,
@@ -283,6 +252,7 @@ DECLARE
   v_chargeable_qty INT;
   v_has_groups BOOLEAN;
   v_delivery_res JSONB;
+  v_channel TEXT;
   v_new_order RECORD;
 BEGIN
   SELECT * INTO v_rest FROM restaurants WHERE id = p_restaurant_id;
@@ -430,6 +400,14 @@ BEGIN
     v_change_due := p_cash_tendered - v_total;
   END IF;
 
+  -- Mapear canal al formato exacto del Kanban del Admin (dine_in | takeout | delivery)
+  v_channel := CASE p_order_type
+    WHEN 'PICKUP' THEN 'takeout'
+    WHEN 'DELIVERY' THEN 'delivery'
+    ELSE 'dine_in'
+  END;
+
+  -- Insertar con status 'pending' para entrar directo a Columna 1 del Admin (Comandas)
   INSERT INTO orders (
     restaurant_id, table_session_id, table_number, order_channel, order_type, waiter_name,
     items, items_snapshot, guest_subtotals, subtotal, delivery_fee, total,
@@ -437,9 +415,9 @@ BEGIN
     payment_method, cash_tendered, change_due, requires_card_terminal,
     customer_notes, onesignal_player_id, is_archived
   ) VALUES (
-    p_restaurant_id, p_table_session_id, p_table_number, LOWER(p_order_type), p_order_type, 'Menú QR',
+    p_restaurant_id, p_table_session_id, p_table_number, v_channel, p_order_type, 'Menú QR',
     v_snapshot, v_snapshot, v_guest_subtotals, v_subtotal, v_delivery_fee, v_total,
-    'PENDING_CONFIRMATION', p_customer_name, p_customer_phone, p_delivery_address,
+    'pending', p_customer_name, p_customer_phone, p_delivery_address,
     p_delivery_lat, p_delivery_lng, p_payment_method, p_cash_tendered, v_change_due,
     p_requires_card_terminal, p_customer_notes, p_onesignal_player_id, FALSE
   )
@@ -466,7 +444,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 7. Políticas RLS controladas
+-- 6. Políticas RLS
 ALTER TABLE table_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cart_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE modifier_groups ENABLE ROW LEVEL SECURITY;
@@ -506,7 +484,7 @@ END $$;
 GRANT EXECUTE ON FUNCTION calculate_delivery_fee(UUID, DOUBLE PRECISION, DOUBLE PRECISION, NUMERIC) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION create_order TO anon, authenticated;
 
--- 8. Realtime preservando TODAS las tablas del Admin V2 + nuevas tablas V3
+-- 7. Realtime preservando todas las tablas del Admin + nuevas tablas del Menú
 DROP PUBLICATION IF EXISTS supabase_realtime;
 CREATE PUBLICATION supabase_realtime FOR TABLE
   orders, waiter_calls, products, product_modifiers, promotions,

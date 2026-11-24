@@ -1,7 +1,3 @@
-/**
- * Valida horarios JSONB en America/Mexico_City para reflejar disponibilidad en UI.
- * La validación definitiva siempre ocurre en PostgreSQL (create_order).
- */
 export function isWithinScheduleUI(schedule, timeZone = 'America/Mexico_City') {
   if (!schedule || typeof schedule !== 'object' || Object.keys(schedule).length === 0) {
     return true;
@@ -26,10 +22,6 @@ export function isWithinScheduleUI(schedule, timeZone = 'America/Mexico_City') {
   return slots.some(slot => currentTime >= slot.open && currentTime <= slot.close);
 }
 
-/**
- * Valida y calcula precio de modificadores avanzados (ADDITIVE, OVERRIDE, FREE_UP_TO_N)
- * con fallback automático a product_modifiers legacy de tu Admin V2.
- */
 export function validateAndPriceModifiers(product, modifierGroups = [], legacyModifiers = [], selections = []) {
   const errors = [];
   let basePrice = Number(product.price || 0);

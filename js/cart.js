@@ -204,6 +204,11 @@ export async function removeGroupCartItem(cartItemId) {
   if (error) throw error;
 }
 
+export async function clearActiveGroupCart() {
+  if (!activeSession) return;
+  await client.from('cart_items').delete().eq('table_session_id', activeSession.id);
+}
+
 export function getGroupCartSummary() {
   const byGuest = {};
   let grandTotal = 0;

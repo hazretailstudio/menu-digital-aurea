@@ -12,6 +12,7 @@ import {
   addItemToGroupCart,
   updateGroupCartItemQty,
   removeGroupCartItem,
+  clearActiveGroupCart,
   calculateDeliveryFeeRPC,
   submitOrderViaRPC
 } from './cart.js';
@@ -49,14 +50,9 @@ let splitMode = 'equal';
 let splitPersons = [];
 
 const STATUS_LABELS = {
-  pending: { text: 'Recibido en Cocina', cls: 'bg-amber-100 text-amber-900 border-amber-200' },
-  PENDING_CONFIRMATION: { text: '⏳ Por Confirmar', cls: 'bg-amber-100 text-amber-900 border-amber-200' },
+  pending: { text: '🟡 Recibido en Cocina', cls: 'bg-amber-100 text-amber-900 border-amber-200' },
   preparing: { text: '🍳 En Preparación', cls: 'bg-orange-100 text-orange-900 border-orange-200' },
-  CONFIRMED_PREPARING: { text: '🔥 En Preparación', cls: 'bg-orange-100 text-orange-900 border-orange-200' },
-  READY_FOR_PICKUP: { text: '✅ Listo para Entregar', cls: 'bg-emerald-100 text-emerald-900 border-emerald-200' },
-  OUT_FOR_DELIVERY: { text: '🛵 En Camino', cls: 'bg-blue-100 text-blue-900 border-blue-200' },
-  delivered: { text: '🍽️ Servido en Mesa', cls: 'bg-blue-100 text-blue-900 border-blue-200' },
-  COMPLETED: { text: '✓ Completado', cls: 'bg-emerald-100 text-emerald-900 border-emerald-200' },
+  delivered: { text: '🍽️ Servido / Listo', cls: 'bg-blue-100 text-blue-900 border-blue-200' },
   paid: { text: '✓ Pagado', cls: 'bg-emerald-100 text-emerald-900 border-emerald-200' }
 };
 
@@ -86,6 +82,7 @@ async function initMenu() {
 
   orderingEnabled = applyReadOnlyMode(restaurant);
   ensureCheckoutExtrasUI();
+  updateSendButtonLabel();
   await loadMenuData();
 
   if (orderingEnabled && context.order_type === 'DINE_IN') {
@@ -107,6 +104,15 @@ async function initMenu() {
   subscribeMenuRealtime();
 }
 
+function updateSendButtonLabel() {
+  const btn = document.getElementById('btnSendOrder');
+  if (!btn) return;
+  const mode = restaurant?.order_delivery_mode || 'KDS';
+  if (mode === 'WHATSAPP') btn.innerText = '💬 Enviar Pedido por WhatsApp';
+  else if (mode === 'BOTH') btn.innerText = '🍽️ Confirmar Pedido y Abrir WhatsApp';
+  else btn.innerText = '🍽️ Enviar Pedido a Cocina';
+}
+
 async function loadMenuData() {
   if (!client || !context.restaurant_id) return;
   const rId = context.restaurant_id;
@@ -122,7 +128,7 @@ async function loadMenuData() {
       .eq('restaurant_id', rId)
       .eq('table_number', context.table_number)
       .eq('is_archived', false)
-      .not('status', 'in', '("paid","cancelled","COMPLETED","CANCELLED","REJECTED")')
+      .not('status', 'in', '("paid","cancelled")')
       .order('created_at', { ascending: false })
       .limit(1)
   ]);
@@ -157,7 +163,7 @@ function subscribeMenuRealtime() {
         .eq('restaurant_id', rId)
         .eq('table_number', context.table_number)
         .eq('is_archived', false)
-        .not('status', 'in', '("paid","cancelled","COMPLETED","CANCELLED","REJECTED")')
+        .not('status', 'in', '("paid","cancelled")')
         .order('created_at', { ascending: false })
         .limit(1);
       activeOrder = data?.[0] || null;
@@ -689,10 +695,46 @@ async function removeCartItem(itemKey) {
   }
 }
 
+function buildLocalOrderSummaryForWhatsApp(items, cashTendered) {
+  const { subtotal, deliveryFee, total } = getCurrentTotals();
+  const guestSubtotals = {};
+  const snapshot = items.map(it => {
+    const guest = it.guest_name || context.guest_name || 'General';
+    const lineTotal = Number(it.unit_price) * Number(it.qty);
+    guestSubtotals[guest] = (guestSubtotals[guest] || 0) + lineTotal;
+    return {
+      title: it.products?.title || it.title || 'Platillo',
+      qty: Number(it.qty),
+      guest_name: guest,
+      line_total: lineTotal,
+      modifiers: it.selected_modifiers || [],
+      note: it.notes || ''
+    };
+  });
+  const tendered = Number(cashTendered || 0);
+  return {
+    order_number: null,
+    subtotal,
+    delivery_fee: deliveryFee,
+    total,
+    change_due: tendered > total ? tendered - total : 0,
+    items_snapshot: snapshot,
+    guest_subtotals: guestSubtotals
+  };
+}
+
 async function sendOrder() {
   const items = getActiveCartItems();
   if (items.length === 0) {
     showToast('Agrega al menos un platillo antes de confirmar.', 'warning');
+    return;
+  }
+
+  const deliveryMode = restaurant?.order_delivery_mode || 'KDS'; // 'KDS' | 'WHATSAPP' | 'BOTH'
+  const whatsappNumber = restaurant?.whatsapp_number || '';
+
+  if ((deliveryMode === 'WHATSAPP' || deliveryMode === 'BOTH') && !whatsappNumber) {
+    showToast('El restaurante aún no ha configurado su número de WhatsApp en el Admin.', 'error');
     return;
   }
 
@@ -711,31 +753,39 @@ async function sendOrder() {
   if (btn) btn.disabled = true;
 
   try {
-    const onesignalPlayerId = window.OneSignal?.User?.PushSubscription?.id || null;
-    const orderResult = await submitOrderViaRPC({
-      context,
-      itemsToOrder: items,
-      customerName: context.guest_name || 'Cliente',
-      customerPhone,
-      deliveryAddress,
-      deliveryLat: deliveryState.lat,
-      deliveryLng: deliveryState.lng,
-      paymentMethod,
-      cashTendered,
-      requiresCardTerminal: paymentMethod === 'CARD_TERMINAL',
-      customerNotes,
-      onesignalPlayerId,
-      closeSession: false
-    });
+    let orderResult = null;
 
-    localCart = [];
-    if (document.getElementById('orderCustomerNotes')) document.getElementById('orderCustomerNotes').value = '';
-    showToast(`¡Pedido #${orderResult.order_number} enviado con éxito!`, 'success');
+    // 1. Si el Admin eligió KDS o BOTH, registramos directo en la Comanda del Admin
+    if (deliveryMode === 'KDS' || deliveryMode === 'BOTH') {
+      const onesignalPlayerId = window.OneSignal?.User?.PushSubscription?.id || null;
+      orderResult = await submitOrderViaRPC({
+        context,
+        itemsToOrder: items,
+        customerName: context.guest_name || 'Cliente',
+        customerPhone,
+        deliveryAddress,
+        deliveryLat: deliveryState.lat,
+        deliveryLng: deliveryState.lng,
+        paymentMethod,
+        cashTendered,
+        requiresCardTerminal: paymentMethod === 'CARD_TERMINAL',
+        customerNotes,
+        onesignalPlayerId,
+        closeSession: false
+      });
+      showToast(`¡Pedido #${orderResult.order_number} enviado a Comandas!`, 'success');
+    } else {
+      // Modo solo WHATSAPP: no crea comanda en el Admin, solo arma el resumen y limpia carrito
+      orderResult = buildLocalOrderSummaryForWhatsApp(items, cashTendered);
+      await clearActiveGroupCart();
+      showToast('Abriendo WhatsApp con tu pedido...', 'success');
+    }
 
-    if (restaurant?.whatsapp_number) {
+    // 2. Si el Admin eligió WHATSAPP o BOTH, abrimos el enlace wa.me al número configurado
+    if (deliveryMode === 'WHATSAPP' || deliveryMode === 'BOTH') {
       const waUrl = buildWhatsAppOrderUrl({
-        whatsappNumber: restaurant.whatsapp_number,
-        restaurantName: restaurant.name,
+        whatsappNumber,
+        restaurantName: restaurant?.name || 'Restaurante',
         orderResult,
         orderType: context.order_type,
         tableLabel: context.table_label,
@@ -751,6 +801,8 @@ async function sendOrder() {
       window.open(waUrl, '_blank');
     }
 
+    localCart = [];
+    if (document.getElementById('orderCustomerNotes')) document.getElementById('orderCustomerNotes').value = '';
     await loadMenuData();
     renderAll();
     switchView('menu');

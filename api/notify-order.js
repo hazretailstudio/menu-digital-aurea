@@ -22,6 +22,7 @@ export default async function handler(req, res) {
 
   const notificationsToSend = [];
 
+  // Nuevo pedido -> Notifica a cocina/caja y abre directo tu panel /admin
   if (type === 'INSERT') {
     notificationsToSend.push({
       app_id: ONESIGNAL_APP_ID,
@@ -30,22 +31,22 @@ export default async function handler(req, res) {
         { operator: 'AND' },
         { field: 'tag', key: 'role', relation: '=', value: 'kitchen' }
       ],
-      headings: { es: `🔔 Nuevo Pedido #${record.order_number || ''}`, en: `New Order #${record.order_number || ''}` },
+      headings: { es: `🔔 Nueva Comanda #${record.order_number || ''}`, en: `New Order #${record.order_number || ''}` },
       contents: {
-        es: `${record.order_type || 'DINE_IN'} · ${record.table_number} — Total $${Number(record.total || 0).toFixed(2)} MXN`,
-        en: `${record.order_type || 'DINE_IN'} · ${record.table_number} — Total $${Number(record.total || 0).toFixed(2)}`
+        es: `${record.order_type || 'Mesa'} · ${record.table_number} — Total $${Number(record.total || 0).toFixed(2)} MXN`,
+        en: `${record.order_type || 'Table'} · ${record.table_number} — Total $${Number(record.total || 0).toFixed(2)}`
       },
       data: { order_id: record.id, status: record.status, restaurant_id: record.restaurant_id },
-      url: '/kds'
+      url: '/admin'
     });
   }
 
+  // Cambio de estado en Comandas del Admin -> Notifica al cliente si se suscribió
   if (type === 'UPDATE' && old_record?.status !== record.status && record.onesignal_player_id) {
     const statusMessages = {
-      CONFIRMED_PREPARING: '🔥 Tu pedido ha sido confirmado y está en preparación.',
-      READY_FOR_PICKUP: '✅ ¡Tu pedido está listo para recoger!',
-      OUT_FOR_DELIVERY: '🛵 Tu pedido ya va en camino.',
-      REJECTED: '⚠️ Lo sentimos, tu pedido no pudo ser confirmado.'
+      preparing: '🔥 Tu pedido ya está en preparación en cocina.',
+      delivered: '✅ ¡Tu pedido está listo!',
+      paid: '✓ Gracias por tu visita. Tu cuenta fue liquidada.'
     };
 
     const bodyText = statusMessages[record.status];
