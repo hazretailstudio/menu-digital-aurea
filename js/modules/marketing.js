@@ -114,6 +114,180 @@ function injectOrderSettingsCard() {
   loadOrderChannelSettings();
 }
 
+// ============================================================================
+// VALIDACIÓN OBLIGATORIA DE MONTO COBRADO EN EL MODAL "COBRAR CUENTA"
+// ============================================================================
+function isElementVisible(el) {
+  if (!el) return false;
+  if (el.closest('.hidden')) return false;
+  const style = window.getComputedStyle(el);
+  return style.display !== 'none' && style.visibility !== 'hidden' && el.offsetParent !== null;
+}
+
+function isTipInput(input) {
+  const id = (input.id || '').toLowerCase();
+  const ph = (input.placeholder || '').toLowerCase();
+  const labelText = (input.closest('div')?.querySelector('label')?.textContent || '').toLowerCase();
+  return id.includes('tip') || id.includes('propina') || ph.includes('propina') || ph.includes('tip') || labelText.includes('propina') || labelText.includes('tip');
+}
+
+function getNativePaymentInputs(modal) {
+  if (!modal) return [];
+  return Array.from(modal.querySelectorAll('input[type="number"], input[inputmode="decimal"], input[inputmode="numeric"]'))
+    .filter(inp => inp.id !== 'mandatoryChargedAmountInput' && !isTipInput(inp) && isElementVisible(inp));
+}
+
+function getExpectedCheckoutTotal(modal, order) {
+  const baseTotal = Number(order?.total || 0);
+  // Sumar propina si hay un campo de propina visible con valor
+  let tipAmount = 0;
+  if (modal) {
+    const tipInput = Array.from(modal.querySelectorAll('input[type="number"]')).find(inp => isTipInput(inp) && isElementVisible(inp));
+    if (tipInput && tipInput.value) {
+      tipAmount = Math.max(0, parseFloat(tipInput.value) || 0);
+    }
+    // También revisar si existe un elemento de Total a Cobrar renderizado por cashbox.js
+    const totalEl = modal.querySelector('#checkoutGrandTotal, #checkoutTotalDisplay, #checkoutFinalTotal');
+    if (totalEl) {
+      const m = (totalEl.textContent || '').replace(/,/g, '').match(/(\d+(?:\.\d+)?)/);
+      if (m) return parseFloat(m[1]);
+    }
+  }
+  return Number((baseTotal + tipAmount).toFixed(2));
+}
+
+function syncMandatoryAmountField(modal, order) {
+  if (!modal) return;
+  const card = modal.querySelector('.bg-white') || modal;
+  const confirmBtn = modal.querySelector('button[onclick*="confirmOrderCheckout"]');
+  const nativeInputs = getNativePaymentInputs(modal);
+
+  let fallbackBox = modal.querySelector('#mandatoryChargedAmountBox');
+  if (!fallbackBox) {
+    fallbackBox = document.createElement('div');
+    fallbackBox.id = 'mandatoryChargedAmountBox';
+    fallbackBox.className = 'rounded-2xl border-2 border-amber-300 bg-amber-50/70 p-3 space-y-1.5 text-xs my-2';
+    fallbackBox.innerHTML = `
+      <div class="flex items-center justify-between">
+        <label for="mandatoryChargedAmountInput" class="font-bold text-stone-800">
+          💵 Monto cobrado al cliente ($ MXN) <span class="text-rose-600">*</span>
+        </label>
+        <span id="mandatoryAmountHint" class="font-mono text-[11px] font-bold text-amber-900"></span>
+      </div>
+      <input type="number" step="0.01" min="0" id="mandatoryChargedAmountInput"
+        placeholder="Escribe cuánto se cobró (obligatorio)..."
+        class="w-full border-2 border-stone-300 focus:border-amber-600 rounded-xl px-3 py-2 bg-white font-mono text-sm font-black text-stone-900 outline-none">
+      <p id="mandatoryAmountError" class="hidden text-[11px] font-bold text-rose-600"></p>
+    `;
+    const btnParent = confirmBtn?.parentElement;
+    if (btnParent && btnParent !== card && btnParent.parentNode === card) {
+      card.insertBefore(fallbackBox, btnParent);
+    } else if (confirmBtn && confirmBtn.parentNode) {
+      confirmBtn.parentNode.insertBefore(fallbackBox, confirmBtn);
+    } else {
+      card.appendChild(fallbackBox);
+    }
+
+    const inp = fallbackBox.querySelector('#mandatoryChargedAmountInput');
+    inp?.addEventListener('input', () => {
+      inp.classList.remove('border-rose-500', 'ring-2', 'ring-rose-200');
+      const errEl = fallbackBox.querySelector('#mandatoryAmountError');
+      if (errEl) errEl.classList.add('hidden');
+    });
+  }
+
+  // Si cashbox.js ya muestra un campo nativo visible para escribir el monto (ej. Efectivo recibido o Mixto),
+  // ocultamos nuestro campo auxiliar para no duplicar inputs y validamos directo los nativos.
+  const hasNative = nativeInputs.length > 0;
+  fallbackBox.classList.toggle('hidden', hasNative);
+
+  if (!hasNative) {
+    const expected = getExpectedCheckoutTotal(modal, order);
+    const hint = fallbackBox.querySelector('#mandatoryAmountHint');
+    if (hint) hint.innerText = expected > 0 ? `Total: $${expected.toFixed(2)}` : '';
+  } else {
+    nativeInputs.forEach(inp => {
+      if (!inp.dataset.mandatoryHooked) {
+        inp.dataset.mandatoryHooked = '1';
+        inp.setAttribute('required', 'required');
+        inp.addEventListener('input', () => {
+          inp.classList.remove('border-rose-500', 'ring-2', 'ring-rose-200');
+        });
+      }
+    });
+  }
+}
+
+function validateCheckoutAmountBeforeConfirm(modal) {
+  if (!modal) return true;
+  const order = resolveOrderFromCheckoutModal(modal);
+  const expectedTotal = getExpectedCheckoutTotal(modal, order);
+
+  syncMandatoryAmountField(modal, order);
+
+  const nativeInputs = getNativePaymentInputs(modal);
+  let enteredSum = 0;
+  let hasAnyTypedValue = false;
+  let firstInvalidInput = null;
+
+  if (nativeInputs.length > 0) {
+    for (const inp of nativeInputs) {
+      const raw = String(inp.value ?? '').trim();
+      if (raw !== '') {
+        hasAnyTypedValue = true;
+        enteredSum += parseFloat(raw) || 0;
+      } else if (!firstInvalidInput) {
+        firstInvalidInput = inp;
+      }
+    }
+    if (!firstInvalidInput) firstInvalidInput = nativeInputs[0];
+  } else {
+    const fallbackInput = modal.querySelector('#mandatoryChargedAmountInput');
+    const raw = String(fallbackInput?.value ?? '').trim();
+    if (raw !== '') {
+      hasAnyTypedValue = true;
+      enteredSum = parseFloat(raw) || 0;
+    }
+    firstInvalidInput = fallbackInput;
+  }
+
+  const errEl = modal.querySelector('#mandatoryAmountError');
+
+  // 1. Obligatorio haber escrito algo mayor a 0
+  if (!hasAnyTypedValue || enteredSum <= 0) {
+    if (firstInvalidInput) {
+      firstInvalidInput.classList.add('border-rose-500', 'ring-2', 'ring-rose-200');
+      firstInvalidInput.focus();
+    }
+    if (errEl && !modal.querySelector('#mandatoryChargedAmountBox')?.classList.contains('hidden')) {
+      errEl.innerText = '⚠️ Escribe cuánto se le cobró al cliente para poder cerrar la cuenta.';
+      errEl.classList.remove('hidden');
+    }
+    showToast('⚠️ Debes escribir cuánto se cobró antes de marcar la cuenta como pagada.', 'warning');
+    return false;
+  }
+
+  // 2. Validar que el monto ingresado cubra el total de la cuenta
+  if (expectedTotal > 0 && enteredSum + 0.01 < expectedTotal) {
+    const missing = (expectedTotal - enteredSum).toFixed(2);
+    if (firstInvalidInput) {
+      firstInvalidInput.classList.add('border-rose-500', 'ring-2', 'ring-rose-200');
+      firstInvalidInput.focus();
+    }
+    if (errEl && !modal.querySelector('#mandatoryChargedAmountBox')?.classList.contains('hidden')) {
+      errEl.innerText = `⚠️ El monto ($${enteredSum.toFixed(2)}) es menor al total ($${expectedTotal.toFixed(2)}). Faltan $${missing}.`;
+      errEl.classList.remove('hidden');
+    }
+    showToast(`⚠️ Monto insuficiente: faltan $${missing} MXN para liquidar la cuenta ($${expectedTotal.toFixed(2)}).`, 'warning');
+    return false;
+  }
+
+  // Limpiar campo auxiliar tras validación exitosa
+  const fallbackInput = modal.querySelector('#mandatoryChargedAmountInput');
+  if (fallbackInput) fallbackInput.value = '';
+  return true;
+}
+
 function findVisibleCheckoutModal() {
   const candidates = [
     document.getElementById('checkoutModal'),
@@ -299,6 +473,7 @@ async function refreshAndRenderCheckoutSplit(modal) {
   if (!order) return;
 
   renderSplitBoxInsideModal(modal, order);
+  syncMandatoryAmountField(modal, order);
 
   if (client && order.id) {
     const { data } = await client
@@ -314,6 +489,7 @@ async function refreshAndRenderCheckoutSplit(modal) {
       if (data.items) order.items = data.items;
       if (data.items_snapshot) order.items_snapshot = data.items_snapshot;
       renderSplitBoxInsideModal(modal, order);
+      syncMandatoryAmountField(modal, order);
     }
   }
 }
@@ -412,15 +588,40 @@ function installGlobalOperationalHooks() {
     if (!btn) return;
     const oc = btn.getAttribute('onclick') || '';
 
+    // 1. Interceptar confirmación de cobro ANTES de que cashbox.js marque como pagada
+    if (oc.includes('confirmOrderCheckout')) {
+      const modal = findVisibleCheckoutModal();
+      if (modal && !validateCheckoutAmountBeforeConfirm(modal)) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        ev.stopImmediatePropagation();
+        return;
+      }
+    }
+
+    // 2. Interceptar cambio de método de pago dentro del modal para ajustar el campo obligatorio
+    if (oc.includes('selectCheckoutMethod') || oc.includes('setCheckoutTipPct')) {
+      setTimeout(() => {
+        const modal = findVisibleCheckoutModal();
+        if (modal) syncMandatoryAmountField(modal, resolveOrderFromCheckoutModal(modal));
+      }, 40);
+    }
+
+    // 3. Capturar ID de orden al abrir Cobrar Cuenta
     const checkoutMatch = oc.match(/openCheckoutModal\(\s*['"]([^'"]+)['"]\s*\)/);
     if (checkoutMatch) {
       lastClickedCheckoutOrderId = checkoutMatch[1];
       setTimeout(() => {
         const modal = findVisibleCheckoutModal();
-        if (modal) refreshAndRenderCheckoutSplit(modal);
+        if (modal) {
+          const fallbackInput = modal.querySelector('#mandatoryChargedAmountInput');
+          if (fallbackInput) fallbackInput.value = '';
+          refreshAndRenderCheckoutSplit(modal);
+        }
       }, 60);
     }
 
+    // 4. Al sentar una reserva -> marcar mesa como ocupada automáticamente
     const seatMatch = oc.match(/updateReservationStatus\(\s*['"]([^'"]+)['"]\s*,\s*['"]seated['"]\s*\)/);
     if (seatMatch && client) {
       const resId = seatMatch[1];
@@ -438,10 +639,32 @@ function installGlobalOperationalHooks() {
     }
   }, true);
 
+  // Respaldo adicional: envolver window.confirmOrderCheckout por si se invoca por código
+  const wrapConfirmCheckout = () => {
+    if (typeof window.confirmOrderCheckout === 'function' && !window.confirmOrderCheckout.__amountValidated) {
+      const orig = window.confirmOrderCheckout;
+      const wrapped = function (...args) {
+        const modal = findVisibleCheckoutModal();
+        if (modal && !validateCheckoutAmountBeforeConfirm(modal)) {
+          return;
+        }
+        return orig.apply(this, args);
+      };
+      wrapped.__amountValidated = true;
+      window.confirmOrderCheckout = wrapped;
+    }
+  };
+  setTimeout(wrapConfirmCheckout, 300);
+  setTimeout(wrapConfirmCheckout, 1200);
+
   const observer = new MutationObserver(() => {
     const modal = findVisibleCheckoutModal();
-    if (modal && !modal.querySelector('#checkoutSplitBreakdownBox')) {
-      refreshAndRenderCheckoutSplit(modal);
+    if (modal) {
+      if (!modal.querySelector('#checkoutSplitBreakdownBox')) {
+        refreshAndRenderCheckoutSplit(modal);
+      } else if (!modal.querySelector('#mandatoryChargedAmountBox')) {
+        syncMandatoryAmountField(modal, resolveOrderFromCheckoutModal(modal));
+      }
     }
 
     const callsGrid = document.getElementById('waiterCallsGrid');
