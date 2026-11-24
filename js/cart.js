@@ -178,6 +178,11 @@ export function getActiveTableSession() {
   return activeSession;
 }
 
+export function resetGroupCartLocal() {
+  groupCartItems = [];
+  return getGroupCartSummary();
+}
+
 export async function addItemToGroupCart({ restaurantId, guestName, productId, qty = 1, selectedModifiers = [], unitPrice, notes = '' }) {
   if (!activeSession) throw new Error('No hay sesión de mesa activa');
   const { error } = await client.from('cart_items').insert([{
@@ -205,6 +210,7 @@ export async function removeGroupCartItem(cartItemId) {
 }
 
 export async function clearActiveGroupCart() {
+  groupCartItems = [];
   if (!activeSession) return;
   await client.from('cart_items').delete().eq('table_session_id', activeSession.id);
 }
@@ -278,5 +284,6 @@ export async function submitOrderViaRPC({
   });
 
   if (error) throw new Error(error.message);
+  groupCartItems = [];
   return data;
 }

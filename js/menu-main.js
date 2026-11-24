@@ -9,6 +9,7 @@ import {
   applyReadOnlyMode,
   initTableSession,
   getActiveTableSession,
+  resetGroupCartLocal,
   addItemToGroupCart,
   updateGroupCartItemQty,
   removeGroupCartItem,
@@ -32,6 +33,7 @@ let activeOrder = null;
 
 let localCart = [];
 let groupCartSummary = { items: [], byGuest: {}, grandTotal: 0 };
+let isSubmittingOrder = false;
 
 let selectedTypeId = 'all';
 let searchQuery = '';
@@ -108,9 +110,15 @@ function updateSendButtonLabel() {
   const btn = document.getElementById('btnSendOrder');
   if (!btn) return;
   const mode = restaurant?.order_delivery_mode || 'KDS';
-  if (mode === 'WHATSAPP') btn.innerText = '💬 Enviar Pedido por WhatsApp';
-  else if (mode === 'BOTH') btn.innerText = '🍽️ Confirmar Pedido y Abrir WhatsApp';
-  else btn.innerText = '🍽️ Enviar Pedido a Cocina';
+  const hasActiveTicket = Boolean(activeOrder && context.order_type === 'DINE_IN');
+
+  if (mode === 'WHATSAPP') {
+    btn.innerText = '💬 Enviar Pedido por WhatsApp';
+  } else if (mode === 'BOTH') {
+    btn.innerText = hasActiveTicket ? '➕ Sumar a mi Ticket y Abrir WhatsApp' : '🍽️ Confirmar Pedido y Abrir WhatsApp';
+  } else {
+    btn.innerText = hasActiveTicket ? '➕ Sumar al Ticket en Cocina' : '🍽️ Enviar Pedido a Cocina';
+  }
 }
 
 async function loadMenuData() {
@@ -151,6 +159,7 @@ async function loadMenuData() {
   modifierGroups = grpRes?.data || [];
   promotions = promoRes?.data || [];
   activeOrder = ordRes?.data?.[0] || null;
+  updateSendButtonLabel();
 }
 
 function subscribeMenuRealtime() {
@@ -168,6 +177,7 @@ function subscribeMenuRealtime() {
         .limit(1);
       activeOrder = data?.[0] || null;
       renderLiveOrderTracker();
+      updateSendButtonLabel();
     })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'products', filter: `restaurant_id=eq.${rId}` }, async () => {
       const { data } = await client.from('products').select('*').eq('restaurant_id', rId).order('created_at', { ascending: false });
@@ -240,6 +250,7 @@ function syncOrderTypeButtons() {
 function changeOrderType(type) {
   context = updateOrderContext({ order_type: type });
   syncOrderTypeButtons();
+  updateSendButtonLabel();
   renderCart();
 }
 
@@ -328,7 +339,7 @@ function renderLiveOrderTracker() {
   badge.innerText = stInfo.text;
   badge.className = `px-3 py-1 rounded-full text-xs font-bold border ${stInfo.cls}`;
 
-  const items = (activeOrder.items_snapshot?.length ? activeOrder.items_snapshot : activeOrder.items) || [];
+  const items = (activeOrder.items?.length ? activeOrder.items : activeOrder.items_snapshot) || [];
   document.getElementById('trackerItemsList').innerHTML = items.map(it => {
     const mods = (it.modifiers || []).map(m => m.name).join(', ');
     return `
@@ -467,51 +478,60 @@ function openProductModal(prodId) {
   document.getElementById('modalTitle').innerText = p.title;
   document.getElementById('modalPrice').innerText = `$${Number(p.price).toFixed(2)}`;
   document.getElementById('modalDesc').innerText = p.description || '';
-  document.getElementById('modalItemNote').value = '';
-  document.getElementById('modalQtyDisplay').innerText = '1';
+  const noteInput = document.getElementById('modalItemNote');
+  if (noteInput) noteInput.value = '';
+  const qtyEl = document.getElementById('modalQtyDisplay');
+  if (qtyEl) qtyEl.innerText = '1';
 
   const modSec = document.getElementById('modalModifiersSection');
   const modList = document.getElementById('modifiersList');
 
   if (currentModalGroups.length > 0) {
-    modSec.classList.remove('hidden');
-    modList.innerHTML = currentModalGroups.map(g => `
-      <div class="space-y-1.5 mb-3">
-        <div class="flex justify-between items-center text-xs">
-          <span class="font-bold text-stone-900">${escapeHtml(g.name)}</span>
-          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${g.is_required ? 'bg-amber-100 text-amber-900' : 'bg-stone-100 text-stone-500'}">
-            ${g.is_required ? 'Obligatorio' : 'Opcional'} · Máx ${g.max_selections}
-          </span>
+    modSec?.classList.remove('hidden');
+    if (modList) {
+      modList.innerHTML = currentModalGroups.map(g => `
+        <div class="space-y-1.5 mb-3">
+          <div class="flex justify-between items-center text-xs">
+            <span class="font-bold text-stone-900">${escapeHtml(g.name)}</span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${g.is_required ? 'bg-amber-100 text-amber-900' : 'bg-stone-100 text-stone-500'}">
+              ${g.is_required ? 'Obligatorio' : 'Opcional'} · Máx ${g.max_selections}
+            </span>
+          </div>
+          ${(g.modifier_options || []).filter(o => o.is_available !== false).map(o => `
+            <label class="flex items-center justify-between p-2.5 rounded-xl border border-stone-200 bg-stone-50 cursor-pointer text-xs">
+              <div class="flex items-center gap-2">
+                <input type="${g.max_selections === 1 ? 'radio' : 'checkbox'}" name="grp_${g.id}"
+                  onchange="window.toggleModifierOption('${g.id}', '${o.id}', this.checked, ${g.max_selections === 1})" class="accent-amber-600 w-4 h-4">
+                <span class="font-semibold text-stone-800">${escapeHtml(o.name)}</span>
+              </div>
+              <span class="font-mono font-bold text-amber-800">${Number(o.price) > 0 ? `${g.pricing_type === 'OVERRIDE' ? '' : '+'}$${Number(o.price).toFixed(2)}` : 'Sin costo'}</span>
+            </label>
+          `).join('')}
         </div>
-        ${(g.modifier_options || []).filter(o => o.is_available !== false).map(o => `
-          <label class="flex items-center justify-between p-2.5 rounded-xl border border-stone-200 bg-stone-50 cursor-pointer text-xs">
-            <div class="flex items-center gap-2">
-              <input type="${g.max_selections === 1 ? 'radio' : 'checkbox'}" name="grp_${g.id}"
-                onchange="window.toggleModifierOption('${g.id}', '${o.id}', this.checked, ${g.max_selections === 1})" class="accent-amber-600 w-4 h-4">
-              <span class="font-semibold text-stone-800">${escapeHtml(o.name)}</span>
-            </div>
-            <span class="font-mono font-bold text-amber-800">${Number(o.price) > 0 ? `${g.pricing_type === 'OVERRIDE' ? '' : '+'}$${Number(o.price).toFixed(2)}` : 'Sin costo'}</span>
-          </label>
-        `).join('')}
-      </div>
-    `).join('');
+      `).join('');
+    }
   } else {
     const applicable = legacyModifiers.filter(m => !m.applies_to_products || m.applies_to_products.length === 0 || m.applies_to_products.includes(p.id));
     if (applicable.length > 0) {
-      modSec.classList.remove('hidden');
-      modList.innerHTML = applicable.map(m => `
-        <label class="flex items-center justify-between p-2.5 rounded-xl border border-stone-200 bg-stone-50 cursor-pointer text-xs">
-          <div class="flex items-center gap-2">
-            <input type="checkbox" onchange="window.toggleModifierOption('', '${m.id}', this.checked, false)" class="accent-amber-600 w-4 h-4">
-            <span class="font-semibold text-stone-800">${escapeHtml(m.name)}</span>
-          </div>
-          <span class="font-mono font-bold text-amber-800">${Number(m.price) > 0 ? `+$${Number(m.price).toFixed(2)}` : 'Sin costo'}</span>
-        </label>
-      `).join('');
+      modSec?.classList.remove('hidden');
+      if (modList) {
+        modList.innerHTML = applicable.map(m => `
+          <label class="flex items-center justify-between p-2.5 rounded-xl border border-stone-200 bg-stone-50 cursor-pointer text-xs">
+            <div class="flex items-center gap-2">
+              <input type="checkbox" onchange="window.toggleModifierOption('', '${m.id}', this.checked, false)" class="accent-amber-600 w-4 h-4">
+              <span class="font-semibold text-stone-800">${escapeHtml(m.name)}</span>
+            </div>
+            <span class="font-mono font-bold text-amber-800">${Number(m.price) > 0 ? `+$${Number(m.price).toFixed(2)}` : 'Sin costo'}</span>
+          </label>
+        `).join('');
+      }
     } else {
-      modSec.classList.add('hidden');
+      modSec?.classList.add('hidden');
     }
   }
+
+  const addBtn = document.getElementById('modalAddBtn');
+  if (addBtn) addBtn.onclick = addCurrentModalToCart;
 
   updateModalFinalPrice();
   document.getElementById('productModal').classList.remove('hidden');
@@ -536,14 +556,16 @@ function toggleModifierOption(groupId, optionId, checked, isSingle) {
 
 function changeModalQty(delta) {
   modalQty = Math.max(1, modalQty + delta);
-  document.getElementById('modalQtyDisplay').innerText = modalQty;
+  const qtyEl = document.getElementById('modalQtyDisplay');
+  if (qtyEl) qtyEl.innerText = modalQty;
   updateModalFinalPrice();
 }
 
 function updateModalFinalPrice() {
   if (!currentModalProduct) return;
   const pricing = validateAndPriceModifiers(currentModalProduct, currentModalGroups, legacyModifiers, modalSelections);
-  document.getElementById('modalFinalPrice').innerText = `$${(pricing.unitPrice * modalQty).toFixed(2)}`;
+  const priceEl = document.getElementById('modalFinalPrice');
+  if (priceEl) priceEl.innerText = `$${(pricing.unitPrice * modalQty).toFixed(2)}`;
 }
 
 async function addCurrentModalToCart() {
@@ -572,7 +594,7 @@ async function addCurrentModalToCart() {
         notes: note
       });
       closeProductModal();
-      showToast(`Agregado al carrito grupal (${context.guest_name})`, 'success');
+      showToast(`Agregado al carrito (${context.guest_name})`, 'success');
     } catch (err) {
       showToast(`Error: ${err.message}`, 'error');
     }
@@ -609,7 +631,9 @@ function getCurrentTotals() {
 
 function renderCart() {
   const items = getActiveCartItems();
+  const hasItems = items.length > 0;
   const totalQty = items.reduce((acc, it) => acc + Number(it.qty), 0);
+
   const navBadge = document.getElementById('navOrderBadge');
   if (navBadge) {
     navBadge.innerText = totalQty;
@@ -618,11 +642,27 @@ function renderCart() {
   const countBadge = document.getElementById('orderItemsCountBadge');
   if (countBadge) countBadge.innerText = `${totalQty} ítems`;
 
+  // Ocultar formulario de envío y botón cuando no hay platillos nuevos por enviar
+  const extrasBox = document.getElementById('checkoutExtrasBox');
+  const sendBtn = document.getElementById('btnSendOrder');
+  const notesCard = document.getElementById('orderCustomerNotes')?.closest('.bg-white');
+  if (extrasBox) extrasBox.classList.toggle('hidden', !hasItems);
+  if (sendBtn) sendBtn.classList.toggle('hidden', !hasItems || !orderingEnabled);
+  if (notesCard) notesCard.classList.toggle('hidden', !hasItems);
+
   const list = document.getElementById('orderItemsList');
   if (!list) return;
 
-  if (items.length === 0) {
-    list.innerHTML = '<p class="text-xs text-stone-400 text-center py-8">Tu orden está vacía.</p>';
+  if (!hasItems) {
+    list.innerHTML = `
+      <div class="text-center py-8 space-y-2">
+        <p class="text-xs text-stone-500 font-medium">${activeOrder ? 'Tu pedido ya fue enviado a cocina ✓' : 'No hay platillos pendientes por enviar.'}</p>
+        <p class="text-[11px] text-stone-400">Si deseas agregar algo más a tu ticket, selecciónalo desde el menú.</p>
+        <button onclick="window.switchView('menu')" class="mt-2 px-4 py-2 rounded-xl bg-stone-900 text-white text-xs font-bold">
+          📖 Volver al Menú
+        </button>
+      </div>
+    `;
   } else {
     const byGuest = {};
     items.forEach((it, idx) => {
@@ -670,6 +710,7 @@ function renderCart() {
   const totEl = document.getElementById('orderTotal');
   if (subEl) subEl.innerText = `$${subtotal.toFixed(2)}${deliveryFee > 0 ? ` (+ $${deliveryFee.toFixed(2)} envío)` : ''}`;
   if (totEl) totEl.innerText = `$${total.toFixed(2)} MXN`;
+  updateSendButtonLabel();
   updateCashChangePreview();
 }
 
@@ -724,13 +765,15 @@ function buildLocalOrderSummaryForWhatsApp(items, cashTendered) {
 }
 
 async function sendOrder() {
+  if (isSubmittingOrder) return;
+
   const items = getActiveCartItems();
   if (items.length === 0) {
-    showToast('Agrega al menos un platillo antes de confirmar.', 'warning');
+    showToast('No tienes platillos nuevos por enviar.', 'warning');
     return;
   }
 
-  const deliveryMode = restaurant?.order_delivery_mode || 'KDS'; // 'KDS' | 'WHATSAPP' | 'BOTH'
+  const deliveryMode = restaurant?.order_delivery_mode || 'KDS';
   const whatsappNumber = restaurant?.whatsapp_number || '';
 
   if ((deliveryMode === 'WHATSAPP' || deliveryMode === 'BOTH') && !whatsappNumber) {
@@ -749,18 +792,22 @@ async function sendOrder() {
     return;
   }
 
+  isSubmittingOrder = true;
   const btn = document.getElementById('btnSendOrder');
-  if (btn) btn.disabled = true;
+  if (btn) {
+    btn.disabled = true;
+    btn.innerText = 'Enviando...';
+  }
 
   try {
     let orderResult = null;
+    const itemsCopy = [...items];
 
-    // 1. Si el Admin eligió KDS o BOTH, registramos directo en la Comanda del Admin
     if (deliveryMode === 'KDS' || deliveryMode === 'BOTH') {
       const onesignalPlayerId = window.OneSignal?.User?.PushSubscription?.id || null;
       orderResult = await submitOrderViaRPC({
         context,
-        itemsToOrder: items,
+        itemsToOrder: itemsCopy,
         customerName: context.guest_name || 'Cliente',
         customerPhone,
         deliveryAddress,
@@ -773,15 +820,23 @@ async function sendOrder() {
         onesignalPlayerId,
         closeSession: false
       });
-      showToast(`¡Pedido #${orderResult.order_number} enviado a Comandas!`, 'success');
+
+      const msg = orderResult.merged
+        ? `➕ ¡Platillos sumados a tu ticket #${orderResult.order_number}!`
+        : `¡Pedido #${orderResult.order_number} enviado a cocina!`;
+      showToast(msg, 'success');
     } else {
-      // Modo solo WHATSAPP: no crea comanda en el Admin, solo arma el resumen y limpia carrito
-      orderResult = buildLocalOrderSummaryForWhatsApp(items, cashTendered);
+      orderResult = buildLocalOrderSummaryForWhatsApp(itemsCopy, cashTendered);
       await clearActiveGroupCart();
       showToast('Abriendo WhatsApp con tu pedido...', 'success');
     }
 
-    // 2. Si el Admin eligió WHATSAPP o BOTH, abrimos el enlace wa.me al número configurado
+    // Vaciar ambos carritos en memoria de inmediato para impedir envíos duplicados
+    localCart = [];
+    groupCartSummary = resetGroupCartLocal();
+    if (document.getElementById('orderCustomerNotes')) document.getElementById('orderCustomerNotes').value = '';
+    renderCart();
+
     if (deliveryMode === 'WHATSAPP' || deliveryMode === 'BOTH') {
       const waUrl = buildWhatsAppOrderUrl({
         whatsappNumber,
@@ -801,15 +856,15 @@ async function sendOrder() {
       window.open(waUrl, '_blank');
     }
 
-    localCart = [];
-    if (document.getElementById('orderCustomerNotes')) document.getElementById('orderCustomerNotes').value = '';
     await loadMenuData();
     renderAll();
     switchView('menu');
   } catch (err) {
     showToast(err.message || 'No se pudo procesar tu pedido', 'error');
   } finally {
+    isSubmittingOrder = false;
     if (btn) btn.disabled = false;
+    updateSendButtonLabel();
   }
 }
 
