@@ -48,8 +48,13 @@ let deliveryState = { lat: null, lng: null, fee: 0, infoText: '' };
 
 let waiterCooldownTimer = null;
 let waiterCooldownSecs = 0;
-let splitMode = 'equal';
-let splitPersons = [];
+let billRequestedRecently = false;
+
+// Estado de división de cuenta
+let splitMode = 'equal';          // 'equal' | 'by_person'
+let splitPersonSubMode = 'items'; // 'items' | 'amount'
+let splitOrderUnits = [];         // [{ unitId, title, price, guest_name }]
+let splitPersons = [];            // [{ id, name, amount, paid, unitIds: [] }]
 
 const STATUS_LABELS = {
   pending: { text: '🟡 Recibido en Cocina', cls: 'bg-amber-100 text-amber-900 border-amber-200' },
@@ -60,8 +65,9 @@ const STATUS_LABELS = {
 
 Object.assign(window, {
   connectWifi, callWaiter, requestBillFromTable, handleClientModifyOrder,
-  openSplitBillModal, closeSplitBillModal, selectSplitMode, calculateEqualSplit,
-  addSplitPerson, removeSplitPerson, updatePersonAmount, saveSplitBill,
+  openSplitBillModal, closeSplitBillModal, selectSplitMode, selectSplitPersonSubMode,
+  calculateEqualSplit, addSplitPerson, removeSplitPerson, toggleUnitForPerson,
+  updatePersonAmount, saveSplitBill,
   sendTicketToMyWhatsApp, handleSearch, clearSearchInput, filterByType,
   scrollToCategory, openProductModal, closeProductModal, toggleModifierOption,
   changeModalQty, addCurrentModalToCart, updateCartQty, removeCartItem,
@@ -84,6 +90,8 @@ async function initMenu() {
 
   orderingEnabled = applyReadOnlyMode(restaurant);
   ensureCheckoutExtrasUI();
+  ensurePayBillButtonInTracker();
+  ensureSplitSubModeUI();
   updateSendButtonLabel();
   await loadMenuData();
 
@@ -104,6 +112,53 @@ async function initMenu() {
 
   renderAll();
   subscribeMenuRealtime();
+}
+
+/**
+ * Inyecta el botón "Pagar la Cuenta" dentro de #liveOrderTracker para llamar al mesero en automático.
+ */
+function ensurePayBillButtonInTracker() {
+  const tracker = document.getElementById('liveOrderTracker');
+  if (!tracker || document.getElementById('btnPayBillNow')) return;
+
+  const waBtn = tracker.querySelector('button[onclick*="sendTicketToMyWhatsApp"]');
+  const payBtn = document.createElement('button');
+  payBtn.id = 'btnPayBillNow';
+  payBtn.type = 'button';
+  payBtn.onclick = requestBillFromTable;
+  payBtn.className = 'w-full bg-stone-900 hover:bg-stone-800 active:scale-95 text-white font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2 shadow-md transition';
+  payBtn.innerHTML = '<span>💳 Pagar la Cuenta (Llamar al Mesero)</span>';
+
+  if (waBtn && waBtn.parentNode) {
+    waBtn.parentNode.insertBefore(payBtn, waBtn);
+  } else {
+    tracker.querySelector('.bg-white')?.appendChild(payBtn);
+  }
+}
+
+/**
+ * Inyecta el selector "Por Artículos" vs "Por Cantidad" y el aviso de faltantes en #splitByPersonArea.
+ */
+function ensureSplitSubModeUI() {
+  const area = document.getElementById('splitByPersonArea');
+  if (!area || document.getElementById('splitPersonSubModeBar')) return;
+
+  const bar = document.createElement('div');
+  bar.id = 'splitPersonSubModeBar';
+  bar.className = 'space-y-2.5';
+  bar.innerHTML = `
+    <div class="grid grid-cols-2 gap-1.5 bg-stone-100 p-1 rounded-xl text-[11px] font-bold">
+      <button type="button" id="btnSubModeItems" onclick="window.selectSplitPersonSubMode('items')" class="py-1.5 rounded-lg bg-white text-stone-900 shadow-xs transition">
+        🍽️ Por Artículos
+      </button>
+      <button type="button" id="btnSubModeAmount" onclick="window.selectSplitPersonSubMode('amount')" class="py-1.5 rounded-lg text-stone-500 transition">
+        💵 Por Cantidad ($)
+      </button>
+    </div>
+    <div id="splitMissingBanner" class="rounded-2xl p-3 border text-xs space-y-1.5"></div>
+  `;
+
+  area.prepend(bar);
 }
 
 function updateSendButtonLabel() {
@@ -332,6 +387,7 @@ function renderLiveOrderTracker() {
   if (!box) return;
   if (!activeOrder) { box.classList.add('hidden'); return; }
 
+  ensurePayBillButtonInTracker();
   box.classList.remove('hidden');
   document.getElementById('trackerOrderId').innerText = `#${activeOrder.order_number || (activeOrder.id || '').substring(0, 6).toUpperCase()}`;
   const stInfo = STATUS_LABELS[activeOrder.status] || { text: activeOrder.status, cls: 'bg-stone-100 text-stone-800 border-stone-200' };
@@ -355,6 +411,17 @@ function renderLiveOrderTracker() {
     `;
   }).join('');
   document.getElementById('trackerTotalAmount').innerText = `$${Number(activeOrder.total || 0).toFixed(2)} MXN`;
+
+  const splitBadge = document.getElementById('trackerSplitSummaryBadge');
+  const splitTxt = document.getElementById('trackerSplitSummaryText');
+  if (splitBadge && splitTxt) {
+    if (activeOrder.split_type && activeOrder.split_type !== 'single' && Array.isArray(activeOrder.split_details) && activeOrder.split_details.length > 0) {
+      splitBadge.classList.remove('hidden');
+      splitTxt.innerText = activeOrder.split_details.map(p => `${p.name}: $${Number(p.amount).toFixed(0)}`).join(' · ');
+    } else {
+      splitBadge.classList.add('hidden');
+    }
+  }
 }
 
 function renderTypesFilter() {
@@ -642,7 +709,6 @@ function renderCart() {
   const countBadge = document.getElementById('orderItemsCountBadge');
   if (countBadge) countBadge.innerText = `${totalQty} ítems`;
 
-  // Ocultar formulario de envío y botón cuando no hay platillos nuevos por enviar
   const extrasBox = document.getElementById('checkoutExtrasBox');
   const sendBtn = document.getElementById('btnSendOrder');
   const notesCard = document.getElementById('orderCustomerNotes')?.closest('.bg-white');
@@ -831,7 +897,6 @@ async function sendOrder() {
       showToast('Abriendo WhatsApp con tu pedido...', 'success');
     }
 
-    // Vaciar ambos carritos en memoria de inmediato para impedir envíos duplicados
     localCart = [];
     groupCartSummary = resetGroupCartLocal();
     if (document.getElementById('orderCustomerNotes')) document.getElementById('orderCustomerNotes').value = '';
@@ -907,8 +972,10 @@ function connectWifi() {
   alert(`📶 Red Wi-Fi:\nRed: ${ssid}\nContraseña: ${pass}`);
 }
 
-async function callWaiter() {
-  if (waiterCooldownSecs > 0) return showToast(`Espera ${waiterCooldownSecs}s para volver a llamar.`, 'info');
+async function callWaiter(forceImmediate = false, customToastMsg = null) {
+  if (!forceImmediate && waiterCooldownSecs > 0) {
+    return showToast(`Espera ${waiterCooldownSecs}s para volver a llamar.`, 'info');
+  }
   const { error } = await dbWrite(client.from('waiter_calls').insert([{
     id: generateUUID(),
     restaurant_id: context.restaurant_id,
@@ -916,8 +983,9 @@ async function callWaiter() {
     status: 'pending',
     called_at: new Date().toISOString()
   }]), 'llamar al mesero');
-  if (error) return;
-  showToast(`🔔 Mesero notificado (${context.table_label})`, 'success');
+  if (error) return false;
+
+  showToast(customToastMsg || `🔔 Mesero notificado (${context.table_label})`, 'success');
   waiterCooldownSecs = 45;
   clearInterval(waiterCooldownTimer);
   waiterCooldownTimer = setInterval(() => {
@@ -928,12 +996,54 @@ async function callWaiter() {
       if (btnTxt) btnTxt.innerText = '🔔 Mesero';
     } else if (btnTxt) btnTxt.innerText = `⏱ ${waiterCooldownSecs}s`;
   }, 1000);
+  return true;
 }
 
+/**
+ * Botón "Pagar la Cuenta": marca la mesa como 'bill_requested' y llama al mesero en automático.
+ */
 async function requestBillFromTable() {
-  await client.from('tables').update({ status: 'bill_requested' }).eq('restaurant_id', context.restaurant_id).eq('table_number', context.table_number);
-  await callWaiter();
-  showToast('💳 Solicitud de cuenta enviada.', 'success');
+  if (billRequestedRecently) {
+    showToast('Ya avisamos al mesero para llevar tu cuenta. Enseguida te atiende.', 'info');
+    return;
+  }
+
+  const payBtn = document.getElementById('btnPayBillNow');
+  if (payBtn) {
+    payBtn.disabled = true;
+    payBtn.innerHTML = '<span>⏳ Avisando al mesero...</span>';
+  }
+
+  try {
+    await client
+      .from('tables')
+      .update({ status: 'bill_requested' })
+      .eq('restaurant_id', context.restaurant_id)
+      .eq('table_number', context.table_number);
+
+    await callWaiter(true, `💳 ¡Cuenta solicitada! El mesero va en camino a ${context.table_label}.`);
+
+    billRequestedRecently = true;
+    if (payBtn) {
+      payBtn.innerHTML = '<span>✓ Cuenta Solicitada — Mesero en Camino</span>';
+      payBtn.className = 'w-full bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm';
+    }
+
+    setTimeout(() => {
+      billRequestedRecently = false;
+      if (payBtn) {
+        payBtn.disabled = false;
+        payBtn.innerHTML = '<span>💳 Pagar la Cuenta (Llamar al Mesero)</span>';
+        payBtn.className = 'w-full bg-stone-900 hover:bg-stone-800 active:scale-95 text-white font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2 shadow-md transition';
+      }
+    }, 30000);
+  } catch (err) {
+    showToast('No se pudo solicitar la cuenta. Intenta de nuevo.', 'error');
+    if (payBtn) {
+      payBtn.disabled = false;
+      payBtn.innerHTML = '<span>💳 Pagar la Cuenta (Llamar al Mesero)</span>';
+    }
+  }
 }
 
 async function handleClientModifyOrder() {
@@ -942,23 +1052,114 @@ async function handleClientModifyOrder() {
   if (wantWaiter) callWaiter();
 }
 
+// ============================================================================
+// DIVISIÓN DE CUENTA MEJORADA (Partes iguales | Por Artículos | Por Cantidad)
+// ============================================================================
+
+function buildOrderUnits(order) {
+  const items = (order?.items?.length ? order.items : order?.items_snapshot) || [];
+  const units = [];
+  items.forEach((it, idx) => {
+    const qty = Math.max(1, Number(it.qty || 1));
+    const unitPrice = Number(it.price || it.unit_price || 0);
+    for (let q = 0; q < qty; q++) {
+      units.push({
+        unitId: `u_${idx}_${q}`,
+        title: it.title || 'Platillo',
+        price: unitPrice,
+        guest_name: it.guest_name || ''
+      });
+    }
+  });
+  return units;
+}
+
 function openSplitBillModal() {
   if (!activeOrder) return;
+  ensureSplitSubModeUI();
+
   document.getElementById('splitModalTableBadge').innerText = context.table_number;
   document.getElementById('splitModalTotalBadge').innerText = `$${Number(activeOrder.total || 0).toFixed(2)}`;
-  splitPersons = Array.isArray(activeOrder.split_details) ? JSON.parse(JSON.stringify(activeOrder.split_details)) : [];
+
+  splitOrderUnits = buildOrderUnits(activeOrder);
+
+  if (Array.isArray(activeOrder.split_details) && activeOrder.split_details.length > 0 && activeOrder.split_type === 'by_person') {
+    splitPersons = activeOrder.split_details.map((p, idx) => ({
+      id: p.id || `p_${idx}_${Date.now()}`,
+      name: p.name,
+      amount: Number(p.amount || 0),
+      paid: Boolean(p.paid),
+      unitIds: Array.isArray(p.unitIds) ? [...p.unitIds] : []
+    }));
+    const hasAssignedUnits = splitPersons.some(p => p.unitIds.length > 0);
+    splitPersonSubMode = hasAssignedUnits ? 'items' : 'amount';
+  } else {
+    // Pre-poblar con los nombres de los comensales del pedido grupal si existen
+    const guestNames = [...new Set(splitOrderUnits.map(u => u.guest_name).filter(Boolean))];
+    if (guestNames.length > 0) {
+      splitPersons = guestNames.map((gName, idx) => {
+        const myUnits = splitOrderUnits.filter(u => u.guest_name === gName);
+        return {
+          id: `p_${idx}_${Date.now()}`,
+          name: gName,
+          amount: Number(myUnits.reduce((s, u) => s + u.price, 0).toFixed(2)),
+          paid: false,
+          unitIds: myUnits.map(u => u.unitId)
+        };
+      });
+    } else {
+      splitPersons = [];
+    }
+    splitPersonSubMode = 'items';
+  }
+
   selectSplitMode(activeOrder.split_type === 'by_person' ? 'by_person' : 'equal');
+  selectSplitPersonSubMode(splitPersonSubMode);
   calculateEqualSplit();
   renderSplitPersons();
   document.getElementById('splitBillModal').classList.remove('hidden');
 }
 
-function closeSplitBillModal() { document.getElementById('splitBillModal')?.classList.add('hidden'); }
+function closeSplitBillModal() {
+  document.getElementById('splitBillModal')?.classList.add('hidden');
+}
+
 function selectSplitMode(mode) {
   splitMode = mode;
   document.getElementById('splitEqualArea')?.classList.toggle('hidden', mode !== 'equal');
   document.getElementById('splitByPersonArea')?.classList.toggle('hidden', mode !== 'by_person');
+
+  const btnEq = document.getElementById('btnSplitEqual');
+  const btnIt = document.getElementById('btnSplitItems');
+  if (btnEq) {
+    btnEq.className = mode === 'equal'
+      ? 'p-3 border-2 border-amber-600 bg-amber-50 rounded-2xl text-amber-950 text-center transition font-bold shadow-xs'
+      : 'p-3 border-2 border-stone-200 bg-white rounded-2xl text-stone-700 text-center transition font-bold';
+  }
+  if (btnIt) {
+    btnIt.className = mode === 'by_person'
+      ? 'p-3 border-2 border-amber-600 bg-amber-50 rounded-2xl text-amber-950 text-center transition font-bold shadow-xs'
+      : 'p-3 border-2 border-stone-200 bg-white rounded-2xl text-stone-700 text-center transition font-bold';
+  }
 }
+
+function selectSplitPersonSubMode(subMode) {
+  splitPersonSubMode = subMode;
+  const bItems = document.getElementById('btnSubModeItems');
+  const bAmount = document.getElementById('btnSubModeAmount');
+  if (bItems) {
+    bItems.className = subMode === 'items'
+      ? 'py-1.5 rounded-lg bg-white text-stone-900 shadow-xs transition'
+      : 'py-1.5 rounded-lg text-stone-500 transition';
+  }
+  if (bAmount) {
+    bAmount.className = subMode === 'amount'
+      ? 'py-1.5 rounded-lg bg-white text-stone-900 shadow-xs transition'
+      : 'py-1.5 rounded-lg text-stone-500 transition';
+  }
+  renderSplitPersons();
+}
+
 function calculateEqualSplit() {
   if (!activeOrder) return;
   const count = Math.max(2, parseInt(document.getElementById('splitCountInput')?.value) || 2);
@@ -966,38 +1167,247 @@ function calculateEqualSplit() {
   const el = document.getElementById('equalSplitPerPerson');
   if (el) el.innerText = `$${per.toFixed(2)} MXN`;
 }
+
 function addSplitPerson() {
   const inp = document.getElementById('splitPersonNameInput');
-  if (!inp?.value?.trim()) return;
-  splitPersons.push({ name: inp.value.trim(), amount: 0, paid: false });
+  const name = inp?.value?.trim();
+  if (!name) return;
+  splitPersons.push({
+    id: `p_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    name,
+    amount: 0,
+    paid: false,
+    unitIds: []
+  });
   inp.value = '';
   renderSplitPersons();
 }
-function removeSplitPerson(idx) { splitPersons.splice(idx, 1); renderSplitPersons(); }
-function updatePersonAmount(idx, val) { if (splitPersons[idx]) splitPersons[idx].amount = Math.max(0, parseFloat(val) || 0); }
+
+function removeSplitPerson(idx) {
+  splitPersons.splice(idx, 1);
+  renderSplitPersons();
+}
+
+function toggleUnitForPerson(personIdx, unitId) {
+  const person = splitPersons[personIdx];
+  if (!person) return;
+
+  const alreadyMine = person.unitIds.includes(unitId);
+  // Quitar esta unidad de cualquier otro comensal para evitar cobro doble
+  splitPersons.forEach(p => {
+    p.unitIds = (p.unitIds || []).filter(id => id !== unitId);
+  });
+
+  if (!alreadyMine) {
+    person.unitIds.push(unitId);
+  }
+
+  // Recalcular montos desde artículos asignados
+  splitPersons.forEach(p => {
+    const sum = (p.unitIds || []).reduce((acc, uId) => {
+      const u = splitOrderUnits.find(x => x.unitId === uId);
+      return acc + (u ? u.price : 0);
+    }, 0);
+    p.amount = Number(sum.toFixed(2));
+  });
+
+  renderSplitPersons();
+}
+
+function updatePersonAmount(idx, val) {
+  if (!splitPersons[idx]) return;
+  splitPersons[idx].amount = Math.max(0, parseFloat(val) || 0);
+  updateSplitTotalsAndBanner();
+}
+
+function updateSplitTotalsAndBanner() {
+  if (!activeOrder) return;
+  const orderTotal = Number(activeOrder.total || 0);
+  const assignedSum = splitPersons.reduce((acc, p) => acc + Number(p.amount || 0), 0);
+  const remaining = Number((orderTotal - assignedSum).toFixed(2));
+
+  const elAssigned = document.getElementById('splitAssignedTotal');
+  const elRemaining = document.getElementById('splitRemainingTotal');
+  if (elAssigned) elAssigned.innerText = `$${assignedSum.toFixed(2)} MXN`;
+
+  if (elRemaining) {
+    if (remaining > 0.01) {
+      elRemaining.innerText = `Faltan $${remaining.toFixed(2)} MXN`;
+      elRemaining.className = 'text-rose-600 font-black';
+    } else if (remaining < -0.01) {
+      elRemaining.innerText = `Excedido por $${Math.abs(remaining).toFixed(2)} MXN`;
+      elRemaining.className = 'text-rose-600 font-black';
+    } else {
+      elRemaining.innerText = '$0.00 (Cuenta cuadrada ✓)';
+      elRemaining.className = 'text-emerald-700 font-black';
+    }
+  }
+
+  const banner = document.getElementById('splitMissingBanner');
+  if (!banner) return;
+
+  if (splitPersonSubMode === 'items') {
+    const assignedIds = new Set(splitPersons.flatMap(p => p.unitIds || []));
+    const missingUnits = splitOrderUnits.filter(u => !assignedIds.has(u.unitId));
+    const missingTotal = missingUnits.reduce((acc, u) => acc + u.price, 0);
+
+    if (missingUnits.length > 0) {
+      banner.className = 'rounded-2xl p-3 border border-amber-300 bg-amber-50 text-amber-950 text-xs space-y-1.5';
+      banner.innerHTML = `
+        <div class="font-bold flex justify-between items-center">
+          <span>⚠️ Faltan ${missingUnits.length} artículo(s) por asignar</span>
+          <span class="font-mono">$${missingTotal.toFixed(2)}</span>
+        </div>
+        <ul class="list-disc pl-4 space-y-0.5 text-[11px] text-amber-900">
+          ${missingUnits.map(u => `<li>${escapeHtml(u.title)} — <b class="font-mono">$${u.price.toFixed(2)}</b></li>`).join('')}
+        </ul>
+      `;
+    } else {
+      banner.className = 'rounded-2xl p-3 border border-emerald-300 bg-emerald-50 text-emerald-900 text-xs font-bold';
+      banner.innerHTML = '✅ Todos los artículos están asignados. La cuenta está lista para liquidar.';
+    }
+  } else {
+    if (remaining > 0.01) {
+      banner.className = 'rounded-2xl p-3 border border-rose-300 bg-rose-50 text-rose-900 text-xs font-bold';
+      banner.innerHTML = `⚠️ Faltan <span class="font-mono">$${remaining.toFixed(2)} MXN</span> por agregar para liquidar la cuenta total ($${orderTotal.toFixed(2)}).`;
+    } else if (remaining < -0.01) {
+      banner.className = 'rounded-2xl p-3 border border-rose-300 bg-rose-50 text-rose-900 text-xs font-bold';
+      banner.innerHTML = `⚠️ La suma se pasa por <span class="font-mono">$${Math.abs(remaining).toFixed(2)} MXN</span> respecto al total de la cuenta.`;
+    } else {
+      banner.className = 'rounded-2xl p-3 border border-emerald-300 bg-emerald-50 text-emerald-900 text-xs font-bold';
+      banner.innerHTML = `✅ Cuenta liquidada exacta ($${orderTotal.toFixed(2)} MXN).`;
+    }
+  }
+}
+
 function renderSplitPersons() {
   const cont = document.getElementById('splitPersonsList');
   if (!cont) return;
-  cont.innerHTML = splitPersons.map((p, idx) => `
-    <div class="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-stone-50 border">
-      <span class="font-bold text-stone-800 flex-grow">${escapeHtml(p.name)}</span>
-      <input type="number" step="0.5" value="${p.amount}" oninput="window.updatePersonAmount(${idx}, this.value)" class="w-24 border rounded-lg px-2 py-1 font-mono text-right bg-white">
-      <button onclick="window.removeSplitPerson(${idx})" class="text-rose-500 font-bold px-1">✕</button>
-    </div>
-  `).join('');
+
+  if (splitPersons.length === 0) {
+    cont.innerHTML = '<p class="text-center text-stone-400 py-4 text-xs">Añade el nombre de cada comensal arriba para empezar a dividir.</p>';
+    updateSplitTotalsAndBanner();
+    return;
+  }
+
+  if (splitPersonSubMode === 'items') {
+    const unitOwnerMap = {};
+    splitPersons.forEach(p => {
+      (p.unitIds || []).forEach(uId => { unitOwnerMap[uId] = p.name; });
+    });
+
+    cont.innerHTML = splitPersons.map((p, idx) => `
+      <div class="p-3 rounded-2xl bg-stone-50 border border-stone-200 space-y-2">
+        <div class="flex items-center justify-between border-b border-stone-200 pb-1.5">
+          <span class="font-black text-stone-900 text-xs">👤 ${escapeHtml(p.name)}</span>
+          <div class="flex items-center gap-2">
+            <span class="font-mono font-black text-emerald-700 text-xs">$${Number(p.amount || 0).toFixed(2)}</span>
+            <button type="button" onclick="window.removeSplitPerson(${idx})" class="text-rose-500 font-bold px-1">✕</button>
+          </div>
+        </div>
+        <div class="space-y-1">
+          ${splitOrderUnits.map(u => {
+            const isMine = (p.unitIds || []).includes(u.unitId);
+            const owner = unitOwnerMap[u.unitId];
+            const ownedByOther = owner && !isMine;
+            return `
+              <label class="flex items-center justify-between gap-2 px-2 py-1.5 rounded-xl border text-[11px] cursor-pointer transition ${
+                isMine
+                  ? 'bg-amber-50 border-amber-400 font-bold text-stone-900'
+                  : (ownedByOther ? 'bg-stone-100 border-stone-200 text-stone-400' : 'bg-white border-stone-200 text-stone-700 hover:border-amber-300')
+              }">
+                <div class="flex items-center gap-2 min-w-0">
+                  <input type="checkbox" ${isMine ? 'checked' : ''} onchange="window.toggleUnitForPerson(${idx}, '${u.unitId}')" class="accent-amber-600 w-3.5 h-3.5 flex-shrink-0">
+                  <span class="truncate">${escapeHtml(u.title)}</span>
+                  ${ownedByOther ? `<span class="text-[9px] bg-stone-200 text-stone-600 px-1.5 py-0.5 rounded-full flex-shrink-0">de ${escapeHtml(owner)}</span>` : ''}
+                </div>
+                <span class="font-mono font-bold flex-shrink-0">$${u.price.toFixed(2)}</span>
+              </label>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `).join('');
+  } else {
+    cont.innerHTML = splitPersons.map((p, idx) => `
+      <div class="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-stone-50 border border-stone-200">
+        <span class="font-bold text-stone-800 flex-grow text-xs">👤 ${escapeHtml(p.name)}</span>
+        <div class="flex items-center gap-1">
+          <span class="text-stone-400 font-mono text-xs">$</span>
+          <input type="number" step="0.5" min="0" value="${p.amount || ''}" placeholder="0.00"
+            oninput="window.updatePersonAmount(${idx}, this.value)"
+            class="w-24 border rounded-lg px-2 py-1.5 font-mono text-right bg-white text-xs font-bold outline-none focus:border-amber-600">
+        </div>
+        <button type="button" onclick="window.removeSplitPerson(${idx})" class="text-rose-500 font-bold px-1">✕</button>
+      </div>
+    `).join('');
+  }
+
+  updateSplitTotalsAndBanner();
 }
+
 async function saveSplitBill() {
   if (!activeOrder) return;
+  const orderTotal = Number(activeOrder.total || 0);
+
+  if (splitMode === 'by_person') {
+    if (splitPersons.length === 0) {
+      showToast('Añade al menos un comensal para dividir la cuenta.', 'warning');
+      return;
+    }
+
+    if (splitPersonSubMode === 'items') {
+      const assignedIds = new Set(splitPersons.flatMap(p => p.unitIds || []));
+      const missingCount = splitOrderUnits.filter(u => !assignedIds.has(u.unitId)).length;
+      if (missingCount > 0) {
+        showToast(`Aún faltan ${missingCount} artículo(s) por asignar a un comensal.`, 'warning');
+        return;
+      }
+    } else {
+      const assignedSum = splitPersons.reduce((acc, p) => acc + Number(p.amount || 0), 0);
+      const diff = Number((orderTotal - assignedSum).toFixed(2));
+      if (diff > 0.01) {
+        showToast(`Faltan $${diff.toFixed(2)} MXN por asignar para liquidar la cuenta.`, 'warning');
+        return;
+      }
+      if (diff < -0.01) {
+        showToast(`La suma excede la cuenta por $${Math.abs(diff).toFixed(2)} MXN.`, 'warning');
+        return;
+      }
+    }
+  }
+
   const count = Math.max(2, parseInt(document.getElementById('splitCountInput')?.value) || 2);
   const details = splitMode === 'equal'
     ? Array.from({ length: count }, (_, i) => ({
         name: `Comensal ${i + 1}`,
-        amount: Number((Number(activeOrder.total || 0) / count).toFixed(2)),
+        amount: Number((orderTotal / count).toFixed(2)),
         paid: false
       }))
-    : splitPersons;
-  const { error } = await dbWrite(client.from('orders').update({ split_type: splitMode, split_details: details }).eq('id', activeOrder.id), 'dividir cuenta');
-  if (!error) { activeOrder.split_type = splitMode; activeOrder.split_details = details; closeSplitBillModal(); showToast('División guardada ✓', 'success'); }
+    : splitPersons.map(p => ({
+        id: p.id,
+        name: p.name,
+        amount: Number(Number(p.amount || 0).toFixed(2)),
+        paid: Boolean(p.paid),
+        unitIds: p.unitIds || [],
+        items: (p.unitIds || []).map(uId => {
+          const u = splitOrderUnits.find(x => x.unitId === uId);
+          return u ? { title: u.title, price: u.price } : null;
+        }).filter(Boolean)
+      }));
+
+  const { error } = await dbWrite(
+    client.from('orders').update({ split_type: splitMode, split_details: details }).eq('id', activeOrder.id),
+    'dividir cuenta'
+  );
+
+  if (!error) {
+    activeOrder.split_type = splitMode;
+    activeOrder.split_details = details;
+    renderLiveOrderTracker();
+    closeSplitBillModal();
+    showToast('División de cuenta guardada ✓', 'success');
+  }
 }
 
 function sendTicketToMyWhatsApp() {
